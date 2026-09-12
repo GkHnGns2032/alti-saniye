@@ -1,0 +1,43 @@
+{
+ "slug": "odd-one-out-7",
+ "sira": 2,
+ "title": "Odd One Out 7",
+ "name": "7. Sınıf Odd One Out",
+ "desc": "7. sınıfın 10 ünitesinden kelime tekrarı. Farklı olanı bul.",
+ "scoring": "plain",
+ "eyebrow": "7. sınıf kelimeleri",
+ "heroTop": "Odd one",
+ "heroBottom": "out",
+ "leadHtml": "Dört kelimeden biri gruba uymuyor. <b>6 saniye</b> içinde onu bul.",
+ "facts": [["20", "soru"], ["4", "kelime"], ["6", "saniye"], ["10", "ünite"]],
+ "playHint": "Farklı kelimeye dokun, sonunda skorunu gör.",
+ "sheetTag": "İNGİLİZCE · 7",
+ "messages": [
+  [0.9, "Kelime hazinen çok güçlü!"],
+  [0.7, "Çok iyi. Kaçırdığın birkaç kelimeye bak."],
+  [0.4, "İyi başlangıç. Aşağıdaki kelimeleri tekrar et."],
+  [-99, "Aşağıdaki kelimelerden başla, ikinci turda fark göreceksin."]
+ ],
+ "questions": [
+  {"c": "Unit 1 · Appearance", "q": "Which word is the odd one out?", "o": ["generous", "slim", "plump", "tall"], "a": 0, "tr": "slim, plump, tall dış görünüşü anlatır; generous kişilik (cömert)."},
+  {"c": "Unit 1 · Personality", "q": "Which word is the odd one out?", "o": ["honest", "helpful", "bald", "punctual"], "a": 2, "tr": "honest, helpful, punctual kişiliği anlatır; bald dış görünüş (kel)."},
+  {"c": "Unit 2 · Sports", "q": "Which word is the odd one out?", "o": ["helmet", "archery", "racket", "knee pad"], "a": 1, "tr": "helmet, racket, knee pad spor malzemesi; archery okçuluk, bir spor dalı."},
+  {"c": "Unit 2 · Sports", "q": "Which word is the odd one out?", "o": ["skiing", "snowboard", "ice skating", "handball"], "a": 3, "tr": "skiing, snowboard, ice skating kar ya da buz sporu; handball hentbol."},
+  {"c": "Unit 3 · Biographies", "q": "Which word is the odd one out?", "o": ["invent", "die", "discover", "win"], "a": 1, "tr": "invent, discover, win bir başarıyı anlatır; die ölmek."},
+  {"c": "Unit 3 · Biographies", "q": "Which word is the odd one out?", "o": ["poverty", "achievement", "award", "career"], "a": 0, "tr": "achievement, award, career başarıyla ilgili; poverty yoksulluk."},
+  {"c": "Unit 4 · Wild Animals", "q": "Which word is the odd one out?", "o": ["crocodile", "lizard", "snake", "giraffe"], "a": 3, "tr": "crocodile, lizard, snake sürüngen; giraffe memeli bir hayvan."},
+  {"c": "Unit 4 · Wild Animals", "q": "Which word is the odd one out?", "o": ["desert", "jungle", "tusk", "grassland"], "a": 2, "tr": "desert, jungle, grassland yaşam alanı; tusk filin uzun dişi."},
+  {"c": "Unit 5 · Television", "q": "Which word is the odd one out?", "o": ["remote control", "cartoon", "documentary", "sitcom"], "a": 0, "tr": "cartoon, documentary, sitcom TV programı türü; remote control kumanda."},
+  {"c": "Unit 5 · Television", "q": "Which word is the odd one out?", "o": ["informative", "harmful", "educational", "amusing"], "a": 1, "tr": "informative, educational, amusing programın iyi yanlarını anlatır; harmful zararlı."},
+  {"c": "Unit 6 · Celebrations", "q": "Which word is the odd one out?", "o": ["balloon", "confetti", "candle", "flour"], "a": 3, "tr": "balloon, confetti, candle parti malzemesi; flour un."},
+  {"c": "Unit 6 · Celebrations", "q": "Which word is the odd one out?", "o": ["graduation party", "farewell party", "guest list", "slumber party"], "a": 2, "tr": "Diğerleri parti türü; guest list davetli listesi."},
+  {"c": "Unit 7 · Dreams", "q": "Which word is the odd one out?", "o": ["goal", "pill", "dream", "hope"], "a": 1, "tr": "goal, dream, hope gelecekle ilgili istekler; pill hap."},
+  {"c": "Unit 7 · Dreams", "q": "Which one is the odd one out?", "o": ["traffic jam", "pass the exam", "get married", "run a business"], "a": 0, "tr": "Diğerleri gelecekte yapmak istediklerimiz; traffic jam trafik sıkışıklığı."},
+  {"c": "Unit 8 · Public Buildings", "q": "Which word is the odd one out?", "o": ["butcher", "greengrocer’s", "fire station", "bakery"], "a": 2, "tr": "butcher, greengrocer’s, bakery yiyecek satar; fire station itfaiye binası."},
+  {"c": "Unit 8 · Public Buildings", "q": "Which word is the odd one out?", "o": ["police station", "post office", "city hall", "roller coaster"], "a": 3, "tr": "police station, post office, city hall kamu binası; roller coaster lunapark treni."},
+  {"c": "Unit 9 · Environment", "q": "Which word is the odd one out?", "o": ["pollute", "recycle", "reduce", "reuse"], "a": 0, "tr": "recycle, reduce, reuse çevreyi korur; pollute kirletmek."},
+  {"c": "Unit 9 · Environment", "q": "Which word is the odd one out?", "o": ["deforestation", "global warming", "pollution", "solar energy"], "a": 3, "tr": "deforestation, global warming, pollution çevre sorunu; solar energy güneş enerjisi, bir çözüm."},
+  {"c": "Unit 10 · Planets", "q": "Which word is the odd one out?", "o": ["Mars", "the Moon", "Venus", "Jupiter"], "a": 1, "tr": "Mars, Venus, Jupiter gezegen; the Moon (Ay) bir uydu."},
+  {"c": "Unit 10 · Planets", "q": "Which word is the odd one out?", "o": ["comet", "asteroid", "crew", "star"], "a": 2, "tr": "comet, asteroid, star uzaydaki gök cisimleri; crew mürettebat."}
+ ]
+}
