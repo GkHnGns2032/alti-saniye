@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F3F4F8">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Altı Saniye İngilizce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;700&family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=Big+Shoulders+Display:wght@700;900&display=swap">
+<style>
+:root{
+ --paper:#F3F4F8;--sheet:#FFFFFF;--ink:#1A1C29;--muted:#5F6378;--line:#DADCE6;
+ --form:#C8325F;--form-soft:#F8E4EB;
+ --lit:#0F8A63;--lit-soft:#DCF3E9;--lit-text:#0B6B4C;
+ --miss:#D06A12;--miss-soft:#FBEBDB;--miss-text:#9A4E0A;
+ --shadow:0 1px 0 rgba(26,28,41,.04),0 10px 30px -18px rgba(26,28,41,.35);
+ --f-display:"Big Shoulders Display","Big Shoulders","Arial Narrow","Roboto Condensed",sans-serif;
+ --f-body:"Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+ --f-mono:"Atkinson Hyperlegible Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+ color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --paper:#111219;--sheet:#1A1B25;--ink:#EDEEF5;--muted:#A0A3B7;--line:#2D2F3D;
+ --form:#F06A92;--form-soft:#3A1F2B;
+ --lit:#35CC93;--lit-soft:#12382A;--lit-text:#7EE8BD;
+ --miss:#FF9E45;--miss-soft:#3C2615;--miss-text:#FFC388;
+ --shadow:0 1px 0 rgba(0,0,0,.2),0 14px 34px -18px rgba(0,0,0,.8);color-scheme:dark}}
+:root[data-theme="dark"]{
+ --paper:#111219;--sheet:#1A1B25;--ink:#EDEEF5;--muted:#A0A3B7;--line:#2D2F3D;
+ --form:#F06A92;--form-soft:#3A1F2B;
+ --lit:#35CC93;--lit-soft:#12382A;--lit-text:#7EE8BD;
+ --miss:#FF9E45;--miss-soft:#3C2615;--miss-text:#FFC388;
+ --shadow:0 1px 0 rgba(0,0,0,.2),0 14px 34px -18px rgba(0,0,0,.8);color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--form);outline-offset:3px}
+.mono{font-family:var(--f-mono);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Kabuk ---------- */
+.app{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:1fr;gap:28px;
+ padding-block:calc(12px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-bottom));
+ padding-inline:max(16px,env(safe-area-inset-left)) max(16px,env(safe-area-inset-right));max-width:1240px;margin:0 auto}
+.stage{min-width:0;display:flex;flex-direction:column}
+.stage>section{flex:1;display:flex;flex-direction:column;min-width:0}
+
+/* ---------- Optik cevap kâğıdı (masaüstü) ---------- */
+.sheet{display:none}
+@media (min-width:900px){
+ .app{grid-template-columns:268px minmax(0,1fr);gap:48px;padding-block:28px}
+ .sheet{display:flex;flex-direction:column;align-self:start;position:sticky;top:28px;background:var(--sheet);border:1.5px solid var(--form);border-radius:6px;padding:14px 14px 10px;box-shadow:var(--shadow)}
+}
+.sheet-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid var(--form);padding-bottom:8px;margin-bottom:6px;color:var(--form);font-size:11px;font-weight:700}
+.sheet-head b{font-family:var(--f-display);font-size:22px;letter-spacing:.02em;line-height:1}
+.sheet-cols{display:grid;grid-template-columns:30px repeat(4,1fr);color:var(--form);font-size:10px;text-align:center;padding:2px 6px 4px;opacity:.8}
+.sheet-rows{list-style:none;margin:0;padding:0;display:grid;gap:1px}
+.row{display:grid;grid-template-columns:30px repeat(4,1fr);align-items:center;padding:2.5px 6px;border-radius:4px;justify-items:center}
+.row:nth-child(5n){border-bottom:1px dashed color-mix(in srgb,var(--form) 45%,transparent);border-radius:4px 4px 0 0;padding-bottom:4px;margin-bottom:2px}
+.row .n{justify-self:start;font-family:var(--f-mono);font-size:11px;color:var(--form);font-variant-numeric:tabular-nums}
+.row.now{background:var(--form-soft)}
+.bub{--s:17px;width:var(--s);height:var(--s);border-radius:50%;border:1.4px solid var(--form);display:grid;place-items:center;font-family:var(--f-mono);font-size:9px;line-height:1;color:var(--form);flex-shrink:0;transition:background-color .25s,border-color .25s,color .25s,box-shadow .25s}
+.bub.lit{background:var(--lit);border-color:var(--lit);color:var(--sheet)}
+.bub.miss{background:var(--miss);border-color:var(--miss);color:var(--sheet)}
+.bub.ghost{border-color:var(--lit);border-width:2px;color:var(--lit-text);border-style:dashed}
+.sheet-foot{margin-top:8px;padding-top:8px;border-top:1.5px solid var(--form);display:flex;justify-content:space-between;color:var(--muted);font-size:10.5px}
+
+/* ---------- Ortak ---------- */
+.eyebrow{font-family:var(--f-mono);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--form)}
+.btn{border:0;border-radius:12px;min-height:52px;padding:0 22px;font-weight:700;font-size:18px;background:var(--ink);color:var(--paper);display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s ease}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.icon-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--sheet);display:grid;place-items:center;padding:0;color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;background:var(--form-soft);color:var(--form);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+/* ---------- Süre halkası ---------- */
+.ring{position:relative;width:var(--r,64px);height:var(--r,64px);flex-shrink:0}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+.ring .track{fill:none;stroke:var(--line);stroke-width:7}
+.ring .bar{fill:none;stroke:var(--form);stroke-width:7;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:0}
+.ring .digit{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-weight:900;font-size:calc(var(--r,64px) * .5);line-height:1;font-variant-numeric:tabular-nums}
+.ring.run .bar{animation:drain var(--dur,6s) linear forwards}
+.ring.hurry .digit{color:var(--form)}
+.ring.done .bar{animation:none;opacity:0}
+.app.paused .ring.run .bar,.app.paused .gap-fill.run{animation-play-state:paused}
+@keyframes drain{from{stroke-dashoffset:0}to{stroke-dashoffset:100}}
+
+/* ---------- Giriş ---------- */
+.intro{justify-content:center;gap:22px;padding-block:8px 4px;max-width:640px}
+.intro-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hero{display:flex;align-items:center;gap:18px}
+.hero .ring{--r:112px}
+.hero .ring.idle .bar{animation:drain 6s linear infinite}
+.hero h1{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(54px,15vw,104px);line-height:.86;letter-spacing:-.01em;text-transform:uppercase;text-wrap:balance}
+.hero h1 span{display:block;color:var(--form)}
+.lead{margin:0;font-size:18px;color:var(--muted);max-width:52ch}
+.lead b{color:var(--ink);font-weight:600}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-block:1.5px solid var(--line)}
+.facts div{padding:10px 4px;display:flex;flex-direction:column;gap:2px}
+.facts div+div{border-left:1.5px solid var(--line);padding-left:12px}
+.facts b{font-family:var(--f-display);font-size:34px;font-weight:900;line-height:1}
+.facts span{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.field{border:0;margin:0;padding:0;display:grid;gap:8px;min-width:0}
+.field legend{padding:0;margin-bottom:8px;font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{position:relative;display:block}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt .face{display:flex;gap:10px;align-items:flex-start;height:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--sheet);transition:border-color .15s,background-color .15s}
+.opt .face .bub{--s:20px;margin-top:1px}
+.opt .face strong{display:block;font-size:16px}
+.opt .face small{display:block;font-size:13px;color:var(--muted);line-height:1.35;margin-top:2px}
+.opt input:checked+.face{border-color:var(--ink)}
+.opt input:checked+.face .bub{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.opt input:focus-visible+.face{outline:3px solid var(--form);outline-offset:2px}
+.row2{display:flex;flex-wrap:wrap;gap:18px 28px;align-items:flex-end}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:var(--sheet)}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;min-width:58px;padding:0 12px;line-height:42px;text-align:center;font-family:var(--f-mono);font-size:14px}
+.seg label+label span{border-left:1.5px solid var(--line)}
+.seg input:checked+span{background:var(--ink);color:var(--paper)}
+.seg input:focus-visible+span{outline:3px solid var(--form);outline-offset:-3px}
+.switches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{position:relative}
+.sw input{position:absolute;opacity:0;pointer-events:none}
+.sw span{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:0 13px;border:1.5px solid var(--line);border-radius:999px;font-size:14px;background:var(--sheet)}
+.sw span::before{content:"";width:12px;height:12px;border-radius:50%;border:1.5px solid var(--muted);transition:background-color .15s}
+.sw input:checked+span{border-color:var(--ink)}
+.sw input:checked+span::before{background:var(--lit);border-color:var(--lit)}
+.sw input:focus-visible+span{outline:3px solid var(--form);outline-offset:2px}
+.start-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.start-row .btn{flex:1 1 220px;min-height:58px;font-size:20px}
+.best{font-size:13px;color:var(--muted)}
+.best:empty{display:none}
+.best b{color:var(--ink)}
+
+/* ---------- Soru ekranı ---------- */
+.play{gap:12px}
+.play-top{display:flex;align-items:center;gap:10px;min-height:44px}
+.play-top .where{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.play-top .count{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.08em}
+.play-top .count b{font-family:var(--f-display);font-weight:900;font-size:24px;color:var(--ink);letter-spacing:0;margin-right:2px}
+.dots{display:grid;grid-template-columns:repeat(25,1fr);gap:3px}
+.dots i{height:5px;border-radius:3px;background:var(--line)}
+.dots i.now{background:var(--ink)}
+.dots i.ok{background:var(--lit)}
+.dots i.no{background:var(--miss)}
+.dots i.skip{background:var(--muted);opacity:.55}
+@media (min-width:900px){.dots{display:none}}
+.ask{display:flex;gap:14px;align-items:flex-start;padding-block:10px 4px;margin-top:auto}
+.ask .ring{--r:62px}
+.question{margin:0;font-family:var(--f-body);font-weight:700;font-size:clamp(21px,5.6vw,40px);line-height:1.22;letter-spacing:-.01em;white-space:pre-line;overflow-wrap:anywhere;text-wrap:pretty;min-height:2.44em;align-self:center}
+.answers{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.ans{width:100%;min-height:60px;display:flex;align-items:center;gap:13px;text-align:left;padding:10px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--sheet);box-shadow:var(--shadow);font-size:clamp(18px,4.6vw,26px);font-weight:600;line-height:1.2;transition:border-color .2s,background-color .2s,opacity .25s,transform .12s}
+.ans .bub{--s:32px;font-size:15px;font-weight:700;border-width:2px}
+.ans .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.ans .mark{font-family:var(--f-mono);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.ans:not(:disabled):active{transform:scale(.985)}
+@media (hover:hover){.ans:not(:disabled):hover{border-color:var(--ink)}}
+.ans:disabled{cursor:default}
+.ans.is-lit{border-color:var(--lit);background:var(--lit-soft);color:var(--lit-text);opacity:1}
+.ans.is-lit .bub{background:var(--lit);border-color:var(--lit);color:var(--sheet);animation:light .7s ease-out}
+.ans.is-miss{border-color:var(--miss);background:var(--miss-soft);color:var(--miss-text)}
+.ans.is-miss .bub{background:var(--miss);border-color:var(--miss);color:var(--sheet)}
+.ans.is-miss{animation:nudge .32s ease-in-out}
+.ans.is-dim{opacity:.42;box-shadow:none}
+.watch .ans{cursor:default}
+@keyframes light{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--lit) 70%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+@keyframes nudge{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}65%{transform:translateX(4px)}}
+@media (min-width:700px){.answers{grid-template-columns:1fr 1fr;gap:12px}.ans{min-height:84px;padding:14px 18px}.ans .bub{--s:38px;font-size:17px}}
+.status{display:flex;flex-direction:column;gap:7px;min-height:52px;padding-top:4px}
+.status p{margin:0;font-weight:700;font-size:17px;color:var(--muted)}
+.status p.ok{color:var(--lit-text)}
+.status p.no{color:var(--miss-text)}
+.gap{height:4px;border-radius:3px;background:var(--line);overflow:hidden}
+.gap-fill{height:100%;width:100%;background:var(--ink);transform-origin:left;transform:scaleX(0)}
+.gap-fill.run{animation:fill var(--dur,1.5s) linear forwards}
+@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.play-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:6px;color:var(--muted);font-size:12.5px}
+.paused-note{display:none;font-weight:700;color:var(--form)}
+.app.paused .paused-note{display:inline}
+
+/* ---------- Sonuç ---------- */
+.finish{gap:20px;padding-block:6px 10px;max-width:760px}
+.score{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.score .big{font-family:var(--f-display);font-weight:900;font-size:clamp(84px,26vw,150px);line-height:.8;letter-spacing:-.01em}
+.score .big small{font-size:.42em;color:var(--muted);margin-left:4px}
+.score p{margin:0 0 6px;font-size:18px;max-width:30ch;text-wrap:balance}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-block:1.5px solid var(--line)}
+.stats div{padding:10px 4px;display:flex;flex-direction:column;gap:3px}
+.stats div+div{border-left:1.5px solid var(--line);padding-left:12px}
+.stats b{font-family:var(--f-display);font-weight:900;font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+.stats span{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stats .ok b{color:var(--lit-text)}.stats .no b{color:var(--miss-text)}
+.net-note{margin:-10px 0 0;font-size:12.5px;color:var(--muted)}
+.minisheet{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.minisheet div{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:6px 8px;border-radius:8px;background:var(--sheet);border:1.5px solid var(--line);font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.minisheet .bub{--s:20px;font-size:10px}
+@media (min-width:900px){.minisheet{display:none}}
+.review h2{margin:0 0 10px;font-size:20px}
+.review ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rv{background:var(--sheet);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:6px}
+.rv-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.rv-q{margin:0;font-weight:700;font-size:17px;white-space:pre-line}
+.rv-a{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:15px}
+.rv-a .bub{--s:22px;font-size:11px}
+.rv-a .you{color:var(--miss-text)}
+.rv-tr{margin:0;font-size:14px;color:var(--muted)}
+.finish-actions{display:flex;gap:10px;flex-wrap:wrap}
+.finish-actions .btn{flex:1 1 180px}
+
+@media (max-width:899px){
+ .intro{gap:16px;padding-bottom:0}
+ .hero .ring{--r:88px}
+ .hero h1{font-size:clamp(50px,14vw,72px)}
+ .lead{font-size:16px}
+ .facts b{font-size:28px}
+ .start-row{position:sticky;bottom:0;z-index:2;margin-inline:-16px;padding:14px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,transparent,var(--paper) 28%)}
+}
+@media (max-height:680px) and (max-width:899px){
+ .ask .ring{--r:52px}.question{font-size:20px}.ans{min-height:52px;padding:8px 12px;font-size:17px}.ans .bub{--s:28px;font-size:13px}.answers{gap:7px}
+ .hero .ring{--r:84px}.intro{gap:16px}.lead{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){
+ .hero .ring.idle .bar{animation:none}
+ .ans,.bub{transition:none}
+ .ans.is-lit .bub,.ans.is-miss{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+ <aside class="sheet" aria-label="Cevap kâğıdı">
+  <div class="sheet-head"><b>CEVAP KÂĞIDI</b><span class="mono">İNGİLİZCE · 8</span></div>
+  <div class="sheet-cols mono" aria-hidden="true"><span></span><span>A</span><span>B</span><span>C</span><span>D</span></div>
+  <ol class="sheet-rows" id="sheet-rows"></ol>
+  <div class="sheet-foot mono"><span id="sheet-mode">Kurşun kalem kullanınız</span><span id="sheet-count">0 / 25</span></div>
+ </aside>
+
+ <main class="stage">
+  <section class="intro" id="intro" aria-labelledby="intro-title">
+   <div class="intro-top"><span class="eyebrow">LGS hazırlık · 8. sınıf</span><button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+   <div class="hero">
+    <div class="ring idle" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit">6</span></div>
+    <h1 id="intro-title">Altı<span>saniye</span></h1>
+   </div>
+   <p class="lead">Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.</p>
+   <div class="facts" aria-label="Quiz bilgileri"><div><b>25</b><span>soru</span></div><div><b>4</b><span>şık</span></div><div><b>6</b><span>saniye</span></div><div><b>10</b><span>ünite</span></div></div>
+   <fieldset class="field">
+    <legend>Nasıl oynanacak</legend>
+    <div class="modes">
+     <label class="opt" for="mode-play"><input type="radio" name="mode" id="mode-play" value="play" checked><span class="face"><span class="bub" aria-hidden="true">A</span><span><strong>Oyna</strong><small>Dokunarak cevapla, sonunda LGS netini gör.</small></span></span></label>
+     <label class="opt" for="mode-watch"><input type="radio" name="mode" id="mode-watch" value="watch"><span class="face"><span class="bub" aria-hidden="true">B</span><span><strong>Sunum</strong><small>Tahtaya yansıt, cevaplar kendiliğinden yanar.</small></span></span></label>
+    </div>
+   </fieldset>
+   <div class="row2">
+    <fieldset class="field">
+     <legend>Sonraki soruya geçiş</legend>
+     <div class="seg" role="radiogroup">
+      <label for="gap-1"><input type="radio" name="gap" id="gap-1" value="1"><span>1 sn</span></label>
+      <label for="gap-15"><input type="radio" name="gap" id="gap-15" value="1.5" checked><span>1,5 sn</span></label>
+      <label for="gap-2"><input type="radio" name="gap" id="gap-2" value="2"><span>2 sn</span></label>
+     </div>
+    </fieldset>
+    <fieldset class="field">
+     <legend>Seçenekler</legend>
+     <div class="switches">
+      <label class="sw" for="opt-shuffle"><input type="checkbox" id="opt-shuffle"><span>Karıştır</span></label>
+      <label class="sw" for="opt-sound"><input type="checkbox" id="opt-sound" checked><span>Ses</span></label>
+      <label class="sw" for="opt-vibe"><input type="checkbox" id="opt-vibe" checked><span>Titreşim</span></label>
+     </div>
+    </fieldset>
+   </div>
+   <div class="start-row"><button class="btn" id="start" type="button">Başla <span aria-hidden="true">→</span></button><span class="best" id="best"></span></div>
+  </section>
+
+  <section class="play" id="play" hidden aria-label="Soru">
+   <div class="play-top">
+    <div class="where"><span class="count"><b id="num">01</b> / 25</span><span class="chip" id="unit"></span></div>
+    <button class="icon-btn" id="pause" type="button" aria-label="Duraklat"><svg id="pause-ico" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    <button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button class="icon-btn" id="quit" type="button" aria-label="Quizden çık"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+   </div>
+   <div class="dots" id="dots" aria-hidden="true"></div>
+   <div class="ask">
+    <div class="ring" id="ring" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit" id="digit">6</span></div>
+    <h2 class="question" id="question" lang="en"></h2>
+   </div>
+   <ol class="answers" id="answers" lang="en"></ol>
+   <div class="status" role="status" aria-live="polite"><p id="status-text"></p><div class="gap" aria-hidden="true"><div class="gap-fill" id="gap-fill"></div></div></div>
+   <div class="play-foot mono"><span id="foot-mode"></span><span class="paused-note">Duraklatıldı · devam için dokun</span></div>
+  </section>
+
+  <section class="finish" id="finish" hidden aria-labelledby="finish-title">
+   <span class="eyebrow" id="finish-eyebrow">Sınav bitti</span>
+   <div class="score"><div class="big" id="finish-title"></div><p id="finish-msg"></p></div>
+   <div class="stats" id="stats"></div>
+   <p class="net-note" id="net-note">LGS'de olduğu gibi 3 yanlış 1 doğruyu götürür.</p>
+   <div class="minisheet" id="minisheet" aria-hidden="true"></div>
+   <div class="review"><h2 id="review-title"></h2><ol id="review-list"></ol></div>
+   <div class="finish-actions"><button class="btn" id="again" type="button">Yeniden başla</button><button class="btn ghost" id="home" type="button">Ana ekran</button></div>
+  </section>
+ </main>
+</div>
+<script>
+(() => {
+'use strict';
+const UNITS = {1:'Friendship',2:'Teen Life',3:'In the Kitchen',4:'On the Phone',5:'The Internet',6:'Adventures',7:'Tourism',8:'Chores',9:'Science',10:'Natural Forces'};
+// a = doğru şıkkın sırası (0=A). Dağılım: A6 · B6 · C7 · D6
+const Q = [
+ {u:1, q:'Ali never tells my secrets to anyone.\nHe is _____.', o:['trustworthy','mean','selfish','jealous'], a:0, tr:'trustworthy = güvenilir. Sır tutan biri güvenilirdir.'},
+ {u:1, q:'“Would you like to come to my party?”\nWhich answer REFUSES?', o:['Sure, why not?','I’d love to.','Sorry, I have other plans.','That sounds great!'], a:2, tr:'Kibarca reddetmek: “Sorry, I have other plans.” Diğer üçü daveti kabul ediyor.'},
+ {u:1, q:'Emre and I get _____ well.\nWe are close friends.', o:['up','off','over','on'], a:3, tr:'get on well (with) = biriyle iyi anlaşmak.'},
+ {u:2, q:'Selin _____ doing puzzles.\nIt’s her favourite hobby.', o:['hates','is keen on','can’t stand','dislikes'], a:1, tr:'be keen on = bir şeye çok meraklı olmak, çok sevmek.'},
+ {u:2, q:'“How often do you go jogging?”', o:['In the park.','With my dad.','Because it’s healthy.','Once a week.'], a:3, tr:'How often = ne sıklıkla. Cevap bir sıklık bildirir: once a week.'},
+ {u:2, q:'I prefer reading books _____ watching TV.', o:['than','from','to','with'], a:2, tr:'prefer A to B = A’yı B’ye tercih etmek.'},
+ {u:3, q:'First, _____ the onions into small pieces.', o:['chop','boil','pour','bake'], a:0, tr:'chop = doğramak, küçük parçalara ayırmak.'},
+ {u:3, q:'Put the cake in the oven and\n_____ it for 40 minutes.', o:['slice','bake','peel','stir'], a:1, tr:'bake = fırında pişirmek.'},
+ {u:4, q:'“Can I speak to Mr. Aydın, please?”\n“_____, please. I’ll put you through.”', o:['Hang up','Call back','Hold on','Speak up'], a:2, tr:'Hold on = hatta kalın, bekleyin.'},
+ {u:4, q:'“Sorry, he isn’t here.\nCan I take a _____?”', o:['call','number','line','message'], a:3, tr:'take a message = not almak, mesaj iletmek.'},
+ {u:4, q:'The line is busy.\nI’ll _____ later.', o:['hang on','call back','pick up','look for'], a:1, tr:'call back = geri aramak.'},
+ {u:5, q:'You need a username and a _____\nto log in.', o:['password','attachment','browser','download'], a:0, tr:'log in = giriş yapmak. Bunun için kullanıcı adı ve şifre (password) gerekir.'},
+ {u:5, q:'Don’t share your password with anyone.\nKeep it _____.', o:['public','online','secret','popular'], a:2, tr:'keep it secret = gizli tutmak.'},
+ {u:5, q:'There is no Wi-Fi here.\nI can’t go _____.', o:['offline','upstairs','abroad','online'], a:3, tr:'go online = internete bağlanmak. offline = bağlantısız.'},
+ {u:6, q:'Which activity needs a parachute?', o:['Rafting','Skydiving','Hiking','Scuba diving'], a:1, tr:'Skydiving = paraşütle serbest atlayış.'},
+ {u:6, q:'Rock climbing is _____ than cycling.\nIt’s very risky.', o:['more dangerous','safer','easier','more boring'], a:0, tr:'risky = riskli. Karşılaştırma: more dangerous than.'},
+ {u:7, q:'Where can you book a room?', o:['At a museum','At a bakery','At a gym','At a hotel'], a:3, tr:'book a room = oda ayırtmak. Bu otelde yapılır.'},
+ {u:7, q:'“Have you ever _____ to Cappadocia?”', o:['go','went','been','going'], a:2, tr:'Have you ever been to…? = Hiç … bulundun mu? (been, go fiilinin 3. hâli)'},
+ {u:7, q:'Pamukkale is famous _____\nits white travertines.', o:['for','of','at','with'], a:0, tr:'be famous for = … ile ünlü olmak.'},
+ {u:8, q:'The plants are dry.\nCan you _____ them?', o:['iron','water','dust','sweep'], a:1, tr:'water the plants = bitkileri sulamak.'},
+ {u:8, q:'I _____ the dishes after dinner\nevery evening.', o:['make','take','have','do'], a:3, tr:'do the dishes = bulaşık yıkamak.'},
+ {u:9, q:'Scientists do _____\nin laboratories.', o:['recipes','chores','experiments','souvenirs'], a:2, tr:'do experiments = deney yapmak.'},
+ {u:9, q:'Thomas Edison _____ the light bulb.', o:['invented','discovered','explored','solved'], a:0, tr:'invent = icat etmek (yeni bir şey yapmak). discover = var olanı keşfetmek.'},
+ {u:10, q:'The ground shook for 30 seconds.\nIt was an _____.', o:['avalanche','earthquake','flood','drought'], a:1, tr:'earthquake = deprem. avalanche = çığ.'},
+ {u:10, q:'Heavy rain caused a _____.\nThe streets were under water.', o:['drought','wildfire','flood','avalanche'], a:2, tr:'flood = sel. drought = kuraklık.'}
+];
+const ASK_MS = 6000, L = ['A','B','C','D'];
+const $ = id => document.getElementById(id);
+const app = $('app');
+const S = {mode:'play', gap:1.5, shuffle:false, sound:true, vibe:true};
+const store = {
+ get(k){ try { return JSON.parse(localStorage.getItem('alti-saniye:'+k)); } catch { return null; } },
+ set(k,v){ try { localStorage.setItem('alti-saniye:'+k, JSON.stringify(v)); } catch {} }
+};
+Object.assign(S, store.get('settings') || {});
+if (!['play','watch'].includes(S.mode)) S.mode = 'play';
+if (![1,1.5,2].includes(S.gap)) S.gap = 1.5;
+
+let order = [], pos = 0, phase = 'intro', marks = {}, shown = {}, timer = null, ticker = null, endAt = 0, left = 0, paused = false, lastDigit = 6, wake = null, ac = null;
+const pad = n => String(n).padStart(2,'0');
+const fmt = (n, d=1) => n.toLocaleString('tr-TR', {minimumFractionDigits:d, maximumFractionDigits:d});
+
+/* ---------- Ayarlar ---------- */
+function syncForm(){
+ $('mode-'+S.mode).checked = true;
+ const g = {1:'gap-1',1.5:'gap-15',2:'gap-2'}[S.gap] || 'gap-15'; $(g).checked = true;
+ $('opt-shuffle').checked = S.shuffle; $('opt-sound').checked = S.sound; $('opt-vibe').checked = S.vibe;
+ if (!('vibrate' in navigator)) $('opt-vibe').closest('.sw').hidden = true;
+ const best = store.get('best');
+ $('best').innerHTML = best ? 'En iyi netin: <b>' + fmt(best.net, 2) + '</b>' : '';
+}
+function readForm(){
+ S.mode = document.querySelector('input[name=mode]:checked').value;
+ S.gap = Number(document.querySelector('input[name=gap]:checked').value);
+ S.shuffle = $('opt-shuffle').checked; S.sound = $('opt-sound').checked; S.vibe = $('opt-vibe').checked;
+ store.set('settings', S);
+}
+document.querySelectorAll('#intro input').forEach(el => el.addEventListener('change', readForm));
+
+/* ---------- Ses · titreşim · ekran ---------- */
+function tone(f, d, type='sine', v=.07, delay=0){
+ if (!S.sound || !ac) return;
+ const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+ o.type = type; o.frequency.value = f;
+ g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+ o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + .03);
+}
+const sfx = {
+ tick(){ tone(1046, .05, 'square', .025); },
+ ok(){ tone(659, .12); tone(988, .22, 'sine', .08, .09); },
+ no(){ tone(196, .28, 'sawtooth', .04); },
+ time(){ tone(523, .16, 'triangle', .07); tone(392, .24, 'triangle', .06, .12); }
+};
+const buzz = p => { if (S.vibe && navigator.vibrate) try { navigator.vibrate(p); } catch {} };
+async function lockScreen(){ try { if ('wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch {} }
+function unlockScreen(){ try { wake && wake.release(); } catch {} wake = null; }
+
+/* ---------- Cevap kâğıdı ---------- */
+function buildSheet(){
+ const rows = $('sheet-rows'); rows.replaceChildren();
+ for (let p = 0; p < Q.length; p++){
+  const li = document.createElement('li'); li.className = 'row'; li.id = 'row-'+p;
+  li.innerHTML = '<span class="n">'+pad(p+1)+'</span>' + L.map(x => '<span class="bub">'+x+'</span>').join('');
+  rows.append(li);
+ }
+ const dots = $('dots'); dots.replaceChildren();
+ for (let p = 0; p < Q.length; p++) dots.append(document.createElement('i'));
+}
+function paintSheet(){
+ let filled = 0;
+ for (let p = 0; p < Q.length; p++){
+  const row = $('row-'+p), bubs = row.querySelectorAll('.bub'), dot = $('dots').children[p];
+  row.classList.toggle('now', phase !== 'done' && phase !== 'intro' && p === pos);
+  bubs.forEach(b => b.className = 'bub');
+  dot.className = (phase === 'ask' || phase === 'show') && p === pos ? 'now' : '';
+  const qi = order[p]; if (qi === undefined || !shown[p]) continue;
+  const q = Q[qi], m = marks[qi]; filled++;
+  if (S.mode === 'watch'){ bubs[q.a].classList.add('lit'); if (p !== pos || phase === 'done') dot.className = 'ok'; continue; }
+  if (m && m.c === q.a){ bubs[q.a].classList.add('lit'); dot.className = 'ok'; }
+  else if (m && m.c >= 0){ bubs[m.c].classList.add('miss'); bubs[q.a].classList.add('ghost'); dot.className = 'no'; }
+  else { bubs[q.a].classList.add('ghost'); dot.className = 'skip'; }
+ }
+ $('sheet-count').textContent = filled + ' / ' + Q.length;
+ $('sheet-mode').textContent = phase === 'intro' ? 'Kurşun kalem kullanınız' : S.mode === 'watch' ? 'Sunum · cevap anahtarı' : 'Oyun · senin işaretlerin';
+}
+
+/* ---------- Akış ---------- */
+function show(name){ ['intro','play','finish'].forEach(s => $(s).hidden = s !== name); window.scrollTo(0,0); }
+function clearTimers(){ clearTimeout(timer); timer = null; }
+function schedule(fn, ms){ clearTimers(); endAt = performance.now() + ms; timer = setTimeout(fn, ms); }
+function restartAnim(el, cls, dur){ el.classList.remove(cls); el.style.setProperty('--dur', dur + 's'); void el.offsetWidth; el.classList.add(cls); }
+
+function start(){
+ readForm();
+ try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume && ac.resume(); } catch { ac = null; }
+ order = Q.map((_, i) => i);
+ if (S.shuffle) for (let i = order.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+ marks = {}; shown = {};
+ app.classList.toggle('watch', S.mode === 'watch');
+ $('foot-mode').textContent = S.mode === 'watch' ? 'Sunum · 6 sn düşün, cevap yanar' : 'Oyun · dokunarak cevapla';
+ lockScreen(); ask(0);
+}
+
+function ask(p){
+ clearTimers(); pos = p; phase = 'ask'; setPaused(false);
+ const q = Q[order[p]];
+ $('num').textContent = pad(p + 1);
+ $('unit').textContent = 'Unit ' + q.u + ' · ' + UNITS[q.u];
+ $('question').textContent = q.q;
+ const list = $('answers'); list.replaceChildren();
+ q.o.forEach((text, i) => {
+  const li = document.createElement('li'), b = document.createElement('button');
+  b.type = 'button'; b.className = 'ans'; b.id = 'ans-' + i;
+  b.innerHTML = '<span class="bub" aria-hidden="true">' + L[i] + '</span><span class="txt"></span><span class="mark" aria-hidden="true"></span>';
+  b.querySelector('.txt').textContent = text;
+  b.setAttribute('aria-label', L[i] + ': ' + text);
+  if (S.mode === 'watch') b.tabIndex = -1;
+  b.addEventListener('click', () => choose(i));
+  li.append(b); list.append(li);
+ });
+ $('status-text').className = ''; $('status-text').textContent = S.mode === 'watch' ? 'Düşünme süresi' : 'Cevabını seç';
+ $('gap-fill').classList.remove('run');
+ const ring = $('ring'); ring.classList.remove('hurry', 'done'); restartAnim(ring, 'run', ASK_MS / 1000);
+ $('digit').textContent = '6'; lastDigit = 6;
+ show('play'); paintSheet();
+ schedule(() => reveal(-1), ASK_MS);
+ clearInterval(ticker); ticker = setInterval(tick, 80);
+}
+
+function tick(){
+ if (phase !== 'ask' || paused) return;
+ const d = Math.max(0, Math.ceil((endAt - performance.now()) / 1000));
+ if (d !== lastDigit){
+  lastDigit = d; $('digit').textContent = d;
+  if (d <= 3 && d > 0){ $('ring').classList.add('hurry'); sfx.tick(); }
+ }
+}
+
+function choose(i){ if (phase !== 'ask' || S.mode !== 'play') return; if (paused) { setPaused(false); return; } reveal(i); }
+
+function reveal(choice){
+ if (phase !== 'ask') return;
+ const took = Math.min(6, Math.max(.1, (ASK_MS - (endAt - performance.now())) / 1000));
+ clearTimers(); clearInterval(ticker); phase = 'show';
+ const qi = order[pos], q = Q[qi];
+ shown[pos] = true;
+ if (S.mode === 'play') marks[qi] = {c: choice, t: choice >= 0 ? took : null};
+ document.querySelectorAll('.ans').forEach((b, i) => {
+  b.disabled = true;
+  if (i === q.a){ b.classList.add('is-lit'); b.querySelector('.mark').textContent = 'doğru'; }
+  else if (i === choice){ b.classList.add('is-miss'); b.querySelector('.mark').textContent = 'senin'; }
+  else b.classList.add('is-dim');
+ });
+ const ring = $('ring'); ring.classList.remove('run', 'hurry'); ring.classList.add('done'); $('digit').textContent = '✓';
+ const st = $('status-text');
+ if (S.mode === 'watch'){ st.className = 'ok'; st.textContent = 'Doğru cevap ' + L[q.a]; sfx.ok(); }
+ else if (choice === q.a){ st.className = 'ok'; st.textContent = 'Doğru · ' + fmt(took) + ' sn'; sfx.ok(); buzz(35); }
+ else if (choice >= 0){ st.className = 'no'; st.textContent = 'Yanlış · Doğru cevap ' + L[q.a]; sfx.no(); buzz([70, 50, 70]); }
+ else { st.className = 'no'; st.textContent = 'Süre doldu · Doğru cevap ' + L[q.a]; sfx.time(); buzz(120); }
+ restartAnim($('gap-fill'), 'run', S.gap);
+ paintSheet();
+ schedule(next, S.gap * 1000);
+}
+
+function next(){ if (pos < Q.length - 1) ask(pos + 1); else finish(); }
+
+function setPaused(on){
+ if (on === paused) return;
+ if (on){
+  if (phase !== 'ask' && phase !== 'show') return;
+  left = Math.max(0, endAt - performance.now()); clearTimers(); paused = true;
+ } else {
+  paused = false;
+  if (phase === 'ask') schedule(() => reveal(-1), left);
+  else if (phase === 'show') schedule(next, left);
+ }
+ app.classList.toggle('paused', paused);
+ $('pause').setAttribute('aria-label', paused ? 'Devam et' : 'Duraklat');
+ $('pause-ico').innerHTML = paused ? '<path d="M8 5.5v13l11-6.5z"/>' : '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+}
+
+function finish(){
+ clearTimers(); clearInterval(ticker); phase = 'done'; setPaused(false); unlockScreen();
+ const rows = order.map((qi, p) => ({p, qi, q: Q[qi], m: marks[qi]}));
+ const watch = S.mode === 'watch';
+ const ok = rows.filter(r => r.m && r.m.c === r.q.a);
+ const no = rows.filter(r => r.m && r.m.c >= 0 && r.m.c !== r.q.a);
+ const empty = rows.length - ok.length - no.length;
+ const net = ok.length - no.length / 3;
+ const avg = ok.length ? ok.reduce((s, r) => s + r.m.t, 0) / ok.length : 0;
+
+ $('finish-eyebrow').textContent = watch ? 'Sunum bitti · 25 soru' : 'Sınav bitti';
+ $('stats').hidden = watch; $('net-note').hidden = watch;
+ if (watch){
+  $('finish-title').innerHTML = '25<small>soru</small>';
+  $('finish-msg').textContent = 'Cevap anahtarı aşağıda. Takılan soruları açıklamalarıyla birlikte konuşabilirsiniz.';
+ } else {
+  $('finish-title').innerHTML = ok.length + '<small>/ 25</small>';
+  $('finish-msg').textContent = net >= 22 ? 'Bu ünitelerde tam puana çok yakınsın.' : net >= 16 ? 'Sağlam bir sonuç. Kaçırdıklarına bir göz at.' : net >= 10 ? 'İyi başlangıç. Aşağıdakileri tekrar et, net yükselir.' : 'Aşağıdaki sorulardan başla, ikinci turda fark göreceksin.';
+  $('stats').innerHTML =
+   '<div class="ok"><b>' + ok.length + '</b><span>doğru</span></div>' +
+   '<div class="no"><b>' + no.length + '</b><span>yanlış</span></div>' +
+   '<div><b>' + empty + '</b><span>boş</span></div>' +
+   '<div><b>' + fmt(net, 2) + '</b><span>net</span></div>';
+  $('net-note').textContent = 'LGS’de olduğu gibi 3 yanlış 1 doğruyu götürür.' + (ok.length ? ' Doğru cevaplarda ortalama süren ' + fmt(avg) + ' sn.' : '');
+  const best = store.get('best');
+  if (!best || net > best.net) store.set('best', {net, ok: ok.length, at: Date.now()});
+ }
+
+ const mini = $('minisheet'); mini.replaceChildren();
+ rows.forEach(r => {
+  const d = document.createElement('div'), state = watch || (r.m && r.m.c === r.q.a) ? 'lit' : (r.m && r.m.c >= 0) ? 'miss' : 'ghost';
+  const letter = state === 'miss' ? L[r.m.c] : L[r.q.a];
+  d.innerHTML = '<span>' + pad(r.p + 1) + '</span><span class="bub ' + state + '">' + letter + '</span>';
+  mini.append(d);
+ });
+
+ const list = watch ? rows : rows.filter(r => !(r.m && r.m.c === r.q.a));
+ $('review-title').textContent = watch ? 'Cevap anahtarı' : list.length ? 'Tekrar bakılacak ' + list.length + ' soru' : 'Hepsi doğru. Tebrikler!';
+ const ol = $('review-list'); ol.replaceChildren();
+ list.forEach(r => {
+  const li = document.createElement('li'); li.className = 'rv';
+  const you = !watch ? (r.m && r.m.c >= 0 ? 'Senin cevabın: ' + L[r.m.c] + ' · ' + r.q.o[r.m.c] : 'Boş bıraktın') : '';
+  li.innerHTML = '<div class="rv-head"><span class="mono">SORU ' + pad(r.p + 1) + '</span><span class="chip"></span></div><p class="rv-q" lang="en"></p><p class="rv-a"><span class="bub lit">' + L[r.q.a] + '</span><b lang="en"></b>' + (you ? '<span class="you"></span>' : '') + '</p><p class="rv-tr"></p>';
+  li.querySelector('.chip').textContent = 'Unit ' + r.q.u + ' · ' + UNITS[r.q.u];
+  li.querySelector('.rv-q').textContent = r.q.q;
+  li.querySelector('.rv-a b').textContent = r.q.o[r.q.a];
+  if (you) li.querySelector('.you').textContent = you;
+  li.querySelector('.rv-tr').textContent = r.q.tr;
+  ol.append(li);
+ });
+ show('finish'); paintSheet(); syncForm();
+}
+
+function home(){ clearTimers(); clearInterval(ticker); phase = 'intro'; setPaused(false); unlockScreen(); order = []; shown = {}; show('intro'); paintSheet(); syncForm(); }
+
+/* ---------- Tam ekran ---------- */
+const canFs = !!(document.documentElement.requestFullscreen && document.fullscreenEnabled !== false);
+document.querySelectorAll('.fs-btn').forEach(b => {
+ if (!canFs) { b.hidden = true; return; }
+ b.addEventListener('click', async () => {
+  try { document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen({navigationUI:'hide'}); }
+  catch { document.querySelectorAll('.fs-btn').forEach(x => x.hidden = true); }
+ });
+});
+
+/* ---------- Olaylar ---------- */
+$('start').addEventListener('click', start);
+$('again').addEventListener('click', start);
+$('home').addEventListener('click', home);
+$('quit').addEventListener('click', home);
+$('pause').addEventListener('click', () => setPaused(!paused));
+$('play').addEventListener('click', e => { if (paused && !e.target.closest('button')) setPaused(false); });
+document.addEventListener('visibilitychange', () => {
+ if (document.hidden) setPaused(true);
+ else if (phase === 'ask' || phase === 'show') lockScreen();
+});
+document.addEventListener('keydown', e => {
+ if (e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input')) return;
+ if (phase !== 'ask' && phase !== 'show') return;
+ const k = e.key.toLowerCase(), idx = ['1','2','3','4'].indexOf(k) >= 0 ? Number(k) - 1 : ['a','b','c','d'].indexOf(k);
+ if (idx >= 0) { e.preventDefault(); choose(idx); }
+ else if (e.code === 'Space') { e.preventDefault(); setPaused(!paused); }
+ else if (e.key === 'ArrowRight' && !paused) { e.preventDefault(); phase === 'ask' ? reveal(-1) : next(); }
+ else if (e.key === 'Escape') home();
+});
+
+buildSheet(); syncForm(); paintSheet();
+})();
+</script>
+</body>
+</html>
