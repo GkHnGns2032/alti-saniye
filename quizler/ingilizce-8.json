@@ -1,11 +1,10 @@
 {
  "slug": "ingilizce-8",
- "out": "index.html",
  "title": "Altı Saniye İngilizce",
  "scoring": "lgs",
- "eyebrow": "LGS hazırlık · 8. sınıf",
- "heroTop": "Altı",
- "heroBottom": "saniye",
+ "eyebrow": "LGS hazırlık",
+ "heroTop": "İngilizce",
+ "heroBottom": "8. sınıf",
  "leadHtml": "Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
  "facts": [
   [
@@ -346,5 +345,8 @@
    "a": 2,
    "tr": "flood = sel. drought = kuraklık."
   }
- ]
+ ],
+ "sira": 1,
+ "name": "8. Sınıf İngilizce",
+ "desc": "LGS tarzı sorular, 10 ünite, sonunda LGS neti."
 }

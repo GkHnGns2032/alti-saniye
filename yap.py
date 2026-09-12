@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Altı Saniye — sablon.html + quizler/*.json → tek dosyalık quiz sayfaları.
+"""Altı Saniye — sablon.html + quizler/*.json → tek sayfa (bütün testler, başta test seçimi).
 
 Kullanım:  python3 yap.py
-Yeni test: quizler/ altına bir JSON daha koy, betiği koş, çıkan klasörü commit + push et.
-Çıktılar üretilmiş dosyadır — elle düzenleme, şablonu ya da JSON'u düzenle.
+Yeni test: quizler/ altına bir JSON daha koy, betiği koş, commit + push et.
+Çıktılar üretilmiş dosyadır — elle düzenleme, şablonu ya da JSON'u düzenle:
+  index.html          bütün testler tek dosyada (e-postayla da gönderilebilir)
+  <slug>/index.html   eski/doğrudan linkler için yönlendirme: ../#<slug>
 """
 import hashlib
 import html
@@ -12,8 +14,9 @@ import pathlib
 import sys
 
 KOK = pathlib.Path(__file__).resolve().parent
-ZORUNLU = ['slug', 'out', 'title', 'scoring', 'eyebrow', 'heroTop', 'heroBottom',
+ZORUNLU = ['slug', 'title', 'name', 'desc', 'scoring', 'eyebrow', 'heroTop', 'heroBottom',
            'leadHtml', 'facts', 'playHint', 'sheetTag', 'messages', 'questions']
+SAYFAYA = ZORUNLU  # JS'in kullandığı alanlar; sira/noindex yalnız üretimde
 
 
 def dogrula(ad, c):
@@ -29,41 +32,49 @@ def dogrula(ad, c):
             sys.exit(f'{ad} soru {i}: doğru cevap 0-3 arası olmalı (0=A)')
 
 
-def uret(sablon, c):
-    e = html.escape
-    alanlar = {
-        'title': e(c['title']), 'eyebrow': e(c['eyebrow']),
-        'heroTop': e(c['heroTop']), 'heroBottom': e(c['heroBottom']),
-        'leadHtml': c['leadHtml'], 'playHint': e(c['playHint']), 'sheetTag': e(c['sheetTag']),
-        'count': str(len(c['questions'])),
-        'robots': '<meta name="robots" content="noindex">' if c.get('noindex') else '',
-        'facts': ''.join(f'<div><b>{e(n)}</b><span>{e(l)}</span></div>' for n, l in c['facts']),
-    }
-    s = sablon
-    for k, v in alanlar.items():
-        s = s.replace('{{' + k + '}}', v)
-    if '{{' in s:
-        sys.exit(f"{c['slug']}: doldurulmamış şablon alanı kaldı")
-    veri = json.dumps({k: c[k] for k in ('slug', 'scoring', 'messages', 'questions')},
-                      ensure_ascii=False).replace('</', '<\\/')
-    if s.count('/*QUIZ*/') != 1:
-        sys.exit('sablon.html: /*QUIZ*/ yer tutucusu tam 1 kez olmalı')
-    return s.replace('/*QUIZ*/', veri)
+def yonlendirme(c):
+    # ../index.html (../ değil): dosya olarak açılınca ../ klasör listesine gider
+    t, hedef = html.escape(c['title']), f"../index.html#{c['slug']}"
+    return ('<!DOCTYPE html>\n<html lang="tr">\n<head>\n<meta charset="UTF-8">\n'
+            '<meta name="robots" content="noindex">\n'
+            f'<meta http-equiv="refresh" content="0;url={hedef}">\n<title>{t}</title>\n'
+            f"<script>location.replace('{hedef}')</script>\n</head>\n"
+            f'<body><a href="{hedef}">{t} testine git</a></body>\n</html>\n')
+
+
+def yaz(yol, metin):
+    yol.parent.mkdir(parents=True, exist_ok=True)
+    yol.write_text(metin, encoding='utf-8')
+    b = metin.encode()
+    return f'{len(b)} B · md5 {hashlib.md5(b).hexdigest()[:8]}'
 
 
 def main():
-    sablon = (KOK / 'sablon.html').read_text(encoding='utf-8')
-    for yol in sorted((KOK / 'quizler').glob('*.json')):
+    quizler = []
+    for yol in (KOK / 'quizler').glob('*.json'):
         c = json.loads(yol.read_text(encoding='utf-8'))
         dogrula(yol.name, c)
-        s = uret(sablon, c)
-        hedef = KOK / c['out']
-        hedef.parent.mkdir(parents=True, exist_ok=True)
-        hedef.write_text(s, encoding='utf-8')
+        quizler.append(c)
+    if len({c['slug'] for c in quizler}) != len(quizler):
+        sys.exit('iki test aynı slug\'ı kullanıyor')
+    quizler.sort(key=lambda c: (c.get('sira', 99), c['slug']))
+
+    s = (KOK / 'sablon.html').read_text(encoding='utf-8')
+    kapali = any(c.get('noindex') for c in quizler)
+    s = s.replace('{{robots}}', '<meta name="robots" content="noindex">' if kapali else '')
+    if '{{' in s:
+        sys.exit('sablon.html: doldurulmamış şablon alanı kaldı')
+    if s.count('/*QUIZ*/') != 1:
+        sys.exit('sablon.html: /*QUIZ*/ yer tutucusu tam 1 kez olmalı')
+    veri = json.dumps([{k: c[k] for k in SAYFAYA} for c in quizler], ensure_ascii=False).replace('</', '<\\/')
+    s = s.replace('/*QUIZ*/', veri)
+
+    print(f"index.html                  {len(quizler)} test · {yaz(KOK / 'index.html', s)}")
+    for c in quizler:
         qs = c['questions']
         dagilim = ' '.join(f"{'ABCD'[i]}{sum(q['a'] == i for q in qs)}" for i in range(4))
-        b = s.encode()
-        print(f"{c['out']:28} {len(qs):2} soru · {dagilim} · {len(b)} B · md5 {hashlib.md5(b).hexdigest()[:8]}")
+        durum = yaz(KOK / c['slug'] / 'index.html', yonlendirme(c))
+        print(f"  #{c['slug']:24} {len(qs):2} soru · {dagilim} · yönlendirme {durum}")
 
 
 if __name__ == '__main__':

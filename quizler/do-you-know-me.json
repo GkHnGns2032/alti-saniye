@@ -1,7 +1,9 @@
 {
  "slug": "do-you-know-me",
- "out": "do-you-know-me/index.html",
+ "sira": 2,
  "title": "Do You Know Me?",
+ "name": "Do you know me?",
+ "desc": "Öğretmenini ne kadar tanıyorsun? Tanışma testi.",
  "scoring": "plain",
  "noindex": true,
  "eyebrow": "Tanışma testi",

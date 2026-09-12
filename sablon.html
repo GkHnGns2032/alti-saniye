@@ -6,7 +6,7 @@
 {{robots}}
 <meta name="theme-color" content="#F3F4F8">
 <meta name="mobile-web-app-capable" content="yes">
-<title>{{title}}</title>
+<title>Altı Saniye</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;700&family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=Big+Shoulders+Display:wght@700;900&display=swap">
@@ -71,6 +71,22 @@ button{cursor:pointer;touch-action:manipulation}
 .bub.miss{background:var(--miss);border-color:var(--miss);color:var(--sheet)}
 .bub.ghost{border-color:var(--lit);border-width:2px;color:var(--lit-text);border-style:dashed}
 .sheet-foot{margin-top:8px;padding-top:8px;border-top:1.5px solid var(--form);display:flex;justify-content:space-between;color:var(--muted);font-size:10.5px}
+
+/* ---------- Test seçimi ---------- */
+.pick{justify-content:center;gap:22px;padding-block:8px 4px;max-width:640px;width:100%;align-self:center}
+.intro-top .eyebrow{flex:1;min-width:0}
+.hero h1 b{display:block;font-weight:inherit}
+.tests{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.test{width:100%;display:flex;align-items:center;gap:16px;text-align:left;padding:14px 16px;border:1.5px solid var(--line);border-radius:14px;background:var(--sheet);box-shadow:var(--shadow);transition:border-color .15s,transform .12s}
+@media (hover:hover){.test:hover{border-color:var(--ink)}}
+.test:active{transform:scale(.985)}
+.test-n{font-family:var(--f-display);font-weight:900;font-size:46px;line-height:.9;min-width:2ch;text-align:center;color:var(--form);font-variant-numeric:tabular-nums}
+.test-body{flex:1;min-width:0;display:grid;gap:3px}
+.test-body strong{font-size:19px;line-height:1.2}
+.test-body small{font-size:14px;color:var(--muted);line-height:1.35}
+.test-body em{font-style:normal;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.test-go{font-size:22px;color:var(--muted)}
+@media (min-width:900px){.app.picking{grid-template-columns:minmax(0,1fr)}.app.picking .sheet{display:none}}
 
 /* ---------- Ortak ---------- */
 .eyebrow{font-family:var(--f-mono);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--form)}
@@ -148,7 +164,7 @@ button{cursor:pointer;touch-action:manipulation}
 .play-top .where{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
 .play-top .count{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.08em}
 .play-top .count b{font-family:var(--f-display);font-weight:900;font-size:24px;color:var(--ink);letter-spacing:0;margin-right:2px}
-.dots{display:grid;grid-template-columns:repeat({{count}},1fr);gap:3px}
+.dots{display:grid;grid-template-columns:repeat(var(--n,25),1fr);gap:3px}
 .dots i{height:5px;border-radius:3px;background:var(--line)}
 .dots i.now{background:var(--ink)}
 .dots i.ok{background:var(--lit)}
@@ -239,25 +255,32 @@ button{cursor:pointer;touch-action:manipulation}
 <body>
 <div class="app" id="app">
  <aside class="sheet" aria-label="Cevap kâğıdı">
-  <div class="sheet-head"><b>CEVAP KÂĞIDI</b><span class="mono">{{sheetTag}}</span></div>
+  <div class="sheet-head"><b>CEVAP KÂĞIDI</b><span class="mono" id="sheet-tag"></span></div>
   <div class="sheet-cols mono" aria-hidden="true"><span></span><span>A</span><span>B</span><span>C</span><span>D</span></div>
   <ol class="sheet-rows" id="sheet-rows"></ol>
-  <div class="sheet-foot mono"><span id="sheet-mode">Kurşun kalem kullanınız</span><span id="sheet-count">0 / {{count}}</span></div>
+  <div class="sheet-foot mono"><span id="sheet-mode">Kurşun kalem kullanınız</span><span id="sheet-count"></span></div>
  </aside>
 
  <main class="stage">
+  <section class="pick" id="pick" hidden aria-labelledby="pick-title">
+   <div class="intro-top"><span class="eyebrow">Test seç</span><button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+   <div class="hero"><div class="ring idle" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit">6</span></div><h1 id="pick-title">Altı<span>saniye</span></h1></div>
+   <p class="lead">Bir test seç. Her soruda <b>6 saniye</b> var, süre dolunca doğru şık yanar.</p>
+   <ol class="tests" id="tests" aria-label="Testler"></ol>
+  </section>
+
   <section class="intro" id="intro" aria-labelledby="intro-title">
-   <div class="intro-top"><span class="eyebrow">{{eyebrow}}</span><button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+   <div class="intro-top"><button class="icon-btn" id="back" type="button" aria-label="Testlere dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="eyebrow" id="eyebrow"></span><button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
    <div class="hero">
     <div class="ring idle" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit">6</span></div>
-    <h1 id="intro-title">{{heroTop}}<span>{{heroBottom}}</span></h1>
+    <h1 id="intro-title"><b id="hero-top"></b><span id="hero-bottom"></span></h1>
    </div>
-   <p class="lead">{{leadHtml}}</p>
-   <div class="facts" aria-label="Quiz bilgileri">{{facts}}</div>
+   <p class="lead" id="lead"></p>
+   <div class="facts" id="facts" aria-label="Test bilgileri"></div>
    <fieldset class="field">
     <legend>Nasıl oynanacak</legend>
     <div class="modes">
-     <label class="opt" for="mode-play"><input type="radio" name="mode" id="mode-play" value="play" checked><span class="face"><span class="bub" aria-hidden="true">A</span><span><strong>Oyna</strong><small>{{playHint}}</small></span></span></label>
+     <label class="opt" for="mode-play"><input type="radio" name="mode" id="mode-play" value="play" checked><span class="face"><span class="bub" aria-hidden="true">A</span><span><strong>Oyna</strong><small id="play-hint"></small></span></span></label>
      <label class="opt" for="mode-watch"><input type="radio" name="mode" id="mode-watch" value="watch"><span class="face"><span class="bub" aria-hidden="true">B</span><span><strong>Sunum</strong><small>Tahtaya yansıt, cevaplar kendiliğinden yanar.</small></span></span></label>
     </div>
    </fieldset>
@@ -284,7 +307,7 @@ button{cursor:pointer;touch-action:manipulation}
 
   <section class="play" id="play" hidden aria-label="Soru">
    <div class="play-top">
-    <div class="where"><span class="count"><b id="num">01</b> / {{count}}</span><span class="chip" id="unit"></span></div>
+    <div class="where"><span class="count"><b id="num">01</b> / <span id="total"></span></span><span class="chip" id="unit"></span></div>
     <button class="icon-btn" id="pause" type="button" aria-label="Duraklat"><svg id="pause-ico" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
     <button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="icon-btn" id="quit" type="button" aria-label="Quizden çık"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -306,15 +329,15 @@ button{cursor:pointer;touch-action:manipulation}
    <p class="net-note" id="net-note">LGS'de olduğu gibi 3 yanlış 1 doğruyu götürür.</p>
    <div class="minisheet" id="minisheet" aria-hidden="true"></div>
    <div class="review"><h2 id="review-title"></h2><ol id="review-list"></ol></div>
-   <div class="finish-actions"><button class="btn" id="again" type="button">Yeniden başla</button><button class="btn ghost" id="home" type="button">Ana ekran</button></div>
+   <div class="finish-actions"><button class="btn" id="again" type="button">Yeniden başla</button><button class="btn ghost" id="home" type="button">Test girişi</button><button class="btn ghost" id="to-tests" type="button">Başka test</button></div>
   </section>
  </main>
 </div>
 <script>
 (() => {
 'use strict';
-const QUIZ = /*QUIZ*/;
-const Q = QUIZ.questions, lgs = QUIZ.scoring === 'lgs';
+const QUIZZES = /*QUIZ*/;
+let QUIZ = QUIZZES[0], Q = QUIZ.questions, lgs = QUIZ.scoring === 'lgs';
 const ASK_MS = 6000, L = ['A','B','C','D'];
 const $ = id => document.getElementById(id);
 const app = $('app');
@@ -374,7 +397,7 @@ function buildSheet(){
   li.innerHTML = '<span class="n">'+pad(p+1)+'</span>' + L.map(x => '<span class="bub">'+x+'</span>').join('');
   rows.append(li);
  }
- const dots = $('dots'); dots.replaceChildren();
+ const dots = $('dots'); dots.replaceChildren(); dots.style.setProperty('--n', Q.length);
  for (let p = 0; p < Q.length; p++) dots.append(document.createElement('i'));
 }
 function paintSheet(){
@@ -396,7 +419,7 @@ function paintSheet(){
 }
 
 /* ---------- Akış ---------- */
-function show(name){ ['intro','play','finish'].forEach(s => $(s).hidden = s !== name); window.scrollTo(0,0); }
+function show(name){ ['pick','intro','play','finish'].forEach(s => $(s).hidden = s !== name); app.classList.toggle('picking', name === 'pick'); window.scrollTo(0,0); }
 function clearTimers(){ clearTimeout(timer); timer = null; }
 function schedule(fn, ms){ clearTimers(); endAt = performance.now() + ms; timer = setTimeout(fn, ms); }
 function restartAnim(el, cls, dur){ el.classList.remove(cls); el.style.setProperty('--dur', dur + 's'); void el.offsetWidth; el.classList.add(cls); }
@@ -559,6 +582,9 @@ document.querySelectorAll('.fs-btn').forEach(b => {
 $('start').addEventListener('click', start);
 $('again').addEventListener('click', start);
 $('home').addEventListener('click', home);
+$('back').addEventListener('click', goTests);
+$('to-tests').addEventListener('click', goTests);
+window.addEventListener('hashchange', () => { const z = QUIZZES.find(q => q.slug === decodeURIComponent(location.hash.slice(1))); if (z && z !== QUIZ && (phase === 'intro' || phase === 'done')) { selectQuiz(z.slug); home(); } });
 $('quit').addEventListener('click', home);
 $('pause').addEventListener('click', () => setPaused(!paused));
 $('play').addEventListener('click', e => { if (paused && !e.target.closest('button')) setPaused(false); });
@@ -576,7 +602,41 @@ document.addEventListener('keydown', e => {
  else if (e.key === 'Escape') home();
 });
 
-buildSheet(); syncForm(); paintSheet();
+/* ---------- Test seçimi ---------- */
+function setHash(slug){ try { history.replaceState(null, '', slug ? '#' + slug : location.pathname + location.search); } catch {} }
+function selectQuiz(slug){
+ QUIZ = QUIZZES.find(z => z.slug === slug) || QUIZZES[0]; Q = QUIZ.questions; lgs = QUIZ.scoring === 'lgs';
+ document.title = QUIZ.title;
+ $('eyebrow').textContent = QUIZ.eyebrow;
+ $('hero-top').textContent = QUIZ.heroTop; $('hero-bottom').textContent = QUIZ.heroBottom;
+ $('lead').innerHTML = QUIZ.leadHtml; $('play-hint').textContent = QUIZ.playHint;
+ $('sheet-tag').textContent = QUIZ.sheetTag; $('total').textContent = Q.length;
+ $('facts').replaceChildren(...QUIZ.facts.map(([n, l]) => { const d = document.createElement('div'); d.append(document.createElement('b'), document.createElement('span')); d.children[0].textContent = n; d.children[1].textContent = l; return d; }));
+ order = []; shown = {}; marks = {};
+ buildSheet(); paintSheet(); syncForm();
+ if (QUIZZES.length > 1) setHash(QUIZ.slug);
+}
+function renderTests(){
+ const ol = $('tests'); ol.replaceChildren();
+ QUIZZES.forEach(z => {
+  const li = document.createElement('li'), b = document.createElement('button'), best = store.get('best:' + z.slug), n = z.questions.length;
+  b.type = 'button'; b.className = 'test'; b.id = 'test-' + z.slug;
+  b.innerHTML = '<span class="test-n" aria-hidden="true"></span><span class="test-body"><strong></strong><small></small><em></em></span><span class="test-go" aria-hidden="true">→</span>';
+  b.querySelector('.test-n').textContent = n;
+  b.querySelector('strong').textContent = z.name;
+  b.querySelector('small').textContent = z.desc;
+  const lg = z.scoring === 'lgs';
+  b.querySelector('em').textContent = n + ' soru · ' + (lg ? 'LGS neti' : 'skor') + (best ? ' · en iyi ' + (lg ? fmt(best.net, 2) + ' net' : best.ok + ' / ' + n) : '');
+  b.addEventListener('click', () => { selectQuiz(z.slug); home(); });
+  li.append(b); ol.append(li);
+ });
+}
+function goTests(){ clearTimers(); clearInterval(ticker); phase = 'intro'; setPaused(false); unlockScreen(); order = []; shown = {}; renderTests(); setHash(''); show('pick'); }
+
+const wanted = QUIZZES.find(z => z.slug === decodeURIComponent(location.hash.slice(1)));
+if (QUIZZES.length === 1) { $('back').hidden = true; $('to-tests').hidden = true; selectQuiz(QUIZZES[0].slug); home(); }
+else if (wanted) { selectQuiz(wanted.slug); home(); }
+else { selectQuiz(QUIZZES[0].slug); goTests(); }
 })();
 </script>
 </body>
