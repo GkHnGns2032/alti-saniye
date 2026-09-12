@@ -1,0 +1,32 @@
+{
+ "slug": "do-you-know-me",
+ "out": "do-you-know-me/index.html",
+ "title": "Do You Know Me?",
+ "scoring": "plain",
+ "noindex": true,
+ "eyebrow": "Tanışma testi",
+ "heroTop": "Do you",
+ "heroBottom": "know me?",
+ "leadHtml": "Öğretmenini ne kadar tanıyorsun? Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar.",
+ "facts": [["10", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "öğretmen"]],
+ "playHint": "Dokunarak cevapla, sonunda skorunu gör.",
+ "sheetTag": "TANIŞMA TESTİ",
+ "messages": [
+  [0.9, "Beni çok iyi tanıyorsun!"],
+  [0.6, "Fena değil, beni epey tanıyorsun."],
+  [0.3, "Birbirimizi daha yakından tanıyacağız."],
+  [-99, "Hiç sorun değil, bu yıl tanışacağız!"]
+ ],
+ "questions": [
+  {"c": "About me", "q": "What’s my name?", "o": ["Selin", "Sedef", "Seda", "Serap"], "a": 1},
+  {"c": "Hometown", "q": "Where am I from?", "o": ["Konya", "Sivas", "Eskişehir", "Kayseri"], "a": 3},
+  {"c": "Family", "q": "Am I single or married?", "o": ["Single", "Engaged", "Married", "It’s a secret!"], "a": 2},
+  {"c": "Family", "q": "How many children do I have?", "o": ["1", "2", "3", "4"], "a": 1},
+  {"c": "Family", "q": "How many siblings do I have?", "o": ["2", "3", "4", "5"], "a": 2},
+  {"c": "Favorites", "q": "Which one is my favorite animal?", "o": ["Cat", "Dog", "Bird", "Rabbit"], "a": 0},
+  {"c": "Favorites", "q": "Which one is my favorite color?", "o": ["Blue", "Purple", "Red", "Green"], "a": 3},
+  {"c": "Work", "q": "How long have I been teaching English?", "o": ["6 years", "10 years", "16 years", "20 years"], "a": 2},
+  {"c": "Favorites", "q": "Which one is my favorite sport?", "o": ["Yoga", "Swimming", "Tennis", "Volleyball"], "a": 0},
+  {"c": "Work", "q": "How long have I been teaching in the school?", "o": ["1 year", "2 years", "4 years", "6 years"], "a": 1}
+ ]
+}

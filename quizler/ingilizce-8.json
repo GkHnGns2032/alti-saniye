@@ -1,0 +1,350 @@
+{
+ "slug": "ingilizce-8",
+ "out": "index.html",
+ "title": "Altı Saniye İngilizce",
+ "scoring": "lgs",
+ "eyebrow": "LGS hazırlık · 8. sınıf",
+ "heroTop": "Altı",
+ "heroBottom": "saniye",
+ "leadHtml": "Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [
+  [
+   "25",
+   "soru"
+  ],
+  [
+   "4",
+   "şık"
+  ],
+  [
+   "6",
+   "saniye"
+  ],
+  [
+   "10",
+   "ünite"
+  ]
+ ],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "İNGİLİZCE · 8",
+ "messages": [
+  [
+   0.88,
+   "Bu ünitelerde tam puana çok yakınsın."
+  ],
+  [
+   0.64,
+   "Sağlam bir sonuç. Kaçırdıklarına bir göz at."
+  ],
+  [
+   0.4,
+   "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."
+  ],
+  [
+   -99,
+   "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."
+  ]
+ ],
+ "questions": [
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Ali never tells my secrets to anyone.\nHe is _____.",
+   "o": [
+    "trustworthy",
+    "mean",
+    "selfish",
+    "jealous"
+   ],
+   "a": 0,
+   "tr": "trustworthy = güvenilir. Sır tutan biri güvenilirdir."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "“Would you like to come to my party?”\nWhich answer REFUSES?",
+   "o": [
+    "Sure, why not?",
+    "I’d love to.",
+    "Sorry, I have other plans.",
+    "That sounds great!"
+   ],
+   "a": 2,
+   "tr": "Kibarca reddetmek: “Sorry, I have other plans.” Diğer üçü daveti kabul ediyor."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Emre and I get _____ well.\nWe are close friends.",
+   "o": [
+    "up",
+    "off",
+    "over",
+    "on"
+   ],
+   "a": 3,
+   "tr": "get on well (with) = biriyle iyi anlaşmak."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Selin _____ doing puzzles.\nIt’s her favourite hobby.",
+   "o": [
+    "hates",
+    "is keen on",
+    "can’t stand",
+    "dislikes"
+   ],
+   "a": 1,
+   "tr": "be keen on = bir şeye çok meraklı olmak, çok sevmek."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "“How often do you go jogging?”",
+   "o": [
+    "In the park.",
+    "With my dad.",
+    "Because it’s healthy.",
+    "Once a week."
+   ],
+   "a": 3,
+   "tr": "How often = ne sıklıkla. Cevap bir sıklık bildirir: once a week."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "I prefer reading books _____ watching TV.",
+   "o": [
+    "than",
+    "from",
+    "to",
+    "with"
+   ],
+   "a": 2,
+   "tr": "prefer A to B = A’yı B’ye tercih etmek."
+  },
+  {
+   "c": "Unit 3 · In the Kitchen",
+   "q": "First, _____ the onions into small pieces.",
+   "o": [
+    "chop",
+    "boil",
+    "pour",
+    "bake"
+   ],
+   "a": 0,
+   "tr": "chop = doğramak, küçük parçalara ayırmak."
+  },
+  {
+   "c": "Unit 3 · In the Kitchen",
+   "q": "Put the cake in the oven and\n_____ it for 40 minutes.",
+   "o": [
+    "slice",
+    "bake",
+    "peel",
+    "stir"
+   ],
+   "a": 1,
+   "tr": "bake = fırında pişirmek."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "“Can I speak to Mr. Aydın, please?”\n“_____, please. I’ll put you through.”",
+   "o": [
+    "Hang up",
+    "Call back",
+    "Hold on",
+    "Speak up"
+   ],
+   "a": 2,
+   "tr": "Hold on = hatta kalın, bekleyin."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "“Sorry, he isn’t here.\nCan I take a _____?”",
+   "o": [
+    "call",
+    "number",
+    "line",
+    "message"
+   ],
+   "a": 3,
+   "tr": "take a message = not almak, mesaj iletmek."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "The line is busy.\nI’ll _____ later.",
+   "o": [
+    "hang on",
+    "call back",
+    "pick up",
+    "look for"
+   ],
+   "a": 1,
+   "tr": "call back = geri aramak."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "You need a username and a _____\nto log in.",
+   "o": [
+    "password",
+    "attachment",
+    "browser",
+    "download"
+   ],
+   "a": 0,
+   "tr": "log in = giriş yapmak. Bunun için kullanıcı adı ve şifre (password) gerekir."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Don’t share your password with anyone.\nKeep it _____.",
+   "o": [
+    "public",
+    "online",
+    "secret",
+    "popular"
+   ],
+   "a": 2,
+   "tr": "keep it secret = gizli tutmak."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "There is no Wi-Fi here.\nI can’t go _____.",
+   "o": [
+    "offline",
+    "upstairs",
+    "abroad",
+    "online"
+   ],
+   "a": 3,
+   "tr": "go online = internete bağlanmak. offline = bağlantısız."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Which activity needs a parachute?",
+   "o": [
+    "Rafting",
+    "Skydiving",
+    "Hiking",
+    "Scuba diving"
+   ],
+   "a": 1,
+   "tr": "Skydiving = paraşütle serbest atlayış."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Rock climbing is _____ than cycling.\nIt’s very risky.",
+   "o": [
+    "more dangerous",
+    "safer",
+    "easier",
+    "more boring"
+   ],
+   "a": 0,
+   "tr": "risky = riskli. Karşılaştırma: more dangerous than."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Where can you book a room?",
+   "o": [
+    "At a museum",
+    "At a bakery",
+    "At a gym",
+    "At a hotel"
+   ],
+   "a": 3,
+   "tr": "book a room = oda ayırtmak. Bu otelde yapılır."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "“Have you ever _____ to Cappadocia?”",
+   "o": [
+    "go",
+    "went",
+    "been",
+    "going"
+   ],
+   "a": 2,
+   "tr": "Have you ever been to…? = Hiç … bulundun mu? (been, go fiilinin 3. hâli)"
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Pamukkale is famous _____\nits white travertines.",
+   "o": [
+    "for",
+    "of",
+    "at",
+    "with"
+   ],
+   "a": 0,
+   "tr": "be famous for = … ile ünlü olmak."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "The plants are dry.\nCan you _____ them?",
+   "o": [
+    "iron",
+    "water",
+    "dust",
+    "sweep"
+   ],
+   "a": 1,
+   "tr": "water the plants = bitkileri sulamak."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "I _____ the dishes after dinner\nevery evening.",
+   "o": [
+    "make",
+    "take",
+    "have",
+    "do"
+   ],
+   "a": 3,
+   "tr": "do the dishes = bulaşık yıkamak."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Scientists do _____\nin laboratories.",
+   "o": [
+    "recipes",
+    "chores",
+    "experiments",
+    "souvenirs"
+   ],
+   "a": 2,
+   "tr": "do experiments = deney yapmak."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Thomas Edison _____ the light bulb.",
+   "o": [
+    "invented",
+    "discovered",
+    "explored",
+    "solved"
+   ],
+   "a": 0,
+   "tr": "invent = icat etmek (yeni bir şey yapmak). discover = var olanı keşfetmek."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "The ground shook for 30 seconds.\nIt was an _____.",
+   "o": [
+    "avalanche",
+    "earthquake",
+    "flood",
+    "drought"
+   ],
+   "a": 1,
+   "tr": "earthquake = deprem. avalanche = çığ."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "Heavy rain caused a _____.\nThe streets were under water.",
+   "o": [
+    "drought",
+    "wildfire",
+    "flood",
+    "avalanche"
+   ],
+   "a": 2,
+   "tr": "flood = sel. drought = kuraklık."
+  }
+ ]
+}
