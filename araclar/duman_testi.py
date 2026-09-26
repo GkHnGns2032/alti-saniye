@@ -299,7 +299,8 @@ class SahteUcNokta:
 
 @contextlib.contextmanager
 def odev_kopyasi(adres):
-    """Depo dosyalarına dokunmadan, ayar.json'da sahte uç nokta olan geçici bir sayfa üretir."""
+    """Depo dosyalarına dokunmadan, ayar.json'da sahte uç nokta olan geçici bir sayfa üretir.
+    adres None ise ayar.json yer tutucu olur ("kurulmamış" senaryosu; depodaki gerçek adresten bağımsız)."""
     sys.dont_write_bytecode = True
     sys.path.insert(0, str(KOK))
     import yap  # noqa: E402
@@ -307,7 +308,8 @@ def odev_kopyasi(adres):
         tmp = pathlib.Path(d)
         shutil.copy(KOK / 'sablon.html', tmp / 'sablon.html')
         shutil.copytree(KOK / 'quizler', tmp / 'quizler')
-        (tmp / 'ayar.json').write_text(json.dumps({'gonderim_adresi': adres + '/exec'}), encoding='utf-8')
+        gonderim = yap.YER_TUTUCU if adres is None else adres + '/exec'
+        (tmp / 'ayar.json').write_text(json.dumps({'gonderim_adresi': gonderim}), encoding='utf-8')
         (tmp / 'bos.html').write_text('<!DOCTYPE html><meta charset="UTF-8"><title>boş</title>', encoding='utf-8')
         cikti = io.StringIO()
         with contextlib.redirect_stdout(cikti), contextlib.redirect_stderr(cikti):
@@ -643,7 +645,8 @@ def main():
 
     uc = SahteUcNokta()
     with sunucu(KOK) as taban, uc.calis() as uc_taban, odev_kopyasi(uc_taban) as kopya, \
-            sunucu(kopya) as odev_taban, sync_playwright() as pw:
+            sunucu(kopya) as odev_taban, odev_kopyasi(None) as bos_kopya, sunucu(bos_kopya) as bos_taban, \
+            sync_playwright() as pw:
         browser = pw.chromium.launch()
         for c in quizler:
             kos(f'akış   {c["slug"]}', quiz_senaryosu, browser, taban, c)
@@ -659,7 +662,7 @@ def main():
         kos('ödev   gönderilemedi → düğme', odev_kuyruk_dugme, o)
         kos('ödev   gönderilemedi → yeniden aç', odev_kuyruk_yeniden_ac, o)
         kos('ödev   kesin ret', odev_kesin_red, o)
-        kos('ödev   adres kurulmamış', odev_kurulmamis, browser, taban)
+        kos('ödev   adres kurulmamış', odev_kurulmamis, browser, bos_taban)
         kos('ödev   ?odev yok → 0 istek', odev_parametresiz, o)
         kos('ödev   CORS: text/plain', odev_cors, o)
         browser.close()
