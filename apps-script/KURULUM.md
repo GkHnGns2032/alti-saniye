@@ -155,19 +155,25 @@ Her tamamlanan deneme **Sonuçlar** sekmesine bir satır olarak düşer:
 
 ## 9. Sıralamayı çocuklara gönder
 
-Tablonun üst menüsünde **Altı Saniye > Sıralama oluştur** var. Menü görünmüyorsa sayfayı yenile.
+Her ödevin sıralaması, tabloda kendi sekmesinde **5 dakikada bir kendiliğinden** yenilenir. Sekmenin adı **Sıralama** ve ardından ödev kodudur (ör. **Sıralama AMPBGG**). Sekme, o ödeve ilk sonuç geldikten sonraki 5 dakika içinde açılır.
 
-1. **Sıralama oluştur**'a bas. Ödev kodunu sorar; yaz (ör. `AMPBGG`) ve **Tamam**'a bas.
-   - İlk seferde Google yeniden izin ister. 3. adımdaki gibi ver.
-2. Sıralama iki yerde hazır olur:
-   - **Sıralama** sekmesinde tablo olarak.
-   - Açılan pencerede WhatsApp metni olarak. **Kopyala**'ya bas ve sınıf grubuna yapıştır.
+- **1. satır:** WhatsApp'a yapıştırılacak hazır metin.
+- **2. satır:** Son güncellenme zamanı.
+- **Altındaki tablo:** Sıra, ad soyad, numara, puan, doğru, yanlış, boş, süre, durum.
+
+**Telefondan gönderme** (Google E-Tablolar uygulaması):
+1. **Ödev Sonuçları** tablosunu aç ve alttan **Sıralama KOD** sekmesine geç.
+2. En üstteki metin kutusuna (1. satır) dokun, sonra **Kopyala**'ya dokun.
+3. WhatsApp'ta sınıf grubuna yapıştır ve gönder.
+
+**Bilgisayardan:** Üst menüde **Altı Saniye > Sıralama oluştur**'u kullanabilirsin. 5 dakikayı beklemeden hemen yeniler ve metni kopyalanabilir bir pencerede gösterir. Bu menü yalnızca bilgisayarda görünür; Google özel menüleri telefonda göstermez.
 
 Sıralama kuralları:
-- Her öğrencinin **ilk denemesi** sayılır. Test bitince doğru cevaplar göründüğü için sonraki denemeler sayılmaz.
+- Her öğrencinin **ilk denemesi** sayılır. Test bitince doğru cevaplar göründüğü için sonraki denemeler sayılmaz. Öğrenci numara ve ad soyadıyla birlikte tanınır; iki öğrenci aynı numarayı yazsa da ayrı sıralanır.
 - Puana göre yüksekten düşüğe dizilir. Puanlar eşitse testi **daha kısa sürede** bitiren öne geçer.
 - Öğrencinin tam adı yazılır.
 - Süre dışı sonuçlar da listede yer alır, yanlarında **(süre dışı)** yazar.
+- Otomatik yenileme son 7 günde sonuç gelen ödevler için çalışır. Daha eski bir ödevin sıralaması en son hâliyle sekmesinde kalır.
 
 Örnek metin:
 
@@ -183,11 +189,11 @@ Sıralama kuralları:
 4 öğrenci katıldı.
 ```
 
-Menüye her bastığında **Sıralama** sekmesi o anki sonuçlarla yeniden yazılır. Bu yüzden son teslimden sonra bir kez daha oluşturman yeterli.
+**Otomatik yenilemeyi açmak için (bir kez):** Apps Script düzenleyicisinde üstteki işlev listesinden **kurulum**'u seç ve **Çalıştır**'a bas. Google zamanlayıcı için yeniden izin isteyebilir; 3. adımdaki gibi ver. **Yürütme günlüğü**'nde "sıralama zamanlayıcısı kuruldu (5 dk)" yazısını görmelisin.
 
 ## Kodu güncellemek
 
-`Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Yalnızca tablo menüsü (Sıralama) değiştiyse bu kadarı yeter; aşağıdaki yeniden dağıtım, öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.
+`Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Ardından **kurulum**'u bir kez **Çalıştır** (zamanlayıcı yeni kodla kurulsun). Yalnızca sıralama bölümü değiştiyse bu kadarı yeter. Aşağıdaki yeniden dağıtım yalnızca öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.
 
 ## Sorun giderme
 

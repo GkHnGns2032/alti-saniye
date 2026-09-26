@@ -20,8 +20,10 @@
  *   Yanıt: {ok:true, durum, deneme_no, sunucu_zamani}  ya da  {ok:false, hata, kalici?}
  *   kalici:true → tarayıcı bu gönderimi kuyruktan siler (yeniden denemenin anlamı yok).
  *
- * Tablo menüsü "Altı Saniye > Sıralama oluştur": bir ödev kodunun sonuçlarını en iyiden en kötüye
- * dizer, "Sıralama" sekmesine yazar ve WhatsApp'a yapıştırılacak metni gösterir (aşağıda).
+ * Sıralama: her ödev kodunun sonuçları en iyiden en kötüye dizilip "Sıralama <KOD>" sekmesine
+ * yazılır; sekmenin en üst hücresinde WhatsApp'a yapıştırılacak metin durur (telefondan
+ * kopyalanabilir). kurulum() bunu 5 dakikada bir kendiliğinden yenileyen zamanlayıcıyı kurar;
+ * bilgisayarda "Altı Saniye > Sıralama oluştur" menüsü anında yeniler (aşağıda).
  *
  * Neden text/plain? Tarayıcı, application/json gövdeli çapraz kaynaklı bir POST için önce
  * OPTIONS (CORS ön-kontrolü) yollar; Apps Script OPTIONS'a yanıt veremez ve istek düşer.
@@ -92,16 +94,31 @@ function doPost(e) {
   }
 }
 
-/** İsteğe bağlı: Apps Script düzenleyicisinde bir kez "Çalıştır" → iki sekmeyi başlıklarıyla açar. */
+/**
+ * Apps Script düzenleyicisinde "Çalıştır" (kod her güncellendiğinde bir kez):
+ * iki sekmeyi başlıklarıyla açar ve sıralamaları 5 dakikada bir yenileyen zamanlayıcıyı kurar.
+ * Birden çok kez çalıştırmak güvenlidir: eski zamanlayıcı silinip yenisi kurulur.
+ */
 function kurulum() {
   sayfa_(ODEVLER, ODEV_BASLIK);
   sayfa_(SONUCLAR, SONUC_BASLIK);
-  console.log('Sekmeler hazır. E-tablo saat dilimi: ' + tablo_().getSpreadsheetTimeZone());
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'siralamalariGuncelle') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('siralamalariGuncelle').timeBased().everyMinutes(5).create();
+  const n = siralamalariGuncelle();
+  console.log('Sekmeler hazır, sıralama zamanlayıcısı kuruldu (5 dk), ' + n + ' sıralama yenilendi. ' +
+    'E-tablo saat dilimi: ' + tablo_().getSpreadsheetTimeZone());
 }
 
-/* ---------- Sıralama (tablo menüsü: Altı Saniye > Sıralama oluştur) ----------
- * Bir ödev kodunun sonuçlarını en iyiden en kötüye dizer, "Sıralama" sekmesine yazar ve
- * WhatsApp'a yapıştırılacak metni gösterir. Kurallar (öğretmenin kararı):
+/* ---------- Sıralama ----------
+ * Bir ödev kodunun sonuçlarını en iyiden en kötüye dizer ve "Sıralama <KOD>" sekmesine yazar:
+ *   1. satır  WhatsApp'a yapıştırılacak metin (telefonda hücreye dokun → Kopyala)
+ *   2. satır  açıklama + güncellenme zamanı
+ *   3. satır  başlıklar, 4. satırdan sonrası tablo
+ * Kendiliğinden: siralamalariGuncelle() 5 dakikada bir (kurulum() kurar), son 7 günde sonucu
+ * gelen her ödev için. Anında: bilgisayarda "Altı Saniye > Sıralama oluştur" menüsü
+ * (özel menüler telefondaki E-Tablolar uygulamasında görünmez). Kurallar (öğretmenin kararı):
  *   - Her öğrencinin İLK denemesi (tablodaki en eski satırı) sayılır; sonrakiler cevaplar görüldükten
  *     sonradır. Öğrenci = numara + ad soyad (büyük/küçük harf ve boşluk farkı yok sayılır): iki
  *     öğrenci aynı numarayı yazsa da ayrı sıralanır.
@@ -111,6 +128,7 @@ function kurulum() {
  */
 
 const SIRALAMA = 'Sıralama';
+const YENI_GUN = 7; // zamanlayıcı yalnız son 7 günde sonucu gelen ödevleri yeniler
 const SIRALAMA_BASLIK = ['sira', 'ad_soyad', 'numara', 'puan', 'dogru', 'yanlis', 'bos', 'sure', 'durum'];
 
 function onOpen() {
@@ -128,7 +146,7 @@ function siralamaMenusu() {
   }
   const html = HtmlService.createHtmlOutput(
     '<div style="font:14px sans-serif">' +
-    '<p style="margin:0 0 8px">"' + html_(SIRALAMA) + '" sekmesi güncellendi. Aşağıdaki metni WhatsApp\'a yapıştır:</p>' +
+    '<p style="margin:0 0 8px">"' + html_(s.sekme) + '" sekmesi güncellendi. Aşağıdaki metni WhatsApp\'a yapıştır:</p>' +
     '<textarea id="t" readonly style="width:100%;height:300px;font:14px sans-serif;box-sizing:border-box">' +
     html_(s.metin) + '</textarea>' +
     '<button style="margin-top:8px;padding:8px 16px;font:bold 14px sans-serif" ' +
@@ -137,7 +155,31 @@ function siralamaMenusu() {
   ui.showModalDialog(html, 'WhatsApp sıralama metni');
 }
 
-/** Sıralamayı hesaplar ve "Sıralama" sekmesine yazar. {kod, satirlar, metin} döndürür. */
+/** Zamanlayıcı: son YENI_GUN günde sonucu gelen her ödevin sıralamasını yeniler. Yenilenen sayısını döndürür. */
+function siralamalariGuncelle() {
+  const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
+  const son = sh.getLastRow();
+  if (son < 2) return 0;
+  const sinir = Date.now() - YENI_GUN * GUN_MS;
+  const kodlar = {};
+  sh.getRange(2, 1, son - 1, 2).getValues().forEach(function (r) {
+    const t = Object.prototype.toString.call(r[0]) === '[object Date]' ? r[0].getTime() : NaN;
+    const k = normKod_(r[1]);
+    if (k && !(t < sinir)) kodlar[k] = true; // tarihi okunamayan satır da yenilensin
+  });
+  let n = 0;
+  Object.keys(kodlar).forEach(function (k) {
+    try {
+      siralamaHazirla_(k);
+      n++;
+    } catch (err) {
+      console.error('sıralama yenilenemedi: ' + k + ' · ' + err);
+    }
+  });
+  return n;
+}
+
+/** Sıralamayı hesaplar ve "Sıralama <KOD>" sekmesine yazar. {kod, sekme, satirlar, metin} döndürür. */
 function siralamaHazirla_(kodGirdisi) {
   const kod = normKod_(kodGirdisi);
   const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
@@ -162,17 +204,6 @@ function siralamaHazirla_(kodGirdisi) {
   const sinif = odev ? odevSinifi_(kod) : '';
   const tz = tablo_().getSpreadsheetTimeZone();
 
-  const tablo = [[kod + ' · ' + test + (sinif ? ' · ' + sinif : '') + ' · güncellendi: ' +
-    Utilities.formatDate(new Date(), tz, 'dd.MM.yyyy HH:mm'), '', '', '', '', '', '', '', ''], SIRALAMA_BASLIK];
-  satirlar.forEach(function (o, i) {
-    tablo.push([i + 1, metin_(o.ad), o.numara, o.puan, o.dogru, o.yanlis, o.bos, sure_(o.sure), o.durum]);
-  });
-  let hedef = tablo_().getSheetByName(SIRALAMA);
-  if (!hedef) hedef = tablo_().insertSheet(SIRALAMA);
-  hedef.clear();
-  hedef.getRange(1, 1, tablo.length, SIRALAMA_BASLIK.length).setValues(tablo);
-  hedef.setFrozenRows(2);
-
   const madalya = ['🥇', '🥈', '🥉'];
   const metin = ['🏆 Ödev sıralaması · ' + test + (sinif ? ' · ' + sinif : ''), '(ilk denemeler, 100 üzerinden)', '']
     .concat(satirlar.map(function (o, i) {
@@ -181,7 +212,28 @@ function siralamaHazirla_(kodGirdisi) {
     }))
     .concat(['', satirlar.length + ' öğrenci katıldı.'])
     .join('\n');
-  return {kod: kod, satirlar: satirlar, metin: metin};
+  if (!kod || !satirlar.length) return {kod: kod, sekme: '', satirlar: satirlar, metin: metin};
+
+  const sekme = SIRALAMA + ' ' + kod;
+  const bilgi = '↑ Üstteki metni WhatsApp\'a yapıştır: telefonda hücreye dokun → Kopyala. ' + kod + ' · ' + test +
+    (sinif ? ' · ' + sinif : '') + ' · güncellendi: ' + Utilities.formatDate(new Date(), tz, 'dd.MM.yyyy HH:mm') +
+    ' (5 dakikada bir kendiliğinden yenilenir)';
+  const tablo = [SIRALAMA_BASLIK];
+  satirlar.forEach(function (o, i) {
+    tablo.push([i + 1, metin_(o.ad), o.numara, o.puan, o.dogru, o.yanlis, o.bos, sure_(o.sure), o.durum]);
+  });
+  const genislik = SIRALAMA_BASLIK.length;
+  let hedef = tablo_().getSheetByName(sekme);
+  if (!hedef) hedef = tablo_().insertSheet(sekme);
+  hedef.clear();
+  hedef.getRange(1, 1).setValue(metin);
+  hedef.getRange(2, 1).setValue(bilgi);
+  hedef.getRange(3, 1, tablo.length, genislik).setValues(tablo);
+  hedef.getRange(1, 1, 1, genislik).merge().setWrap(true).setVerticalAlignment('top');
+  hedef.getRange(2, 1, 1, genislik).merge().setWrap(true);
+  hedef.setRowHeight(1, 21 * metin.split('\n').length + 8);
+  hedef.setFrozenRows(0);
+  return {kod: kod, sekme: sekme, satirlar: satirlar, metin: metin};
 }
 
 /** Ad karşılaştırması için: Türkçe küçük harf, tek boşluk. "GÖKHAN  Güneş" = "gökhan güneş". */
