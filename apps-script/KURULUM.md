@@ -233,6 +233,23 @@ Kaydedilen testler e-tablonun **Testler** sekmesinde durur (sekme ilk kayıtta k
 
 **Önemli:** ChatGPT hata yapabilir. Soruları ve cevapları göndermeden önce öğretmen mutlaka okur; sistem yalnızca biçimi denetler, içeriğin doğruluğunu denetleyemez.
 
+## 12. Hazır testi kontrol et ve onayla (telefondan)
+
+Sitedeki hazır testleri öğretmen ödev vermeden önce kendisi kontrol edebilir. Panelde **Hazır testi kontrol et** kartını aç:
+
+1. Testi seç, **Soruları aç**'a bas. Her soru ayrı bir kartta açılır.
+2. Yanlış ya da uygunsuz bulduğun yazıya dokunup düzelt. Doğru cevabı değiştirmek için doğru şıkkın solundaki yuvarlağa dokun.
+3. Uygun olmayan soruyu **Soruyu çıkar** ile at. Fikrini değiştirirsen **Geri al**'a bas.
+4. Yerine soru koymak için en alttaki **＋ Yeni soru ekle**'ye bas. Boş bir kart açılır: soruyu ve dört şıkkı yaz, doğru şıkkın solundaki yuvarlağa dokun. (En çok 40 soru.)
+5. En alttaki **Onayla ve kaydet**'e bas.
+
+Bundan sonra **Yeni ödev** listesinde o testin yanında **✓ onaylı** yazar ve ödevler senin onayladığın hâliyle gider. Aynı testi yeniden açarsan onayladığın hâl gelir; istediğin kadar yeniden düzeltip onaylayabilirsin.
+
+- Sitedeki hazır test değişmez. Onaylanan hâl e-tablonun **Testler** sekmesine kaydedilir.
+- Önceden verilmiş ödevler, verildikleri andaki hâlleriyle kalır.
+- Doğru cevapların yeri karıştırılmaz: nasıl işaretlediysen öyle kalır.
+- En az 5 soru kalmalı. Boş şık, aynı şıkkın iki kez yazılması ya da işaretsiz doğru cevap varsa sistem kaydetmez ve hatalı soruyu kırmızıyla gösterir.
+
 ## Kodu güncellemek
 
 `Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Ardından **kurulum**'u bir kez **Çalıştır** (zamanlayıcı yeni kodla kurulsun). Yalnızca sıralama bölümü değiştiyse bu kadarı yeter. Aşağıdaki yeniden dağıtım yalnızca öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.

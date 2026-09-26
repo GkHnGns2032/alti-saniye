@@ -487,6 +487,41 @@ VAKALAR.push(
     return g.gecerli && g.acik && g.test_slug === t.test_slug && g.test.sorular.length === 6 && g.test.ad === 'Unit 6: Adventures!' &&
       k.ok && k.durum === 'zamanında' && !('test' in hazir);
   }],
+  ['onaylı hazır test: kaynak ve kategori saklanır; listede yalnız en yeni onay görünür, ChatGPT testleri etkilenmez', () => {
+    const o = panelOrtami();
+    const kendi = o.panel('test_ekle', testK(6, {ad: 'Kendi'}));
+    const ilk = o.panel('test_ekle', testK(6, {ad: 'Friendship', kaynak: 'ingilizce-8-friendship'}));
+    const baska = o.panel('test_ekle', testK(6, {ad: 'Teen Life', kaynak: 'ingilizce-8-teen-life'}));
+    const son = o.panel('test_ekle', testK(5, {ad: 'Friendship', kaynak: 'ingilizce-8-friendship',
+      sorular: Array.from({length: 5}, (_, i) => soruK(i, {c: 'Unit 1 · Friendship'}))}));
+    const t = o.panel('odevler').testler;
+    const icerik = JSON.parse(o.sayfalar['Testler'].v[4][4]);
+    return ilk.ok && son.ok && son.kaynak === 'ingilizce-8-friendship' && t.length === 3 &&
+      t[0].slug === son.test_slug && t[0].kaynak === 'ingilizce-8-friendship' && t[0].n === 5 &&
+      t[1].slug === baska.test_slug && t[2].slug === kendi.test_slug && t[2].kaynak === '' &&
+      !t.some(x => x.slug === ilk.test_slug) && icerik.kaynak === 'ingilizce-8-friendship' && icerik.sorular[0].c === 'Unit 1 · Friendship';
+  }],
+  ['onaylı hazır test: geçersiz kaynak reddedilir (ozel-, boşluk, büyük harf, sayı)', () => {
+    const o = panelOrtami();
+    const r = ['ozel-abc-1234', 'unit 1', 'Ingilizce', 42].map(k => o.panel('test_ekle', testK(6, {kaynak: k})));
+    return r.every(x => x.ok === false && x.hata === 'kaynak' && x.kalici) && !(o.sayfalar['Testler'] && o.sayfalar['Testler'].v.length > 1);
+  }],
+  ['onaylı hazır test: test_getir kayıtlı testi geri verir; bilinmeyen/hazır slug ve anahtarsız istek reddedilir', () => {
+    const o = panelOrtami();
+    const k = o.panel('test_ekle', testK(6, {ad: 'Friendship', kaynak: 'ingilizce-8-friendship'}));
+    const g = o.panel('test_getir', {slug: k.test_slug});
+    const yok = o.panel('test_getir', {slug: 'ozel-olmayan-abcd'}), hazir = o.panel('test_getir', {slug: 'ingilizce-8-friendship'});
+    const izinsiz = o.post({islem: 'test_getir', anahtar: 'x'.repeat(64), slug: k.test_slug});
+    return g.ok && g.test.sorular.length === 6 && g.test.kaynak === 'ingilizce-8-friendship' && g.test.ad === 'Friendship' &&
+      yok.ok === false && yok.hata === 'yok' && hazir.ok === false && izinsiz.hata === 'yetkisiz' && !izinsiz.test;
+  }],
+  ['onaylı hazır test: ödevde doGet testi kaynağıyla döndürür (sayfa hazır testin görünümünü kullanır)', () => {
+    const o = panelOrtami();
+    const k = o.panel('test_ekle', testK(6, {ad: 'Friendship', kaynak: 'ingilizce-8-friendship'}));
+    const od = o.panel('odev_ekle', {test_slug: k.test_slug, bitis: gelecek()});
+    const g = o.get({odev: od.kod});
+    return g.gecerli && g.test_slug === k.test_slug && g.test.kaynak === 'ingilizce-8-friendship' && g.test.sorular.length === 6;
+  }],
   ['özel test: silinmiş/bozuk test → doGet test alanı olmadan döner (sayfa "test bulunamadı" der)', () => {
     const o = panelOrtami();
     const od = o.panel('odev_ekle', {test_slug: 'ozel-olmayan-abcd', bitis: gelecek()});
