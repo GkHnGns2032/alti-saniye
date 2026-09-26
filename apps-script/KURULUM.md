@@ -153,9 +153,41 @@ Her tamamlanan deneme **Sonuçlar** sekmesine bir satır olarak düşer:
 
 İpucu: **Veri > Filtre oluştur** ile koda ya da sınıfa göre süzebilirsin.
 
+## 9. Sıralamayı çocuklara gönder
+
+Tablonun üst menüsünde **Altı Saniye > Sıralama oluştur** var. Menü görünmüyorsa sayfayı yenile.
+
+1. **Sıralama oluştur**'a bas. Ödev kodunu sorar; yaz (ör. `AMPBGG`) ve **Tamam**'a bas.
+   - İlk seferde Google yeniden izin ister. 3. adımdaki gibi ver.
+2. Sıralama iki yerde hazır olur:
+   - **Sıralama** sekmesinde tablo olarak.
+   - Açılan pencerede WhatsApp metni olarak. **Kopyala**'ya bas ve sınıf grubuna yapıştır.
+
+Sıralama kuralları:
+- Her öğrencinin **ilk denemesi** sayılır. Test bitince doğru cevaplar göründüğü için sonraki denemeler sayılmaz.
+- Puana göre yüksekten düşüğe dizilir. Puanlar eşitse testi **daha kısa sürede** bitiren öne geçer.
+- Öğrencinin tam adı yazılır.
+- Süre dışı sonuçlar da listede yer alır, yanlarında **(süre dışı)** yazar.
+
+Örnek metin:
+
+```
+🏆 Ödev sıralaması · ingilizce-8-friendship · 8-A
+(ilk denemeler, 100 üzerinden)
+
+🥇 Ali Veli — 90
+🥈 Can Demir — 80
+🥉 Ayşe Yılmaz — 80
+4. Ece Kaya — 50 (süre dışı)
+
+4 öğrenci katıldı.
+```
+
+Menüye her bastığında **Sıralama** sekmesi o anki sonuçlarla yeniden yazılır. Bu yüzden son teslimden sonra bir kez daha oluşturman yeterli.
+
 ## Kodu güncellemek
 
-`Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.
+`Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Yalnızca tablo menüsü (Sıralama) değiştiyse bu kadarı yeter; aşağıdaki yeniden dağıtım, öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.
 
 ## Sorun giderme
 

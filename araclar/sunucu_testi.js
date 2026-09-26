@@ -21,6 +21,7 @@ const GUN = 864e5;
 /* ---------- Taklitler ---------- */
 class Sayfa {
   constructor() { this.v = []; this.bicim = {}; }
+  clear() { this.v = []; }
   getLastRow() { return this.v.length; }
   getDataRange() { return this.getRange(1, 1, Math.max(1, this.v.length), Math.max(1, ...this.v.map(r => r.length))); }
   setFrozenRows() {}
@@ -40,8 +41,16 @@ class Sayfa {
   }
 }
 
-function ortam({kilit = true} = {}) {
+function ortam({kilit = true, istem = null} = {}) {
   const sayfalar = {};
+  const ui = {
+    menuler: [], diyaloglar: [], uyarilar: [],
+    ButtonSet: {OK: 'OK', OK_CANCEL: 'OK_CANCEL'}, Button: {OK: 'OK', CANCEL: 'CANCEL'},
+    createMenu(ad) { const m = {ad, ogeler: [], addItem(e, f) { this.ogeler.push([e, f]); return this; }, addToUi() { ui.menuler.push(m); }}; return m; },
+    prompt: () => ({getSelectedButton: () => (istem === null ? 'CANCEL' : 'OK'), getResponseText: () => istem || ''}),
+    alert(baslik, metin) { ui.uyarilar.push(metin); },
+    showModalDialog(h, baslik) { ui.diyaloglar.push({html: h.html, baslik}); }
+  };
   const ss = {
     getSheetByName: ad => sayfalar[ad] || null,
     insertSheet: ad => (sayfalar[ad] = new Sayfa()),
@@ -49,7 +58,8 @@ function ortam({kilit = true} = {}) {
   };
   const ctx = {
     console: {log() {}, error() {}},
-    SpreadsheetApp: {getActiveSpreadsheet: () => ss, flush() {}},
+    SpreadsheetApp: {getActiveSpreadsheet: () => ss, flush() {}, getUi: () => ui},
+    HtmlService: {createHtmlOutput: h => ({html: h, setWidth() { return this; }, setHeight() { return this; }})},
     LockService: {getScriptLock: () => ({tryLock: () => kilit, releaseLock() {}})},
     ContentService: {
       MimeType: {JSON: 'application/json'},
@@ -62,8 +72,10 @@ function ortam({kilit = true} = {}) {
         return new Date(Date.UTC(y, a - 1, gun, h, m, sn) - TZ_DK[tz] * 6e4);
       },
       formatDate(d, tz, bicim) {
-        if (bicim !== 'HH:mm:ss') throw new Error('taklit: desteklenmeyen biçim ' + bicim);
-        return new Date(d.getTime() + TZ_DK[tz] * 6e4).toISOString().slice(11, 19);
+        const x = new Date(d.getTime() + TZ_DK[tz] * 6e4).toISOString();
+        if (bicim === 'HH:mm:ss') return x.slice(11, 19);
+        if (bicim === 'dd.MM.yyyy HH:mm') return `${x.slice(8, 10)}.${x.slice(5, 7)}.${x.slice(0, 4)} ${x.slice(11, 16)}`;
+        throw new Error('taklit: desteklenmeyen biçim ' + bicim);
       }
     }
   };
@@ -71,7 +83,7 @@ function ortam({kilit = true} = {}) {
   vm.runInContext(KOD, ctx, {filename: 'Kod.gs'});
   const cevap = o => { if (o.mime !== 'application/json') throw new Error('JSON mime yok'); return JSON.parse(o.t); };
   return {
-    ctx, sayfalar,
+    ctx, sayfalar, ui,
     odev: (...satirlar) => {
       const sh = ss.insertSheet('Ödevler');
       sh.v = [['kod', 'test_slug', 'baslangic', 'bitis', 'sinif', 'not'], ...satirlar];
@@ -216,6 +228,72 @@ const VAKALAR = [
     return r.ok && sh.v[0][13] === 'gonderim_id' && sh.v.length === 2;
   }]
 ];
+
+/* ---------- Sıralama ---------- */
+// Sıralama için sonuç tablosu: aynı ödevde birkaç öğrenci, tekrar denemeler, süre dışı, başka ödev.
+function siralamaOrtami(istem) {
+  const o = ortam({istem});
+  o.odev(['ACIK1', 'ingilizce-8', once, sonra, '8-A', ''], ['GECTI', 'ingilizce-8', new Date(simdi - 3 * GUN), new Date(simdi - 2 * GUN), '', '']);
+  const g = (numara, ad, dogru, puan, sure, ek = {}) => o.post(govde(Object.assign({numara, ad_soyad: ad, dogru, yanlis: 10 - dogru, bos: 0, puan, istemci_sure_ms: sure}, ek)));
+  g('11', 'Ayşe Yılmaz', 8, 80, 90000);
+  g('12', 'Ali Veli', 9, 90, 120000);
+  g('11', 'Ayşe Yılmaz', 10, 100, 60000);       // 2. deneme: sayılmamalı
+  g('13', 'Can Demir', 8, 80, 70000);           // Ayşe ile eşit puan, daha hızlı → önde
+  g('14', '=Kötü Ad', 5, 50, 100000);           // formül gibi başlayan ad
+  g('99', 'Başka Ödev', 10, 100, 1000, {kod: 'GECTI'}); // süre dışı, başka kod
+  return o;
+}
+VAKALAR.push(
+  ['onOpen() tabloya "Altı Saniye > Sıralama oluştur" menüsü ekler', () => {
+    const o = ortam();
+    o.ctx.onOpen();
+    return o.ui.menuler.length === 1 && o.ui.menuler[0].ad === 'Altı Saniye' &&
+      o.ui.menuler[0].ogeler[0][0] === 'Sıralama oluştur' && o.ui.menuler[0].ogeler[0][1] === 'siralamaMenusu';
+  }],
+  ['sıralama: ilk deneme sayılır, puan ↓, eşitlikte hızlı olan önde, başka ödev yok', () => {
+    const s = siralamaOrtami().ctx.siralamaHazirla_('acik1');
+    return s.satirlar.map(x => x.numara).join() === '12,13,11,14' && s.satirlar[2].puan === 80;
+  }],
+  ['sıralama: "Sıralama" sekmesi başlık + tablo olarak yazılır', () => {
+    const o = siralamaOrtami();
+    o.ctx.siralamaHazirla_('ACIK1');
+    const v = o.sayfalar['Sıralama'].v;
+    return /^ACIK1 · ingilizce-8 · 8-A · güncellendi: \d\d\.\d\d\.\d{4} \d\d:\d\d$/.test(v[0][0]) &&
+      v[1].join() === 'sira,ad_soyad,numara,puan,dogru,yanlis,bos,sure,durum' &&
+      v[2].join() === '1,Ali Veli,12,90,9,1,0,2:00,zamanında' && v[3][7] === '1:10' && v.length === 6 &&
+      v[5][1] === "'=Kötü Ad";
+  }],
+  ['sıralama: WhatsApp metni madalyalı, tam ad, katılımcı sayısı', () => {
+    const m = siralamaOrtami().ctx.siralamaHazirla_('ACIK1').metin.split('\n');
+    return m[0] === '🏆 Ödev sıralaması · ingilizce-8 · 8-A' && m[3] === '🥇 Ali Veli — 90' &&
+      m[4] === '🥈 Can Demir — 80' && m[5] === '🥉 Ayşe Yılmaz — 80' && m[6].startsWith('4. ') &&
+      m[m.length - 1] === '4 öğrenci katıldı.';
+  }],
+  ['sıralama: süre dışı sonuç listede, işaretli; ondalık puan virgüllü', () => {
+    const o = siralamaOrtami();
+    o.post(govde({kod: 'GECTI', numara: '98', ad_soyad: 'Geç Kalan', puan: 63.3, dogru: 7}));
+    const m = o.ctx.siralamaHazirla_('GECTI').metin;
+    return m.includes('🥇 Başka Ödev — 100 (süre dışı)') && m.includes('🥈 Geç Kalan — 63,3 (süre dışı)');
+  }],
+  ['sıralama: sonucu olmayan kod → boş liste', () => siralamaOrtami().ctx.siralamaHazirla_('YOK').satirlar.length === 0],
+  ['menü: kod sorulur, metin kopyalanabilir pencerede gösterilir (HTML kaçışlı)', () => {
+    const o = siralamaOrtami('acik1');
+    o.post(govde({numara: '15', ad_soyad: 'Ece <b>Kaya</b>', puan: 10, dogru: 1}));
+    o.ctx.siralamaMenusu();
+    const d = o.ui.diyaloglar[0];
+    return o.ui.diyaloglar.length === 1 && d.baslik === 'WhatsApp sıralama metni' &&
+      d.html.includes('🥇 Ali Veli — 90') && d.html.includes('Kopyala') &&
+      d.html.includes('Ece &lt;b&gt;Kaya&lt;/b&gt;') && !d.html.includes('<b>Kaya');
+  }],
+  ['menü: sonucu olmayan kodda uyarı, pencere yok; iptalde hiçbir şey olmaz', () => {
+    const a = siralamaOrtami('YOK');
+    a.ctx.siralamaMenusu();
+    const b = siralamaOrtami(null);
+    b.ctx.siralamaMenusu();
+    return a.ui.uyarilar.length === 1 && a.ui.uyarilar[0].includes('henüz sonuç yok') && a.ui.diyaloglar.length === 0 &&
+      b.ui.uyarilar.length === 0 && b.ui.diyaloglar.length === 0 && !b.sayfalar['Sıralama'];
+  }]
+);
 
 let gecen = 0, kalan = 0;
 for (const [ad, fn] of VAKALAR) {
