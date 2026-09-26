@@ -75,6 +75,17 @@ VAKALAR = [
     ('kök liste', {'a.json': [QUIZ]}, 'kökü bir JSON nesnesi'),
     # bir dosya geçerli, diğeri bozuk: yine hiçbir şey yazılmamalı
     ('karışık', {'a.json': ust(slug='iyi', sira=1), 'b.json': ust(slug='kotu', sira=2, scoring='x')}, 'b.json: "scoring"'),
+    # ayar.json (ödev modu gönderim adresi): quiz geçerli olsa bile yanlış adres hiçbir şey yazdırmamalı
+    ('ayar: bozuk JSON', {'a.json': QUIZ, 'ayar.json': '{"gonderim_adresi": '}, 'ayar.json: geçersiz JSON'),
+    ('ayar: kök liste', {'a.json': QUIZ, 'ayar.json': []}, 'ayar.json: dosyanın kökü'),
+    ('ayar: adres metin değil', {'a.json': QUIZ, 'ayar.json': {'gonderim_adresi': 5}}, '"gonderim_adresi" metin olmalı'),
+    ('ayar: /dev adresi', {'a.json': QUIZ, 'ayar.json': {'gonderim_adresi': 'https://script.google.com/macros/s/' + 'A' * 40 + '/dev'}},
+     '"gonderim_adresi" Apps Script web uygulaması adresi olmalı'),
+    ('ayar: düzenleyici adresi', {'a.json': QUIZ, 'ayar.json': {'gonderim_adresi': 'https://script.google.com/home/projects/x/edit'}},
+     '"gonderim_adresi" Apps Script web uygulaması adresi olmalı'),
+    ('ayar: başka alan adı', {'a.json': QUIZ, 'ayar.json': {'gonderim_adresi': 'https://ornek.com/macros/s/' + 'A' * 40 + '/exec'}},
+     '"gonderim_adresi" Apps Script web uygulaması adresi olmalı'),
+    ('ayar: site adresi / ile bitmiyor', {'a.json': QUIZ, 'ayar.json': {'site_adresi': 'https://ornek.github.io/x'}}, '"site_adresi" / ile biten'),
 ]
 
 
@@ -83,7 +94,7 @@ def kur(tmp, dosyalar):
     shutil.copy(KOK / 'sablon.html', tmp / 'sablon.html')
     for ad, icerik in dosyalar.items():
         metin = icerik if isinstance(icerik, str) else json.dumps(icerik, ensure_ascii=False)
-        (tmp / 'quizler' / ad).write_text(metin, encoding='utf-8')
+        (tmp / ad if ad == 'ayar.json' else tmp / 'quizler' / ad).write_text(metin, encoding='utf-8')
 
 
 def dosya_kumesi(tmp):
@@ -124,6 +135,21 @@ def main():
         if once != sonra:
             sorunlar.append(f'dosya yazıldı: {sorted(set(sonra) - set(once))}')
         sonuc(not sorunlar, ad, '; '.join(sorunlar))
+
+    # ayar.json: yer tutucu → ödev kapalı gömülür; geçerli adres → olduğu gibi gömülür
+    adres = 'https://script.google.com/macros/s/' + 'AKfy_ORNEK-' * 4 + '/exec'
+    for ad, ayar, beklenen in [('yer tutucu', {'gonderim_adresi': yap.YER_TUTUCU}, '{"gonderim": ""}'),
+                               ('ayar.json yok', None, '{"gonderim": ""}'),
+                               ('geçerli adres', {'gonderim_adresi': adres, 'site_adresi': 'https://ornek.github.io/x/'},
+                                '{"gonderim": "' + adres + '"}')]:
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            kur(tmp, {'a.json': QUIZ, **({'ayar.json': ayar} if ayar is not None else {})})
+            with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+                kod = yap.main([], kok=tmp)
+            sayfa = (tmp / 'index.html').read_text(encoding='utf-8') if kod == 0 else ''
+            sonuc(kod == 0 and f'const AYAR = {beklenen};' in sayfa and '/*AYAR*/' not in sayfa,
+                  f'ayar: {ad} → sayfaya {beklenen} gömüldü')
 
     # --dogrula hiçbir şey yazmaz
     kod, err, once, sonra = kos({'a.json': QUIZ}, ['--dogrula'])

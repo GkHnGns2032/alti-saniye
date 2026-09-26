@@ -7,12 +7,15 @@ Adımlar (biri kalırsa sonrakiler koşmaz, çıkış kodu 1):
   3. Üretim                 yap.py → index.html + <slug>/index.html
      Üretilen dosyalar depodakinden farklıysa: yerelde uyarı; CI'da (CI=true) KALIR,
      çünkü JSON/şablon değişip yap.py koşulmadan commit edilmiş ya da çıktı elle düzenlenmiş demektir.
-  4. Duman testi            araclar/duman_testi.py (Playwright, gerçek tarayıcı)
+  4. Sunucu testi           araclar/sunucu_testi.js (Node) — apps-script/Kod.gs taklit Google servisleriyle
+  5. Duman testi            araclar/duman_testi.py (Playwright, gerçek tarayıcı; ödev modu sahte uç noktayla)
 
-Seçenek:  --duman-yok   4. adımı atla (Playwright kurulu değilken hızlı yerel kontrol)
+Seçenek:  --duman-yok   5. adımı atla (Playwright kurulu değilken hızlı yerel kontrol)
+Node kurulu değilse 4. adım yerelde uyarıyla atlanır; CI'da (CI=true) KALIR.
 """
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import time
@@ -61,11 +64,21 @@ def main():
     else:
         print('    ✓ Üretilen dosyalar depodakiyle birebir aynı')
 
+    node = shutil.which('node')
+    if node:
+        if not adim(4, 'Sunucu testi (apps-script/Kod.gs, Node)', [node, 'araclar/sunucu_testi.js']):
+            return 1
+    elif ci:
+        print('\n[4] Sunucu testi\n    ✗ CI: node bulunamadı')
+        return 1
+    else:
+        print('\n[4] Sunucu testi atlandı: node kurulu değil (CI\'da zorunlu)')
+
     if duman:
-        if not adim(4, 'Tarayıcı duman testi (Playwright)', [PY, 'araclar/duman_testi.py']):
+        if not adim(5, 'Tarayıcı duman testi (Playwright)', [PY, 'araclar/duman_testi.py']):
             return 1
     else:
-        print('\n[4] Duman testi atlandı (--duman-yok)')
+        print('\n[5] Duman testi atlandı (--duman-yok)')
 
     print('\nKALİTE KAPISI: GEÇTİ')
     return 0
