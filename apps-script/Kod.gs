@@ -26,8 +26,10 @@
  * bilgisayarda "Altı Saniye > Sıralama oluştur" menüsü anında yeniler (aşağıda).
  *
  * Öğretmen paneli (sitede index.html?panel): aynı POST ucuna {islem, anahtar, ...} gövdesiyle gelir.
- *   islem: "odevler" (liste + katılan sayısı) · "odev_ekle" (kod üretir, Ödevler'e satır yazar) ·
- *   "siralama" (WhatsApp metni). anahtar, kurulum() ile üretilip Betik Özellikleri'nde saklanır;
+ *   islem: "odevler" (liste + katılan sayısı + öğretmenin kendi testleri) · "odev_ekle" (kod üretir,
+ *   Ödevler'e satır yazar) · "siralama" (WhatsApp metni) · "test_ekle" (ChatGPT'den gelen testi
+ *   "Testler" sekmesine kaydeder; adı "ozel-" ile başlar). Ödev bu testlerden biriyse doGet
+ *   yanıtına testin kendisi de eklenir (sayfada gömülü değildir). anahtar, kurulum() ile üretilip Betik Özellikleri'nde saklanır;
  *   depoda yoktur. Yanlış/eksik anahtar → {ok:false, hata:"yetkisiz"}.
  *
  * Neden text/plain? Tarayıcı, application/json gövdeli çapraz kaynaklı bir POST için önce
@@ -48,6 +50,8 @@ const GUN_MS = 24 * 60 * 60 * 1000;
 // Öğretmen panelinin linki bu adresle kurulur (kurulum() günlüğe yazar). Site taşınırsa burayı değiştir.
 const SITE = 'https://gkhngns2032.github.io/alti-saniye/';
 const ANAHTAR_OZELLIGI = 'OGRETMEN_ANAHTARI';
+const TESTLER = 'Testler';
+const TEST_BASLIK = ['test_slug', 'ad', 'soru_sayisi', 'olusturma', 'icerik'];
 
 /* ---------- Web uygulaması giriş noktaları ---------- */
 
@@ -59,14 +63,17 @@ function doGet(e) {
     if (!odev) return json_({gecerli: false});
     if (odev.hata) return json_({gecerli: false, hata: odev.hata});
     const simdi = new Date();
-    return json_({
+    const yanit = {
       gecerli: true,
       test_slug: odev.test_slug,
       baslangic: iso_(odev.baslangic),
       bitis: iso_(odev.bitis),
       acik: pencereIcinde_(odev, simdi),
       simdi: simdi.toISOString()
-    });
+    };
+    const ozel = odev.test_slug.indexOf('ozel-') === 0 ? ozelTest_(odev.test_slug) : null;
+    if (ozel) yanit.test = ozel;
+    return json_(yanit);
   } catch (err) {
     console.error(err);
     return json_({gecerli: false, hata: 'sunucu_hatasi'});
@@ -145,22 +152,87 @@ function yeniAnahtar_() {
 
 function panelIslem_(b, simdi) {
   if (!anahtarDogru_(b.anahtar)) return {ok: false, hata: 'yetkisiz', kalici: true};
-  if (b.islem === 'odevler') return {ok: true, odevler: odevListesi_()};
+  if (b.islem === 'odevler') return {ok: true, odevler: odevListesi_(), testler: testListesi_()};
   if (b.islem === 'siralama') {
     const s = siralamaHazirla_(b.kod);
     return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
       satirlar: s.satirlar.map(function (o) { return {ad: o.ad, puan: o.puan, durum: o.durum}; })};
   }
-  if (b.islem === 'odev_ekle') {
+  if (b.islem === 'odev_ekle' || b.islem === 'test_ekle') {
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return {ok: false, hata: 'mesgul'};
     try {
-      return odevEkle_(b, simdi);
+      return b.islem === 'odev_ekle' ? odevEkle_(b, simdi) : testEkle_(b, simdi);
     } finally {
       kilit.releaseLock();
     }
   }
   return {ok: false, hata: 'gecersiz', kalici: true};
+}
+
+/* ---------- Öğretmenin kendi testleri (ChatGPT'den panele yapıştırılan) ---------- */
+
+/** Panelden gelen testi denetler: 5-40 soru, her soruda 4 farklı şık, 0-3 doğru cevap. {hata} ya da {ad, sorular}. */
+function testDenetle_(b) {
+  const metin = (v, ust) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= ust;
+  if (!metin(b.ad, 60)) return {hata: 'ad'};
+  if (!Array.isArray(b.sorular) || b.sorular.length < 5 || b.sorular.length > 40) return {hata: 'soru_sayisi'};
+  const sorular = [];
+  for (let i = 0; i < b.sorular.length; i++) {
+    const q = b.sorular[i] || {};
+    if (!metin(q.q, 300) || !Array.isArray(q.o) || q.o.length !== 4 || !q.o.every(x => metin(x, 100))) return {hata: 'soru', no: i + 1};
+    const o = q.o.map(x => x.trim());
+    if (new Set(o.map(x => x.toLowerCase())).size !== 4) return {hata: 'soru', no: i + 1};
+    if (typeof q.a !== 'number' || !Number.isInteger(q.a) || q.a < 0 || q.a > 3) return {hata: 'soru', no: i + 1};
+    sorular.push({q: q.q.trim(), o: o, a: q.a, tr: typeof q.tr === 'string' ? q.tr.trim().slice(0, 300) : ''});
+  }
+  return {ad: b.ad.replace(/\s+/g, ' ').trim(), sorular: sorular};
+}
+
+function testEkle_(b, simdi) {
+  const t = testDenetle_(b);
+  if (t.hata) return {ok: false, hata: t.hata, no: t.no, kalici: true};
+  const icerik = JSON.stringify({ad: t.ad, sorular: t.sorular});
+  if (icerik.length > 45000) return {ok: false, hata: 'cok_uzun', kalici: true};
+  const sh = sayfa_(TESTLER, TEST_BASLIK);
+  const var_ = {};
+  sh.getDataRange().getValues().slice(1).forEach(function (r) { var_[String(r[0])] = true; });
+  let slug;
+  do { slug = 'ozel-' + slugla_(t.ad) + '-' + kodUret_().slice(0, 4).toLowerCase(); } while (var_[slug]);
+  sh.getRange(sh.getLastRow() + 1, 1, 1, TEST_BASLIK.length).setValues([[slug, metin_(t.ad), t.sorular.length, simdi, icerik]]);
+  SpreadsheetApp.flush();
+  return {ok: true, test_slug: slug, ad: t.ad, n: t.sorular.length};
+}
+
+/** Kayıtlı test: {ad, sorular} ya da null. */
+function ozelTest_(slug) {
+  const satirlar = sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues();
+  for (let i = 1; i < satirlar.length; i++) {
+    if (String(satirlar[i][0]) !== slug) continue;
+    try {
+      const t = JSON.parse(String(satirlar[i][4]));
+      return t && Array.isArray(t.sorular) ? {ad: String(t.ad || satirlar[i][1]), sorular: t.sorular} : null;
+    } catch (err) {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Öğretmenin testleri, en yeni üstte: [{slug, ad, n}]. */
+function testListesi_() {
+  return sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues().slice(1).reverse()
+    .filter(function (r) { return String(r[0]).indexOf('ozel-') === 0; })
+    .map(function (r) { return {slug: String(r[0]), ad: String(r[1]).replace(/^'/, ''), n: Number(r[2]) || 0}; });
+}
+
+/** "Unit 6: Adventures!" → "unit-6-adventures" (Türkçe harfler sadeleşir). */
+function slugla_(ad) {
+  const tr = {'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'â': 'a', 'î': 'i', 'û': 'u'};
+  const s = String(ad).replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase()
+    .replace(/[çğıöşüâîû]/g, function (h) { return tr[h]; })
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30).replace(/-+$/, '');
+  return s || 'test';
 }
 
 function anahtarDogru_(k) {
@@ -347,7 +419,7 @@ function siralamaHazirla_(kodGirdisi) {
   return {kod: kod, sekme: sekme, satirlar: satirlar, metin: metin};
 }
 
-/** Ad karşılaştırması için: Türkçe küçük harf, tek boşluk. "GÖKHAN  Güneş" = "gökhan güneş". */
+/** Ad karşılaştırması için: Türkçe küçük harf, tek boşluk. "AYŞE  Yılmaz" = "ayşe yılmaz". */
 function kisiAdi_(ad) {
   return String(ad).replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase().replace(/\s+/g, ' ').trim();
 }

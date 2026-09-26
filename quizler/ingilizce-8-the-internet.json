@@ -1,0 +1,163 @@
+{
+ "slug": "ingilizce-8-the-internet",
+ "sira": 8,
+ "title": "Altı Saniye · The Internet",
+ "name": "8. Sınıf İngilizce · Unit 5 The Internet",
+ "desc": "5. ünite The Internet: internet sözcükleri, güvenli kullanım, sosyal medya. Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 5 · The Internet",
+ "heroTop": "Internet",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "5. ünite <b>The Internet</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [["20", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "ünite"]],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "INTERNET · 8",
+ "messages": [
+  [0.88, "The Internet ünitesinde tam puana çok yakınsın."],
+  [0.64, "Sağlam bir sonuç. Kaçırdıklarına bir göz at."],
+  [0.4, "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."],
+  [-99, "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."]
+ ],
+ "questions": [
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "I use a search _____ like Google\nto find information.",
+   "o": ["machine", "page", "engine", "room"],
+   "a": 2,
+   "tr": "search engine = arama motoru."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "There is no Wi-Fi here.\nI can’t go _____.",
+   "o": ["offline", "upstairs", "abroad", "online"],
+   "a": 3,
+   "tr": "go online = internete bağlanmak. offline = bağlantısız."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "You need a username and a _____\nto log in.",
+   "o": ["password", "attachment", "browser", "download"],
+   "a": 0,
+   "tr": "log in = giriş yapmak. Bunun için kullanıcı adı ve şifre (password) gerekir."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Don’t share your password with anyone.\nKeep it _____.",
+   "o": ["public", "online", "secret", "popular"],
+   "a": 2,
+   "tr": "keep it secret = gizli tutmak."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "70% of the students use social media.\nIt means _____ of them use it.",
+   "o": ["none", "a few", "most", "all"],
+   "a": 2,
+   "tr": "%70 = çoğu: most of them."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Can you _____ this video for me?\nI want to watch it offline.",
+   "o": ["download", "upload", "delete", "type"],
+   "a": 0,
+   "tr": "download = indirmek. İndirilen video internetsiz (offline) izlenebilir."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "I want to join this website.\nI need to _____ first.",
+   "o": ["log out", "sign up", "hang up", "give up"],
+   "a": 1,
+   "tr": "sign up = üye olmak, kaydolmak."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Someone sends me bad messages every day.\nThis is called cyber_____.",
+   "o": ["shopping", "bullying", "cafe", "space"],
+   "a": 1,
+   "tr": "cyberbullying = siber zorbalık."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Click on this _____\nto open the website.",
+   "o": ["cable", "printer", "charger", "link"],
+   "a": 3,
+   "tr": "link = bağlantı. Tıklayınca web sitesi açılır."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "You shouldn’t _____ your address\nwith strangers online.",
+   "o": ["give", "tell", "take", "share"],
+   "a": 3,
+   "tr": "share … with … = … ile paylaşmak. Adresini yabancılarla paylaşmamalısın."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Before you leave the computer,\ndon’t forget to _____ of your account.",
+   "o": ["sign up", "log in", "log out", "look up"],
+   "a": 2,
+   "tr": "log out (of) = hesaptan çıkış yapmak."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Most teenagers use the Internet\n_____ chat with their friends.",
+   "o": ["to", "for", "by", "with"],
+   "a": 0,
+   "tr": "Amaç bildirir: use the Internet to chat (sohbet etmek için)."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "My computer is very slow.\nI think it has a _____.",
+   "o": ["virus", "password", "website", "keyboard"],
+   "a": 0,
+   "tr": "virus = bilgisayar virüsü."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Never open e-mails\nfrom _____ people.",
+   "o": ["famous", "unknown", "friendly", "happy"],
+   "a": 1,
+   "tr": "unknown = tanımadığın, bilinmeyen."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "I liked her photo and wrote\na nice _____ under it.",
+   "o": ["password", "virus", "download", "comment"],
+   "a": 3,
+   "tr": "comment = yorum."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "My brother _____ his photos\non social media every day.",
+   "o": ["types", "posts", "prints", "charges"],
+   "a": 1,
+   "tr": "post = paylaşmak (sosyal medyada gönderi paylaşmak)."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "He spends too much time online.\nHe is _____ to the Internet.",
+   "o": ["addicted", "afraid", "good", "keen"],
+   "a": 0,
+   "tr": "be addicted to = … bağımlısı olmak."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "Which one is NOT safe\non the Internet?",
+   "o": ["Using strong passwords", "Logging out", "Sharing your password", "Updating your apps"],
+   "a": 2,
+   "tr": "Şifreni paylaşmak güvenli değildir; diğerleri güvenli davranışlardır."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "You should _____ your apps regularly\nto keep them safe.",
+   "o": ["upload", "print", "type", "update"],
+   "a": 3,
+   "tr": "update = güncellemek."
+  },
+  {
+   "c": "Unit 5 · The Internet",
+   "q": "I want to send you a photo.\nI’ll add it as an _____ to my e-mail.",
+   "o": ["password", "attachment", "account", "app"],
+   "a": 1,
+   "tr": "attachment = e-postaya eklenen dosya, ek."
+  }
+ ]
+}
