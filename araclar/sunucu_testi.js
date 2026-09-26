@@ -317,17 +317,18 @@ VAKALAR.push(
     return o.tetikler.length === 1 && o.tetikler[0].f === 'siralamalariGuncelle' && o.tetikler[0].dk === 5 &&
       !!o.sayfalar['Sıralama ACIK1'];
   }],
-  ['sıralama: WhatsApp metni madalyalı, tam ad, katılımcı sayısı', () => {
+  ['sıralama: WhatsApp metni madalyalı, tam ad, puan, doğru/yanlış sayısı, katılımcı sayısı', () => {
     const m = siralamaOrtami().ctx.siralamaHazirla_('ACIK1').metin.split('\n');
-    return m[0] === '🏆 Ödev sıralaması · ingilizce-8 · 8-A' && m[3] === '🥇 Ali Veli — 90' &&
-      m[4] === '🥈 Can Demir — 80' && m[5] === '🥉 Ayşe Yılmaz — 80' && m[6].startsWith('4. ') &&
+    return m[0] === '🏆 Ödev sıralaması · ingilizce-8 · 8-A' && m[3] === '🥇 Ali Veli — 90 puan · 9 doğru, 1 yanlış' &&
+      m[4] === '🥈 Can Demir — 80 puan · 8 doğru, 2 yanlış' && m[5] === '🥉 Ayşe Yılmaz — 80 puan · 8 doğru, 2 yanlış' && m[6].startsWith('4. ') &&
       m[m.length - 1] === '4 öğrenci katıldı.';
   }],
-  ['sıralama: süre dışı sonuç listede, işaretli; ondalık puan virgüllü', () => {
+  ['sıralama: süre dışı sonuç listede, işaretli; ondalık puan virgüllü; boş yalnız varsa yazılır', () => {
     const o = siralamaOrtami();
     o.post(govde({kod: 'GECTI', numara: '98', ad_soyad: 'Geç Kalan', puan: 63.3, dogru: 7}));
     const m = o.ctx.siralamaHazirla_('GECTI').metin;
-    return m.includes('🥇 Başka Ödev — 100 (süre dışı)') && m.includes('🥈 Geç Kalan — 63,3 (süre dışı)');
+    return m.includes('🥇 Başka Ödev — 100 puan · 10 doğru, 0 yanlış (süre dışı)') &&
+      m.includes('🥈 Geç Kalan — 63,3 puan · 7 doğru, 8 yanlış, 8 boş (süre dışı)');
   }],
   ['sıralama: aynı numarayı yazan iki farklı kişi ayrı sıralanır', () => {
     const o = siralamaOrtami();
@@ -426,7 +427,8 @@ VAKALAR.push(
     const r = o.panel('siralama', {kod: 'acik1'});
     const bos = o.panel('siralama', {kod: 'GELECEK'});
     return r.ok && r.katilan === 4 && r.metin.startsWith('🏆 ') && r.metin.includes('🥇 Ali Veli — 90') &&
-      r.satirlar[0].ad === 'Ali Veli' && bos.ok && bos.katilan === 0 && bos.metin === '';
+      r.satirlar[0].ad === 'Ali Veli' && r.satirlar[0].dogru === 9 && r.satirlar[0].yanlis === 1 &&
+      r.satirlar[0].bos === 0 && bos.ok && bos.katilan === 0 && bos.metin === '';
   }],
   ['kurulum: öğretmen anahtarı bir kez üretilir, ikinci kurulumda değişmez; anahtariYenile değiştirir', () => {
     const o = siralamaOrtami();

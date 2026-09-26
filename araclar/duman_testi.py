@@ -282,7 +282,9 @@ class SahteUcNokta:
             sira = sorted(ilk.values(), key=lambda r: (-r['puan'], r['istemci_sure_ms']))
             metin = '🏆 Ödev sıralaması\n\n' + '\n'.join(f"{i + 1}. {r['ad_soyad']} — {r['puan']}" for i, r in enumerate(sira))
             return {'ok': True, 'kod': g['kod'], 'katilan': len(sira), 'metin': metin if sira else '',
-                    'satirlar': [{'ad': r['ad_soyad'], 'puan': r['puan'], 'durum': r['durum']} for r in sira]}
+                    # doğru/yanlış/boş yalnız gönderimde varsa: yoksa eski sunucu gibi davranır (panel yalnız puan yazar)
+                    'satirlar': [{'ad': r['ad_soyad'], 'puan': r['puan'], 'durum': r['durum'],
+                                  **{k: r[k] for k in ('dogru', 'yanlis', 'bos') if k in r}} for r in sira]}
         return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
 
     @contextlib.contextmanager
@@ -717,9 +719,11 @@ def panel_odev_olustur(o):
 
 def panel_siralama(o):
     o.uc.sifirla()
-    for no, ad, puan in (('5', 'Ayşe Kaya', 70), ('6', 'Ali Can', 90), ('5', 'Ayşe Kaya', 100)):
+    # Ali Can'ın gönderiminde doğru/yanlış/boş var; Ayşe'ninkinde yok (eski sunucu yanıtı gibi: yalnız puan)
+    for no, ad, puan, ek in (('5', 'Ayşe Kaya', 70, {}), ('6', 'Ali Can', 90, {'dogru': 9, 'yanlis': 0, 'bos': 1}),
+                             ('5', 'Ayşe Kaya', 100, {})):
         o.uc.dopost(json.dumps({'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': no, 'ad_soyad': ad,
-                                'puan': puan, 'istemci_sure_ms': 1000, 'gonderim_id': f'g-{no}-{puan}'}))
+                                'puan': puan, 'istemci_sure_ms': 1000, 'gonderim_id': f'g-{no}-{puan}', **ek}))
     s = o.sayfa()
     page = s.page
     try:
@@ -728,13 +732,14 @@ def panel_siralama(o):
         expect(kart.locator('.p-katilan')).to_have_text('👥 2 öğrenci çözdü')
         kart.locator('.p-sira').click()
         expect(kart.locator('.prank li')).to_have_count(2)
-        expect(kart.locator('.prank li').first).to_have_text('🥇 Ali Can — 90')
+        expect(kart.locator('.prank li').first).to_have_text('🥇 Ali Can — 90 puan · 9 doğru, 0 yanlış, 1 boş')
+        expect(kart.locator('.prank li').nth(1)).to_have_text('🥈 Ayşe Kaya — 70')
         href = kart.locator('.p-sira-wa').get_attribute('href')
         from urllib.parse import unquote
         if not href.startswith('https://wa.me/?text=') or 'Ali Can — 90' not in unquote(href):
             raise AssertionError(f'sıralama WhatsApp linki hatalı: {href}')
         o.bitir(s)
-        return 'katılan 2 · sıralama listesi · "WhatsApp\'ta paylaş" linki'
+        return 'katılan 2 · sıralama listesi (puan + doğru/yanlış/boş) · "WhatsApp\'ta paylaş" linki'
     finally:
         s.kapat()
 

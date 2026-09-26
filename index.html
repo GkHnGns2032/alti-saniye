@@ -956,6 +956,11 @@ async function panelListe(){
   ol.append(li);
  });
 }
+// Kod.gs siraOzeti_ ile aynı biçim. Eski sunucu doğru/yanlış göndermezse yalnız puan yazılır.
+function siraOzeti(r){
+ const d = r.dogru == null ? '' : ' puan · ' + r.dogru + ' doğru, ' + r.yanlis + ' yanlış' + (r.bos ? ', ' + r.bos + ' boş' : '');
+ return String(r.puan).replace('.', ',') + d + (r.durum === 'süre dışı' ? ' (süre dışı)' : '');
+}
 async function panelSiralama(kod, li){
  const kutu = li.querySelector('.p-sira-kutu'), b = li.querySelector('.p-sira');
  b.disabled = true; b.textContent = 'Hazırlanıyor…';
@@ -966,7 +971,7 @@ async function panelSiralama(kod, li){
  if (!j || !j.katilan) { const p = document.createElement('p'); p.className = 'pnote'; p.textContent = 'Henüz kimse çözmedi.'; kutu.append(p); return; }
  b.hidden = true;
  const ol = document.createElement('ol'); ol.className = 'prank';
- j.satirlar.forEach((r, i) => { const x = document.createElement('li'); x.textContent = (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + r.ad + ' — ' + String(r.puan).replace('.', ',') + (r.durum === 'süre dışı' ? ' (süre dışı)' : ''); ol.append(x); });
+ j.satirlar.forEach((r, i) => { const x = document.createElement('li'); x.textContent = (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + r.ad + ' — ' + siraOzeti(r); ol.append(x); });
  const a = document.createElement('a'); a.className = 'btn wa p-sira-wa'; a.target = '_blank'; a.rel = 'noopener'; a.href = waLink(j.metin); a.textContent = 'Sıralamayı WhatsApp\'ta paylaş';
  kutu.append(ol, a);
 }

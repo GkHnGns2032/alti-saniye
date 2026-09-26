@@ -172,6 +172,7 @@ Sıralama kuralları:
 - Her öğrencinin **ilk denemesi** sayılır. Test bitince doğru cevaplar göründüğü için sonraki denemeler sayılmaz. Öğrenci numara ve ad soyadıyla birlikte tanınır; iki öğrenci aynı numarayı yazsa da ayrı sıralanır.
 - Puana göre yüksekten düşüğe dizilir. Puanlar eşitse testi **daha kısa sürede** bitiren öne geçer.
 - Öğrencinin tam adı yazılır.
+- Her öğrencinin yanında puanı, doğru ve yanlış sayısı yazar. Boş bıraktığı soru varsa o da yazar.
 - Süre dışı sonuçlar da listede yer alır, yanlarında **(süre dışı)** yazar.
 - Otomatik yenileme son 7 günde sonuç gelen ödevler için çalışır. Daha eski bir ödevin sıralaması en son hâliyle sekmesinde kalır.
 
@@ -181,10 +182,10 @@ Sıralama kuralları:
 🏆 Ödev sıralaması · ingilizce-8-friendship · 8-A
 (ilk denemeler, 100 üzerinden)
 
-🥇 Ali Veli — 90
-🥈 Can Demir — 80
-🥉 Ayşe Yılmaz — 80
-4. Ece Kaya — 50 (süre dışı)
+🥇 Ali Veli — 90 puan · 18 doğru, 2 yanlış
+🥈 Can Demir — 80 puan · 16 doğru, 4 yanlış
+🥉 Ayşe Yılmaz — 80 puan · 16 doğru, 3 yanlış, 1 boş
+4. Ece Kaya — 50 puan · 10 doğru, 8 yanlış, 2 boş (süre dışı)
 
 4 öğrenci katıldı.
 ```
