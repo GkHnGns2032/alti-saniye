@@ -9,7 +9,7 @@
  "heroTop": "Friendship",
  "heroBottom": "8. sınıf",
  "leadHtml": "1. ünite <b>Friendship</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
- "facts": [["10", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "ünite"]],
+ "facts": [["20", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "ünite"]],
  "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
  "sheetTag": "FRIENDSHIP · 8",
  "messages": [
@@ -88,6 +88,76 @@
    "o": ["an invitation", "a complaint", "an excuse", "a suggestion"],
    "a": 2,
    "tr": "excuse = bahane, mazeret. Daveti reddederken bir sebep söylemek bahane göstermektir."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "“Thanks for inviting me,\nbut I’m afraid I can’t come.”\nThis person _____ the invitation.",
+   "o": ["accepts", "refuses", "sends", "forgets"],
+   "a": 1,
+   "tr": "refuse = reddetmek. “I’m afraid I can’t come” kibarca reddetmektir."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Selin and I like the same music and films.\nWe have a lot in _____.",
+   "o": ["common", "friends", "time", "fun"],
+   "a": 0,
+   "tr": "have a lot in common = birçok ortak noktası olmak."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Mert always helps people around him.\nHe is _____.",
+   "o": ["lazy", "rude", "helpful", "bossy"],
+   "a": 2,
+   "tr": "helpful = yardımsever."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "A: _____ come to my birthday party on Sunday?\nB: Sure, I’d love to.",
+   "o": ["Do you like", "Did you", "Are you", "Would you like to"],
+   "a": 3,
+   "tr": "Davet kalıbı: “Would you like to …?” = … ister misin?"
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Deniz is moving to another city.\nWe are giving her a _____ party.",
+   "o": ["farewell", "birthday", "pajama", "graduation"],
+   "a": 0,
+   "tr": "farewell party = veda partisi. Taşınan/ayrılan biri için verilir."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "“I’m sorry I forgot your birthday.”\nThis sentence is an _____.",
+   "o": ["invitation", "apology", "excuse", "acceptance"],
+   "a": 1,
+   "tr": "apology = özür. “I’m sorry …” ile özür dileniyor; sebep söylenmediği için bahane (excuse) değil."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "A true friend never talks about you\nbehind your _____.",
+   "o": ["back", "face", "hand", "head"],
+   "a": 0,
+   "tr": "talk behind someone’s back = birinin arkasından konuşmak."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "You can _____ on me.\nI’ll always be there for you.",
+   "o": ["look", "count", "turn", "take"],
+   "a": 1,
+   "tr": "count on = güvenmek, bel bağlamak (rely on ile aynı anlam)."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Elif never tells lies.\nShe is _____.",
+   "o": ["jealous", "mean", "honest", "selfish"],
+   "a": 2,
+   "tr": "honest = dürüst. Yalan söylemeyen biri dürüsttür."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "A: Let’s go to the park after school.\nB: _____ I’m free today.",
+   "o": ["Sorry, I can’t.", "I’m afraid not.", "Maybe another time.", "That’s a good idea!"],
+   "a": 3,
+   "tr": "B boş olduğunu söylüyor, yani öneriyi kabul ediyor: “That’s a good idea!”"
   }
  ]
 }

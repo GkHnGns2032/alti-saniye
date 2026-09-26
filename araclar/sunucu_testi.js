@@ -275,6 +275,20 @@ VAKALAR.push(
     const m = o.ctx.siralamaHazirla_('GECTI').metin;
     return m.includes('🥇 Başka Ödev — 100 (süre dışı)') && m.includes('🥈 Geç Kalan — 63,3 (süre dışı)');
   }],
+  ['sıralama: aynı numarayı yazan iki farklı kişi ayrı sıralanır (Sedef/Gökhan hatası)', () => {
+    const o = siralamaOrtami();
+    o.post(govde({numara: '12', ad_soyad: 'Sedef Kaya', dogru: 7, puan: 70, istemci_sure_ms: 50000}));
+    const s = o.ctx.siralamaHazirla_('ACIK1');
+    return s.satirlar.length === 5 && s.satirlar.some(x => x.ad === 'Sedef Kaya') &&
+      s.satirlar.filter(x => x.numara === '12').map(x => x.ad).join() === 'Ali Veli,Sedef Kaya';
+  }],
+  ['sıralama: aynı kişi büyük/küçük harf ya da boşluk farkıyla yeniden çözerse yine ilk deneme sayılır', () => {
+    const o = siralamaOrtami();
+    o.post(govde({numara: '11', ad_soyad: 'AYŞE  yılmaz', dogru: 10, puan: 100, istemci_sure_ms: 30000}));
+    const s = o.ctx.siralamaHazirla_('ACIK1');
+    const ayse = s.satirlar.filter(x => x.numara === '11');
+    return ayse.length === 1 && ayse[0].puan === 80 && ayse[0].ad === 'Ayşe Yılmaz';
+  }],
   ['sıralama: sonucu olmayan kod → boş liste', () => siralamaOrtami().ctx.siralamaHazirla_('YOK').satirlar.length === 0],
   ['menü: kod sorulur, metin kopyalanabilir pencerede gösterilir (HTML kaçışlı)', () => {
     const o = siralamaOrtami('acik1');

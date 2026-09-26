@@ -102,7 +102,9 @@ function kurulum() {
 /* ---------- Sıralama (tablo menüsü: Altı Saniye > Sıralama oluştur) ----------
  * Bir ödev kodunun sonuçlarını en iyiden en kötüye dizer, "Sıralama" sekmesine yazar ve
  * WhatsApp'a yapıştırılacak metni gösterir. Kurallar (öğretmenin kararı):
- *   - Her öğrencinin (numara) İLK denemesi sayılır; sonraki denemeler cevaplar görüldükten sonradır.
+ *   - Her öğrencinin İLK denemesi (tablodaki en eski satırı) sayılır; sonrakiler cevaplar görüldükten
+ *     sonradır. Öğrenci = numara + ad soyad (büyük/küçük harf ve boşluk farkı yok sayılır): iki
+ *     öğrenci aynı numarayı yazsa da ayrı sıralanır.
  *   - Sıra: puan (yüksekten düşüğe), eşitlikte daha kısa sürede bitiren öne.
  *   - Tam ad soyad yazılır. "süre dışı" sonuçlar listede kalır, yanlarında işaret olur.
  * Web uygulamasına (doGet/doPost) dokunmaz: bu bölüm için yeniden dağıtım gerekmez.
@@ -141,16 +143,15 @@ function siralamaHazirla_(kodGirdisi) {
   const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
   const son = sh.getLastRow();
   const veriler = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
-  const ilk = {}; // numara → ilk deneme
+  const ilk = {}; // numara|ad → ilk deneme (en eski satır)
   veriler.forEach(function (r, i) {
     if (!kod || normKod_(r[1]) !== kod) return;
     const numara = String(r[3]).trim();
-    const deneme = Number(r[10]) || 1;
     const o = {sira_no: i, test_slug: String(r[2]), numara: numara, ad: String(r[4]).replace(/^'/, '').trim(),
       dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0, bos: Number(r[7]) || 0, puan: Number(r[8]) || 0,
-      durum: String(r[9]), deneme: deneme, sure: r[12] === '' || r[12] == null ? Infinity : Number(r[12])};
-    const onceki = ilk[numara];
-    if (!onceki || deneme < onceki.deneme) ilk[numara] = o;
+      durum: String(r[9]), sure: r[12] === '' || r[12] == null ? Infinity : Number(r[12])};
+    const anahtar = numara + '|' + kisiAdi_(o.ad);
+    if (!ilk[anahtar]) ilk[anahtar] = o; // satırlar gönderim sırasıyla eklenir: ilk görülen ilk denemedir
   });
   const satirlar = Object.keys(ilk).map(function (k) { return ilk[k]; }).sort(function (a, b) {
     return b.puan - a.puan || a.sure - b.sure || a.sira_no - b.sira_no;
@@ -181,6 +182,11 @@ function siralamaHazirla_(kodGirdisi) {
     .concat(['', satirlar.length + ' öğrenci katıldı.'])
     .join('\n');
   return {kod: kod, satirlar: satirlar, metin: metin};
+}
+
+/** Ad karşılaştırması için: Türkçe küçük harf, tek boşluk. "GÖKHAN  Güneş" = "gökhan güneş". */
+function kisiAdi_(ad) {
+  return String(ad).replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 function odevSinifi_(kod) {
