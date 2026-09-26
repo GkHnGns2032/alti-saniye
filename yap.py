@@ -4,6 +4,8 @@
 Kullanım:  python3 yap.py             doğrula + üret
            python3 yap.py --dogrula  yalnız doğrula, hiçbir şey yazma
 Yeni test: quizler/ altına bir JSON daha koy, betiği koş, commit + push et.
+Ödev modu: ayar.json → gonderim_adresi (Apps Script web uygulaması adresi) sayfaya gömülür;
+  yer tutucu değer kalırsa ödev linkleri "kurulmamış" uyarısı gösterir (apps-script/KURULUM.md).
 Çıktılar üretilmiş dosyadır — elle düzenleme, şablonu ya da JSON'u düzenle:
   index.html          bütün testler tek dosyada (e-postayla da gönderilebilir)
   <slug>/index.html   eski/doğrudan linkler için yönlendirme: ../#<slug>
@@ -23,6 +25,11 @@ METIN = ['slug', 'title', 'name', 'desc', 'eyebrow', 'heroTop', 'heroBottom',
 SAYFAYA = [k for k in ZORUNLU if k != 'sira']  # JS'in kullandığı alanlar; sira/noindex yalnız üretimde
 SCORING = ('lgs', 'plain')
 SLUG_RE = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
+YER_TUTUCU = 'BURAYA_WEB_UYGULAMASI_ADRESI'
+# Dağıt > Yönet'teki "Web uygulaması URL'si" (/exec). Workspace hesaplarında /a/macros/<alan>/s/... biçimi.
+# http://127.0.0.1 yalnız duman testinin sahte uç noktası içindir.
+ADRES_RE = re.compile(r'^(https://script\.google\.com/(a/macros/[A-Za-z0-9.-]+|macros)/s/[A-Za-z0-9_-]{20,}/exec'
+                      r'|http://127\.0\.0\.1:\d+/exec)$')
 
 
 def _metin_mi(v):
@@ -134,6 +141,34 @@ def dogrula_hepsi(kok=KOK):
     return [c for _, c in quizler], hatalar
 
 
+def ayar_oku(kok=KOK):
+    """ayar.json'u okur ve denetler. ({'gonderim': adres ya da ''}, hatalar) döndürür; dosya yoksa ödev kapalı."""
+    yol = kok / 'ayar.json'
+    if not yol.exists():
+        return {'gonderim': ''}, []
+    try:
+        a = json.loads(yol.read_text(encoding='utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        return None, [f'ayar.json: geçersiz JSON ({e})']
+    if not isinstance(a, dict):
+        return None, ['ayar.json: dosyanın kökü bir JSON nesnesi ({...}) olmalı']
+    h = []
+    adres = a.get('gonderim_adresi', '')
+    if not isinstance(adres, str):
+        h.append('ayar.json: "gonderim_adresi" metin olmalı')
+        adres = ''
+    adres = adres.strip()
+    if adres == YER_TUTUCU:
+        adres = ''
+    if adres and not ADRES_RE.match(adres):
+        h.append(f'ayar.json: "gonderim_adresi" Apps Script web uygulaması adresi olmalı '
+                 f'(https://script.google.com/macros/s/.../exec — Dağıt > Dağıtımları yönet), şu an: {adres!r}')
+    site = a.get('site_adresi')
+    if site is not None and not (isinstance(site, str) and re.match(r'^https?://\S+/$', site)):
+        h.append('ayar.json: "site_adresi" / ile biten bir http(s) adresi olmalı')
+    return {'gonderim': adres}, h
+
+
 def hatalari_bas(hatalar):
     print(f'DOĞRULAMA BAŞARISIZ · {len(hatalar)} hata — hiçbir dosya yazılmadı:', file=sys.stderr)
     for x in hatalar:
@@ -157,7 +192,7 @@ def yaz(yol, metin):
     return f'{len(b)} B · md5 {hashlib.md5(b).hexdigest()[:8]}'
 
 
-def uret(kok, quizler):
+def uret(kok, quizler, ayar=None):
     """Bütün çıktıları bellekte hazırlar: {yol: metin}. Şablon sorunu varsa ValueError."""
     quizler = sorted(quizler, key=lambda c: (c['sira'], c['slug']))
     s = (kok / 'sablon.html').read_text(encoding='utf-8')
@@ -167,8 +202,11 @@ def uret(kok, quizler):
         raise ValueError('sablon.html: doldurulmamış şablon alanı kaldı')
     if s.count('/*QUIZ*/') != 1:
         raise ValueError('sablon.html: /*QUIZ*/ yer tutucusu tam 1 kez olmalı')
+    if s.count('/*AYAR*/') != 1:
+        raise ValueError('sablon.html: /*AYAR*/ yer tutucusu tam 1 kez olmalı')
     veri = json.dumps([{k: c[k] for k in SAYFAYA} for c in quizler], ensure_ascii=False).replace('</', '<\\/')
-    cikti = {kok / 'index.html': s.replace('/*QUIZ*/', veri)}
+    ayar_js = json.dumps(ayar or {'gonderim': ''}, ensure_ascii=False).replace('</', '<\\/')
+    cikti = {kok / 'index.html': s.replace('/*AYAR*/', ayar_js).replace('/*QUIZ*/', veri)}  # ayar önce: quiz metni etkilenmesin
     for c in quizler:
         cikti[kok / c['slug'] / 'index.html'] = yonlendirme(c)
     return quizler, cikti
@@ -177,9 +215,11 @@ def uret(kok, quizler):
 def main(argv=None, kok=KOK):
     argv = sys.argv[1:] if argv is None else argv
     quizler, hatalar = dogrula_hepsi(kok)
+    ayar, ayar_hatalari = ayar_oku(kok)
+    hatalar += ayar_hatalari
     if not hatalar:
         try:
-            quizler, cikti = uret(kok, quizler)
+            quizler, cikti = uret(kok, quizler, ayar)
         except (OSError, ValueError) as e:
             hatalar.append(str(e))
     if hatalar:  # fail-closed: tek bir hata bile varsa hiçbir dosyaya dokunma
@@ -192,6 +232,7 @@ def main(argv=None, kok=KOK):
 
     sayfa = cikti.pop(kok / 'index.html')
     print(f"index.html                  {len(quizler)} test · {yaz(kok / 'index.html', sayfa)}")
+    print(f"  ödev gönderimi: {'ayarlı' if ayar['gonderim'] else 'kurulmamış (ayar.json yer tutucu)'}")
     for c in quizler:
         qs = c['questions']
         dagilim = ' '.join(f"{'ABCD'[i]}{sum(q['a'] == i for q in qs)}" for i in range(4))

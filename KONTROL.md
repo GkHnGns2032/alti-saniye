@@ -13,7 +13,8 @@ Her push ve PR'da GitHub Actions da aynı komutu koşar (`.github/workflows/kont
 | 1. Doğrulayıcı öz-testi | `araclar/dogrulayici_testi.py`: bilerek bozulmuş örnek quizlerle doğrulayıcının her hatayı yakaladığını ve hiçbir dosya yazmadığını denetler. |
 | 2. İçerik doğrulama | `yap.py --dogrula`: `quizler/*.json` denetlenir, hiçbir şey yazılmaz. |
 | 3. Üretim | `yap.py`: `index.html` ve `<slug>/index.html` üretilir. Çıktı depodakinden farklıysa yerelde uyarı verir; **CI'da kalır** (JSON değişmiş ama `yap.py` çıktısı commit edilmemiş ya da üretilmiş dosya elle düzenlenmiş demektir). |
-| 4. Duman testi | `araclar/duman_testi.py`: gerçek tarayıcıda (Chromium) her test seçilir, bütün sorular cevaplanır, sonuç ekranı ve doğru/yanlış/boş sayıları denetlenir. `<slug>/` yönlendirmeleri de denetlenir. **Konsol hatası = KALDI.** |
+| 4. Sunucu testi | `araclar/sunucu_testi.js` (Node): `apps-script/Kod.gs` taklit Google servisleriyle (e-tablo, kilit, yanıt) çalıştırılır. Pencere yanıtı, sunucu saatiyle "zamanında / süre dışı", bilinmeyen kodun reddi, `deneme_no` artışı, aynı gönderimin tek satır kalması, formül enjeksiyonu, tarih biçimleri denetlenir. Node yoksa yerelde atlanır; **CI'da kalır**. |
+| 5. Duman testi | `araclar/duman_testi.py`: gerçek tarayıcıda (Chromium) her test seçilir, bütün sorular cevaplanır, sonuç ekranı ve doğru/yanlış/boş sayıları denetlenir. `<slug>/` yönlendirmeleri de denetlenir. Ödev modu (`?odev=KOD`) sahte bir uç noktayla denenir (aşağıda). **Konsol hatası = KALDI.** |
 
 ## Doğrulayıcı neye bakar
 
@@ -31,6 +32,7 @@ DOĞRULAMA BAŞARISIZ · 2 hata — hiçbir dosya yazılmadı:
 - Her soruda boş olmayan `q`, tam 4 boş olmayan şık (`o`) ve 0-3 arası tamsayı `a` bulunur.
 - Aynı soruda iki şık aynı olamaz (büyük/küçük harf ve fazla boşluk yok sayılarak).
 - `facts` `[["sayı","etiket"], ...]`, `messages` `[[oran,"metin"], ...]` biçiminde olmalı.
+- `ayar.json` → `gonderim_adresi` ya yer tutucu (`BURAYA_WEB_UYGULAMASI_ADRESI`, ödev kapalı) ya da `https://script.google.com/macros/s/…/exec` biçiminde olmalı; `/dev` ya da düzenleyici adresi reddedilir. `site_adresi` `/` ile bitmeli.
 
 ## Yerelde kurulum (bir kez)
 
@@ -39,6 +41,8 @@ python3 -m pip install -r araclar/gereksinimler.txt
 python3 -m playwright install chromium
 ```
 
+Sunucu testi için Node (18+) gerekir; GitHub Actions'ta hazır gelir.
+
 Playwright kurulu değilken hızlı kontrol: `python3 araclar/kontrol.py --duman-yok`
 
 ## Duman testi hakkında
@@ -46,3 +50,20 @@ Playwright kurulu değilken hızlı kontrol: `python3 araclar/kontrol.py --duman
 - Motor değiştirilmez. 6 saniyelik zamanlayıcı Playwright'ın saat taklidiyle (`page.clock`) ileri sarılır; bütün test birkaç saniye sürer.
 - Cevap deseni: sırayla doğru şık, yanlış şık, süre dolsun. Böylece tıklama ve zaman aşımı yolları da denenir.
 - Ağdan bağımsızdır: yerel sunucu dışındaki istekler (Google Fonts) boş yanıtla karşılanır.
+
+### Ödev modu senaryoları
+
+Google'a hiç istek atılmaz. Sayfa, `ayar.json`'unda sahte adres olan geçici bir kopyada üretilir (depo dosyalarına dokunulmaz). Sahte uç nokta ayrı portta gerçek bir HTTP sunucusudur (farklı köken, yani gerçek CORS kuralları). Apps Script gibi davranır: yanıtı 302 ile yönlendirir ve OPTIONS'a CORS başlıksız 405 döner.
+
+| Senaryo | Denetlenen |
+|---|---|
+| pencere açık | Numara ve ad zorunlu. Linkteki `#` farklı olsa da sunucunun `test_slug`'ı esas alınır. Sunum modu gizlidir. Tam akış sonunda "Öğretmene gönderildi ✓" görünür ve satırın bütün alanları doğrulanır. İkinci deneme `deneme_no` 2 olur. Sayfa yeniden açılınca bilgiler hatırlanır. |
+| süre doldu / henüz açılmadı | "… tarihinde doldu / açılacak" yazar, form ve Başla görünmez, POST gitmez. |
+| geçersiz kod | Bilinmeyen kodda "bulunamadı" görünür. Biçimi bozuk kodda sunucuya hiç sorulmaz. |
+| süre dışı | Sayfa açıkken başlayan ödev, POST geldiğinde sunucu saatine göre "süre dışı" kaydedilir. |
+| gönderilemedi → düğme | Ağ yokken sonuç kuyruğa girer. "Tekrar dene" ağ yokken kuyrukta tutar, ağ gelince gönderir; tek satır oluşur. |
+| gönderilemedi → yeniden aç | Sunucu hata verirken kuyruk kalır; sayfa yeniden açılınca kendiliğinden gönderilir. |
+| kesin ret | Sunucu kodu tanımıyorsa kayıt yapılmaz, sonuç kuyruktan düşer, "Tekrar dene" görünmez. |
+| adres kurulmamış | Yer tutucu adreste uyarı görünür ve hiçbir istek gitmez. |
+| `?odev` yok | Tam akış çalışır; uç noktaya **0 istek** gider, ödev ekranı/kutusu görünmez, ödev anahtarı yazılmaz. |
+| CORS: text/plain | Route'suz bağlamda, yazı tipi linkleri çıkarılmış aynı sayfayla tam akış koşar: 0 OPTIONS, yanıt okunur. Negatif kontrol olarak `application/json` OPTIONS tetikler ve istek düşer. |
