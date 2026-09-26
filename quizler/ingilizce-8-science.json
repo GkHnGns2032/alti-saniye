@@ -1,0 +1,292 @@
+{
+ "slug": "ingilizce-8-science",
+ "sira": 12,
+ "title": "Altı Saniye · Science",
+ "name": "8. Sınıf İngilizce · Unit 9 Science",
+ "desc": "9. ünite Science: icatlar ve keşifler, laboratuvar, bilim insanları, edilgen yapı (was invented by). Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 9 · Science",
+ "heroTop": "Science",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "9. ünite <b>Science</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [
+  [
+   "20",
+   "soru"
+  ],
+  [
+   "4",
+   "şık"
+  ],
+  [
+   "6",
+   "saniye"
+  ],
+  [
+   "1",
+   "ünite"
+  ]
+ ],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "SCIENCE · 8",
+ "messages": [
+  [
+   0.88,
+   "Science ünitesinde tam puana çok yakınsın."
+  ],
+  [
+   0.64,
+   "Sağlam bir sonuç. Kaçırdıklarına bir göz at."
+  ],
+  [
+   0.4,
+   "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."
+  ],
+  [
+   -99,
+   "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."
+  ]
+ ],
+ "questions": [
+  {
+   "c": "Unit 9 · Science",
+   "q": "Scientists do _____\nin laboratories.",
+   "o": [
+    "experiments",
+    "recipes",
+    "chores",
+    "souvenirs"
+   ],
+   "a": 0,
+   "tr": "do experiments = deney yapmak."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Thomas Edison _____ the light bulb.",
+   "o": [
+    "discovered",
+    "explored",
+    "solved",
+    "invented"
+   ],
+   "a": 3,
+   "tr": "invent = icat etmek (yeni bir şey yapmak). discover = var olanı keşfetmek."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "The telephone _____\nby Alexander Graham Bell.",
+   "o": [
+    "invented",
+    "was invented",
+    "invents",
+    "is inventing"
+   ],
+   "a": 1,
+   "tr": "Edilgen (passive): was/were + fiilin 3. hâli + by. Telefon Bell tarafından icat edildi."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Alexander Fleming _____ penicillin\nin 1928.",
+   "o": [
+    "discovered",
+    "built",
+    "painted",
+    "wrote"
+   ],
+   "a": 0,
+   "tr": "discover = keşfetmek. Fleming penisilini keşfetti."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "We use a _____ to see\nvery small things.",
+   "o": [
+    "telescope",
+    "thermometer",
+    "microscope",
+    "calculator"
+   ],
+   "a": 2,
+   "tr": "microscope = mikroskop. Çok küçük şeyleri büyütür."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "We use a _____ to look\nat the stars.",
+   "o": [
+    "microscope",
+    "telescope",
+    "thermometer",
+    "compass"
+   ],
+   "a": 1,
+   "tr": "telescope = teleskop. Uzaktaki gök cisimlerini gösterir."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "An _____ creates new machines\nor tools.",
+   "o": [
+    "explorer",
+    "audience",
+    "astronaut",
+    "inventor"
+   ],
+   "a": 3,
+   "tr": "inventor = mucit. Yeni aletler icat eder."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "First, put the water in the test tube.\n_____, heat it.",
+   "o": [
+    "First",
+    "Because",
+    "But",
+    "Then"
+   ],
+   "a": 3,
+   "tr": "Sıralama: First (önce) … Then (sonra) …"
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Paper _____ from trees.",
+   "o": [
+    "is made",
+    "makes",
+    "made",
+    "is making"
+   ],
+   "a": 0,
+   "tr": "Edilgen (passive): is made from = …den yapılır."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "The Wright brothers invented\nthe _____.",
+   "o": [
+    "telephone",
+    "aeroplane",
+    "light bulb",
+    "computer"
+   ],
+   "a": 1,
+   "tr": "Wright kardeşler uçağı (aeroplane) icat etti."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "In 1969, Neil Armstrong walked\non the _____.",
+   "o": [
+    "Sun",
+    "Mars",
+    "Venus",
+    "Moon"
+   ],
+   "a": 3,
+   "tr": "Neil Armstrong 1969'da Ay'da (Moon) yürüyen ilk insandır."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Water boils at _____ degrees Celsius.",
+   "o": [
+    "0",
+    "50",
+    "10",
+    "100"
+   ],
+   "a": 3,
+   "tr": "boil = kaynamak. Su 100 °C'de kaynar; 0 °C'de donar."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Wear safety _____ in the lab.\nThey protect your eyes.",
+   "o": [
+    "goggles",
+    "gloves",
+    "boots",
+    "hats"
+   ],
+   "a": 0,
+   "tr": "safety goggles = koruyucu gözlük."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "The results of the experiment were\nvery _____. We were surprised.",
+   "o": [
+    "expected",
+    "normal",
+    "surprising",
+    "usual"
+   ],
+   "a": 2,
+   "tr": "surprising = şaşırtıcı. “Şaşırdık” diyor."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "The first computer _____ very big.",
+   "o": [
+    "were",
+    "is",
+    "was",
+    "are"
+   ],
+   "a": 2,
+   "tr": "Geçmiş zaman, tekil özne: The first computer was …"
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Marie Curie was a famous _____.\nShe won two Nobel Prizes.",
+   "o": [
+    "singer",
+    "scientist",
+    "footballer",
+    "chef"
+   ],
+   "a": 1,
+   "tr": "scientist = bilim insanı. Marie Curie iki Nobel ödülü kazandı."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Which one is NOT an invention?",
+   "o": [
+    "The Sun",
+    "The telephone",
+    "The computer",
+    "The camera"
+   ],
+   "a": 0,
+   "tr": "Güneş doğada vardır, kimse icat etmedi. Diğerleri icattır."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Scientists _____ a new planet\nlast year.",
+   "o": [
+    "invented",
+    "discovered",
+    "built",
+    "designed"
+   ],
+   "a": 1,
+   "tr": "Gezegen zaten vardır; icat edilmez, keşfedilir (discover)."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "The light bulb was invented\n_____ Thomas Edison.",
+   "o": [
+    "with",
+    "from",
+    "by",
+    "at"
+   ],
+   "a": 2,
+   "tr": "Edilgen cümlede işi yapan “by” ile söylenir: by Thomas Edison."
+  },
+  {
+   "c": "Unit 9 · Science",
+   "q": "Smartphones are _____ than old phones.\nThey can do many things.",
+   "o": [
+    "less useful",
+    "older",
+    "more useful",
+    "heavier"
+   ],
+   "a": 2,
+   "tr": "more useful than = -den daha kullanışlı. Birçok şey yapabildikleri için."
+  }
+ ]
+}
