@@ -1,0 +1,292 @@
+{
+ "slug": "ingilizce-8-natural-forces",
+ "sira": 13,
+ "title": "Altı Saniye · Natural Forces",
+ "name": "8. Sınıf İngilizce · Unit 10 Natural Forces",
+ "desc": "10. ünite Natural Forces: doğal afetler, afette ne yapmalı (should / shouldn’t), küresel ısınma, gelecek tahmini. Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 10 · Natural Forces",
+ "heroTop": "Nature",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "10. ünite <b>Natural Forces</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [
+  [
+   "20",
+   "soru"
+  ],
+  [
+   "4",
+   "şık"
+  ],
+  [
+   "6",
+   "saniye"
+  ],
+  [
+   "1",
+   "ünite"
+  ]
+ ],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "NATURAL FORCES · 8",
+ "messages": [
+  [
+   0.88,
+   "Natural Forces ünitesinde tam puana çok yakınsın."
+  ],
+  [
+   0.64,
+   "Sağlam bir sonuç. Kaçırdıklarına bir göz at."
+  ],
+  [
+   0.4,
+   "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."
+  ],
+  [
+   -99,
+   "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."
+  ]
+ ],
+ "questions": [
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "The ground shook for 30 seconds.\nIt was an _____.",
+   "o": [
+    "avalanche",
+    "flood",
+    "earthquake",
+    "drought"
+   ],
+   "a": 2,
+   "tr": "earthquake = deprem. avalanche = çığ."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "Heavy rain caused a _____.\nThe streets were under water.",
+   "o": [
+    "drought",
+    "wildfire",
+    "flood",
+    "avalanche"
+   ],
+   "a": 2,
+   "tr": "flood = sel. drought = kuraklık."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "It hasn’t rained for months.\nThere is a _____.",
+   "o": [
+    "flood",
+    "drought",
+    "tsunami",
+    "storm"
+   ],
+   "a": 1,
+   "tr": "drought = kuraklık. Aylarca yağmur yağmayınca olur."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "A lot of snow fell down the mountain.\nIt was an _____.",
+   "o": [
+    "earthquake",
+    "avalanche",
+    "eruption",
+    "island"
+   ],
+   "a": 1,
+   "tr": "avalanche = çığ. Dağdan büyük miktarda kar kayar."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "Hot lava came out of the mountain.\nThe _____ erupted.",
+   "o": [
+    "river",
+    "forest",
+    "cloud",
+    "volcano"
+   ],
+   "a": 3,
+   "tr": "volcano = yanardağ. erupt = (yanardağ) patlamak, lav püskürtmek."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "A huge wave hit the coast\nafter the earthquake. It was a _____.",
+   "o": [
+    "drought",
+    "tsunami",
+    "landslide",
+    "blizzard"
+   ],
+   "a": 1,
+   "tr": "tsunami = dev dalga. Genellikle denizdeki depremden sonra oluşur."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "Very strong winds destroyed\nmany houses. It was a _____.",
+   "o": [
+    "drought",
+    "hurricane",
+    "heatwave",
+    "landslide"
+   ],
+   "a": 1,
+   "tr": "hurricane = kasırga. Çok güçlü rüzgârdır."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "During an earthquake:\n“Drop, cover and _____!”",
+   "o": [
+    "give up",
+    "turn on",
+    "hold on",
+    "look after"
+   ],
+   "a": 2,
+   "tr": "Deprem anında: Çök, kapan, tutun! (Drop, cover and hold on!)"
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "During an earthquake, you _____\nuse the elevator. It’s dangerous.",
+   "o": [
+    "should",
+    "must",
+    "have to",
+    "shouldn’t"
+   ],
+   "a": 3,
+   "tr": "shouldn’t = -memelisin. Deprem sırasında asansör kullanılmaz."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "You _____ prepare an emergency kit.\nIt can save your life.",
+   "o": [
+    "should",
+    "shouldn’t",
+    "mustn’t",
+    "don’t have to"
+   ],
+   "a": 0,
+   "tr": "should = -melisin (tavsiye). Acil durum çantası hayat kurtarabilir."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "Factories put dirty smoke\ninto the air. This is air _____.",
+   "o": [
+    "forecast",
+    "rescue",
+    "pollution",
+    "shelter"
+   ],
+   "a": 2,
+   "tr": "air pollution = hava kirliliği."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "The Earth is getting warmer.\nThis is called global _____.",
+   "o": [
+    "warming",
+    "wind",
+    "rain",
+    "weather"
+   ],
+   "a": 0,
+   "tr": "global warming = küresel ısınma."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "Firefighters put out the _____\nin the forest.",
+   "o": [
+    "flood",
+    "storm",
+    "drought",
+    "fire"
+   ],
+   "a": 3,
+   "tr": "put out a fire = yangını söndürmek."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "The rescue team _____ many people\nafter the earthquake.",
+   "o": [
+    "destroyed",
+    "saved",
+    "hurt",
+    "lost"
+   ],
+   "a": 1,
+   "tr": "rescue team = kurtarma ekibi. save = kurtarmak."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "Scientists think there _____\na big storm tomorrow.",
+   "o": [
+    "will be",
+    "was",
+    "were",
+    "has been"
+   ],
+   "a": 0,
+   "tr": "Gelecek tahmini: will be. “tomorrow” geleceği gösterir."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "Which one is NOT a natural disaster?",
+   "o": [
+    "A traffic jam",
+    "A flood",
+    "An earthquake",
+    "A tsunami"
+   ],
+   "a": 0,
+   "tr": "Trafik sıkışıklığı doğal afet değildir; diğerleri doğal afettir."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "We need food, water and a torch\nin our _____ kit.",
+   "o": [
+    "football",
+    "make-up",
+    "painting",
+    "emergency"
+   ],
+   "a": 3,
+   "tr": "emergency kit = acil durum çantası."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "A: Are you afraid of earthquakes?\nB: Yes, they are really _____.",
+   "o": [
+    "funny",
+    "boring",
+    "scary",
+    "relaxing"
+   ],
+   "a": 2,
+   "tr": "scary = korkutucu. Korktuğunu söylüyor."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "The weather _____ says\nit will rain tomorrow.",
+   "o": [
+    "forecast",
+    "disaster",
+    "volcano",
+    "shelter"
+   ],
+   "a": 0,
+   "tr": "weather forecast = hava tahmini."
+  },
+  {
+   "c": "Unit 10 · Natural Forces",
+   "q": "After the flood, many people lost their\n_____. They had nowhere to live.",
+   "o": [
+    "hobbies",
+    "games",
+    "lessons",
+    "homes"
+   ],
+   "a": 3,
+   "tr": "Kalacak yerleri yok: evlerini (homes) kaybettiler."
+  }
+ ]
+}
