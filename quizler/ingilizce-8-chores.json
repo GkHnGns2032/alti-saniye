@@ -1,0 +1,292 @@
+{
+ "slug": "ingilizce-8-chores",
+ "sira": 11,
+ "title": "Altı Saniye · Chores",
+ "name": "8. Sınıf İngilizce · Unit 8 Chores",
+ "desc": "8. ünite Chores: ev işleri, have to / don’t have to, sevdiğin ve sevmediğin işler. Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 8 · Chores",
+ "heroTop": "Chores",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "8. ünite <b>Chores</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [
+  [
+   "20",
+   "soru"
+  ],
+  [
+   "4",
+   "şık"
+  ],
+  [
+   "6",
+   "saniye"
+  ],
+  [
+   "1",
+   "ünite"
+  ]
+ ],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "CHORES · 8",
+ "messages": [
+  [
+   0.88,
+   "Chores ünitesinde tam puana çok yakınsın."
+  ],
+  [
+   0.64,
+   "Sağlam bir sonuç. Kaçırdıklarına bir göz at."
+  ],
+  [
+   0.4,
+   "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."
+  ],
+  [
+   -99,
+   "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."
+  ]
+ ],
+ "questions": [
+  {
+   "c": "Unit 8 · Chores",
+   "q": "The plants are dry.\nCan you _____ them?",
+   "o": [
+    "water",
+    "iron",
+    "dust",
+    "sweep"
+   ],
+   "a": 0,
+   "tr": "water the plants = bitkileri sulamak."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "I _____ the dishes after dinner\nevery evening.",
+   "o": [
+    "make",
+    "do",
+    "take",
+    "have"
+   ],
+   "a": 1,
+   "tr": "do the dishes = bulaşık yıkamak."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "I always _____ my bed\nin the morning.",
+   "o": [
+    "do",
+    "make",
+    "take",
+    "have"
+   ],
+   "a": 1,
+   "tr": "make the bed = yatağı toplamak/düzeltmek."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "My clothes are dirty.\nI need to do the _____.",
+   "o": [
+    "laundry",
+    "shopping",
+    "dishes",
+    "homework"
+   ],
+   "a": 0,
+   "tr": "do the laundry = çamaşır yıkamak."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "The bin is full.\nCan you _____ the rubbish?",
+   "o": [
+    "take off",
+    "put on",
+    "take out",
+    "turn on"
+   ],
+   "a": 2,
+   "tr": "take out the rubbish = çöpü dışarı çıkarmak."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "My shirt is wrinkled.\nI have to _____ it.",
+   "o": [
+    "water",
+    "feed",
+    "vacuum",
+    "iron"
+   ],
+   "a": 3,
+   "tr": "iron = ütülemek. wrinkled = buruşuk."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "Dinner is ready.\nCan you _____ the table, please?",
+   "o": [
+    "set",
+    "feed",
+    "water",
+    "iron"
+   ],
+   "a": 0,
+   "tr": "set the table = sofrayı kurmak."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "The carpet is very dusty.\nI’m going to _____ it.",
+   "o": [
+    "iron",
+    "feed",
+    "water",
+    "vacuum"
+   ],
+   "a": 3,
+   "tr": "vacuum = elektrik süpürgesiyle süpürmek."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "My cat is hungry.\nIt’s my turn to _____ it.",
+   "o": [
+    "iron",
+    "feed",
+    "dust",
+    "sweep"
+   ],
+   "a": 1,
+   "tr": "feed the cat = kediyi beslemek. It’s my turn = sıra bende."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "Tomorrow is Sunday.\nI _____ go to school.",
+   "o": [
+    "don’t have to",
+    "have to",
+    "must",
+    "has to"
+   ],
+   "a": 0,
+   "tr": "don’t have to = zorunda değilim. Pazar günü okula gitmek zorunlu değil."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "Ayşe _____ tidy her room every day.\nHer mother wants it.",
+   "o": [
+    "have to",
+    "don’t have to",
+    "has to",
+    "doesn’t have"
+   ],
+   "a": 2,
+   "tr": "Ayşe (she) için “has to” kullanılır: zorunda. Annesi istediği için bu bir zorunluluk."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "I hate _____ the floor.\nIt’s so boring.",
+   "o": [
+    "mop",
+    "mops",
+    "mopped",
+    "mopping"
+   ],
+   "a": 3,
+   "tr": "hate + fiil-ing: I hate mopping. mop the floor = yeri paspaslamak."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "A: Can you give me a _____?\nB: Sure, what can I do?",
+   "o": [
+    "foot",
+    "hand",
+    "head",
+    "arm"
+   ],
+   "a": 1,
+   "tr": "give someone a hand = birine yardım etmek."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "My brother is very _____.\nHe never helps with the chores.",
+   "o": [
+    "helpful",
+    "hardworking",
+    "lazy",
+    "tidy"
+   ],
+   "a": 2,
+   "tr": "lazy = tembel. Hiç yardım etmeyen biri tembeldir."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "I don’t mind _____ the dishes.",
+   "o": [
+    "wash",
+    "washes",
+    "washing",
+    "to washing"
+   ],
+   "a": 2,
+   "tr": "don’t mind + fiil-ing = …mekten rahatsız olmamak, sorun etmemek."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "Which chore do you do\nin the kitchen?",
+   "o": [
+    "Washing the dishes",
+    "Making the bed",
+    "Mowing the lawn",
+    "Watering the garden"
+   ],
+   "a": 0,
+   "tr": "Bulaşık mutfakta yıkanır. Yatak yatak odasında, çim ve bahçe dışarıda."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "A: Who _____ the shopping in your family?\nB: My father does.",
+   "o": [
+    "makes",
+    "takes",
+    "has",
+    "does"
+   ],
+   "a": 3,
+   "tr": "do the shopping = alışveriş yapmak. Cevaptaki “does” da ipucu."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "A: Would you mind helping me?\nB: _____ What should I do?",
+   "o": [
+    "Yes, I would.",
+    "Not at all.",
+    "No, I can’t.",
+    "I’m busy."
+   ],
+   "a": 1,
+   "tr": "Would you mind …? sorusuna “Not at all.” = Hiç sorun değil, yardım ederim."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "The furniture is dusty.\nPlease _____ it.",
+   "o": [
+    "iron",
+    "feed",
+    "water",
+    "dust"
+   ],
+   "a": 3,
+   "tr": "dust = toz almak. furniture = mobilya."
+  },
+  {
+   "c": "Unit 8 · Chores",
+   "q": "We share the chores at home.\nEveryone has a _____.",
+   "o": [
+    "holiday",
+    "birthday",
+    "responsibility",
+    "hobby"
+   ],
+   "a": 2,
+   "tr": "responsibility = sorumluluk. Ev işlerini paylaşınca herkesin bir sorumluluğu olur."
+  }
+ ]
+}
