@@ -285,6 +285,7 @@ a.btn.ghost{text-decoration:none}
 .p-sira-kutu{display:grid;gap:10px}
 .pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
 .linkbtn{border:0;background:none;padding:6px 0;font-weight:700;font-size:15px;color:var(--form)}
+.pcard-govde{display:grid;gap:14px}
 details.pcard>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
 details.pcard>summary::-webkit-details-marker{display:none}
 details.pcard>summary::after{content:"＋";font-weight:700;font-size:22px;color:var(--form)}
@@ -297,6 +298,22 @@ details.pcard[open]>summary::after{content:"−"}
 .t-liste.hata{color:var(--miss-text);font-weight:700}
 .t-liste.uyari{color:var(--muted)}
 .t-onizleme{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.k-sorular{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.k-sorular:empty{display:none}
+.kq{display:grid;gap:8px;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--sheet)}
+.kq.hatali{border-color:var(--miss)}
+.kq-bas{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700}
+.kq textarea,.kq input[type=text]{width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);color:var(--ink);font:15px/1.35 var(--f-body)}
+.kq textarea{min-height:64px;resize:vertical;font-weight:600}
+.kq .kq-tr{font-size:13.5px;color:var(--muted)}
+.kq-o{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;padding:4px 6px;border-radius:10px}
+.kq-o input[type=radio]{width:22px;height:22px;margin:0;accent-color:var(--form)}
+.kq-o:has(input[type=radio]:checked){background:var(--form-soft)}
+.kq-o:has(input[type=radio]:checked) input[type=text]{border-color:var(--form);font-weight:700}
+.kq-govde{display:grid;gap:8px}
+.kq.cikti{border-style:dashed;background:transparent}
+.kq.cikti .kq-no{color:var(--muted);text-decoration:line-through}
+.kq.cikti .kq-govde{display:none}
 .t-onizleme li{display:grid;gap:4px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;font-size:14px}
 .t-onizleme li.uyarili{border-color:var(--miss)}
 .t-onizleme .tq{font-weight:700;white-space:pre-line}
@@ -372,8 +389,23 @@ details.pcard[open]>summary::after{content:"−"}
       <a class="btn wa" id="p-wa" href="#" target="_blank" rel="noopener">WhatsApp'ta gönder</a>
      </div>
     </div>
+    <details class="pcard" id="k-kart">
+     <summary><h2>Hazır testi kontrol et</h2></summary>
+     <div class="pcard-govde">
+     <p class="pnote">Testi seç ve soruları aç. Yanlış bulduğun yere dokunup düzelt, doğru şıkkı işaretle, uygun olmayan soruyu çıkar. Sonunda <b>Onayla ve kaydet</b>'e bas: ödevler bundan sonra senin onayladığın hâliyle gider.</p>
+     <label class="inp" for="k-test"><span>Test</span><select id="k-test"></select></label>
+     <button class="btn wide" id="k-ac" type="button">Soruları aç</button>
+     <p class="pnote" id="k-bilgi" hidden></p>
+     <ol class="k-sorular" id="k-sorular"></ol>
+     <ul class="t-liste hata" id="k-hatalar" hidden></ul>
+     <p class="who-err" id="k-err" role="alert"></p>
+     <button class="btn wa wide" id="k-kaydet" type="button" hidden>Onayla ve kaydet</button>
+     <p class="pnote" id="k-tamam" hidden></p>
+     </div>
+    </details>
     <details class="pcard" id="t-kart">
      <summary><h2>Kendi testini ekle (ChatGPT)</h2></summary>
+     <div class="pcard-govde">
      <ol class="adimlar">
       <li><span><b>1.</b> Kalıbı kopyala.</span><button class="btn ghost wide" id="t-kalip" type="button">Kalıbı kopyala</button></li>
       <li><span><b>2.</b> ChatGPT'yi aç, kalıbı yapıştır, en alttaki “Konu:” satırına konuyu yaz, gönder.</span><a class="btn ghost wide" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT'yi aç</a></li>
@@ -391,6 +423,7 @@ details.pcard[open]>summary::after{content:"−"}
       <button class="btn wa wide" id="t-kaydet" type="button">Testi kaydet</button>
      </div>
      <p class="pnote" id="t-tamam" hidden></p>
+     </div>
     </details>
     <div class="pbar"><h2>Ödevlerim</h2><button class="linkbtn" id="p-yenile" type="button">Yenile ↻</button></div>
     <p class="pnote" id="p-liste-not">Yükleniyor…</p>
@@ -905,6 +938,12 @@ async function panelIstek(islem, ek){
 }
 const gunSaat = ms => new Date(ms).toLocaleString('tr-TR', {day:'numeric', month:'long', weekday:'long'}) + ', ' + new Date(ms).toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
 const waLink = metin => 'https://wa.me/?text=' + encodeURIComponent(metin);
+// Hazır test slug'ı → öğretmenin onayladığı en yeni sürümün slug'ı (sunucu listesi zaten en yeniyi verir).
+function onaylilar(){
+ const m = {};
+ Object.keys(OZEL).forEach(k => { const t = OZEL[k]; if (t.kaynak && !m[t.kaynak] && QUIZZES.some(z => z.slug === t.kaynak)) m[t.kaynak] = k; });
+ return m;
+}
 function testBilgi(slug){
  const z = QUIZZES.find(q => q.slug === slug);
  return z ? {ad: z.name, n: z.questions.length} : OZEL[slug] || null;
@@ -933,7 +972,7 @@ async function panelListe(){
  $('p-liste-not').hidden = false; $('p-liste-not').textContent = 'Yükleniyor…';
  let j;
  try { j = await panelIstek('odevler'); } catch (e) { if (e.message !== 'yetkisiz') $('p-liste-not').textContent = 'Bağlantı kurulamadı. “Yenile”ye bas.'; return; }
- OZEL = {}; ((j && j.testler) || []).forEach(t => { OZEL[t.slug] = {ad: t.ad, n: t.n}; });
+ OZEL = {}; ((j && j.testler) || []).forEach(t => { OZEL[t.slug] = {ad: t.ad, n: t.n, kaynak: t.kaynak || ''}; });
  testSecenekleri();
  const ol = $('p-liste'); ol.replaceChildren();
  const liste = (j && j.odevler) || [];
@@ -1024,9 +1063,14 @@ Açıklama: (kısa Türkçe açıklama)
 Konu: `;
 function testSecenekleri(){
  const sec = $('p-test').value, grup = (etiket, liste) => { const g = document.createElement('optgroup'); g.label = etiket; liste.forEach(([slug, ad, n]) => { const o = document.createElement('option'); o.value = slug; o.textContent = ad + ' (' + n + ' soru)'; g.append(o); }); return g; };
- const ozel = Object.keys(OZEL).map(k => [k, OZEL[k].ad, OZEL[k].n]);
- $('p-test').replaceChildren(...(ozel.length ? [grup('Kendi testlerin', ozel)] : []), grup('Hazır testler', QUIZZES.map(z => [z.slug, z.name, z.questions.length])));
+ const on = onaylilar(), onayli = new Set(Object.values(on));
+ const ozel = Object.keys(OZEL).filter(k => !onayli.has(k)).map(k => [k, OZEL[k].ad, OZEL[k].n]);
+ const hazir = QUIZZES.map(z => on[z.slug] ? [on[z.slug], z.name + ' ✓ onaylı', OZEL[on[z.slug]].n] : [z.slug, z.name, z.questions.length]);
+ $('p-test').replaceChildren(...(ozel.length ? [grup('Kendi testlerin', ozel)] : []), grup('Hazır testler', hazir));
  if ([...$('p-test').options].some(o => o.value === sec)) $('p-test').value = sec;
+ const ksec = $('k-test').value;
+ $('k-test').replaceChildren(...QUIZZES.map(z => { const o = document.createElement('option'); o.value = z.slug; o.textContent = z.name + (on[z.slug] ? ' ✓ onaylı' : ''); return o; }));
+ if (ksec) $('k-test').value = ksec;
 }
 function testCoz(metin){
  const satirlar = String(metin).replace(/\r/g, '').split('\n')
@@ -1083,6 +1127,11 @@ function ozelQuiz(slug, t){
  const qs = t.sorular.filter(q => q && typeof q.q === 'string' && Array.isArray(q.o) && q.o.length === 4 && q.o.every(x => typeof x === 'string') && Number.isInteger(q.a) && q.a >= 0 && q.a <= 3)
   .map(q => ({c: '', q: q.q, o: q.o, a: q.a, tr: typeof q.tr === 'string' ? q.tr : ''}));
  if (qs.length !== t.sorular.length) return null;
+ const kaynak = t.kaynak && QUIZZES.find(z => z.slug === t.kaynak);
+ if (kaynak) { // öğretmenin onayladığı hazır test: başlık, renkler, mesajlar hazır testten; sorular onaylanan hâlden
+  qs.forEach((q, i) => { q.c = t.sorular[i].c || kaynak.questions[0].c || ''; });
+  return Object.assign({}, kaynak, {slug, questions: qs, facts: kaynak.facts.map(f => f[1] === 'soru' ? [String(qs.length), 'soru'] : f)});
+ }
  return {slug, title: 'Altı Saniye · ' + ad, name: ad, desc: '', scoring: 'lgs', eyebrow: 'Ödev', heroTop: ad, heroBottom: '6 saniye',
   leadHtml: 'Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.',
   facts: [[String(qs.length), 'soru'], ['4', 'şık'], ['6', 'saniye']], playHint: 'Dokunarak cevapla, sonunda LGS netini gör.',
@@ -1091,6 +1140,87 @@ function ozelQuiz(slug, t){
   questions: qs};
 }
 function liste(el, maddeler){ el.replaceChildren(...maddeler.map(t => { const li = document.createElement('li'); li.textContent = t; return li; })); el.hidden = !maddeler.length; }
+/* Hazır testi kontrol et: sorular kart kart düzenlenir, doğru şık işaretlenir, uygun olmayan soru çıkarılır.
+   Kaydedilen hâl "Testler" sekmesine kaynak = hazır test slug'ıyla yazılır; panel o hazır testin yerine
+   bunu kullanır. Doğru şıkların yeri karıştırılmaz: öğretmen ne işaretlediyse o. */
+let KONTROL = null;
+function kSoruKarti(q, i){
+ const li = document.createElement('li'); li.className = 'kq';
+ li.innerHTML = '<div class="kq-bas"><span class="kq-no"></span><button class="linkbtn kq-cikar" type="button">Soruyu çıkar</button></div>' +
+  '<div class="kq-govde"><textarea class="kq-q" maxlength="300" aria-label="Soru"></textarea>' +
+  [0, 1, 2, 3].map(k => '<label class="kq-o"><input type="radio" name="kq-a-' + i + '" value="' + k + '" aria-label="' + 'ABCD'[k] + ' doğru"><input type="text" class="kq-ot" maxlength="100" aria-label="' + 'ABCD'[k] + ' şıkkı"></label>').join('') +
+  '<input type="text" class="kq-tr" maxlength="300" placeholder="Açıklama (isteğe bağlı)" aria-label="Açıklama"></div>';
+ li.querySelector('.kq-no').textContent = (i + 1) + '. soru';
+ li.querySelector('.kq-q').value = q.q;
+ li.querySelectorAll('.kq-ot').forEach((x, k) => { x.value = q.o[k] || ''; });
+ li.querySelectorAll('input[type=radio]')[q.a].checked = true;
+ li.querySelector('.kq-tr').value = q.tr || '';
+ li.dataset.c = q.c || '';
+ li.querySelector('.kq-cikar').addEventListener('click', () => {
+  const cik = !li.classList.contains('cikti');
+  li.classList.toggle('cikti', cik);
+  li.querySelector('.kq-cikar').textContent = cik ? 'Geri al' : 'Soruyu çıkar';
+  kSay();
+ });
+ return li;
+}
+function kSay(){
+ const n = $('k-sorular').querySelectorAll('.kq:not(.cikti)').length, top = $('k-sorular').children.length;
+ $('k-kaydet').textContent = 'Onayla ve kaydet (' + n + ' soru)';
+ $('k-bilgi').textContent = KONTROL.not + (top - n ? ' ' + (top - n) + ' soru çıkarıldı.' : '');
+}
+$('k-ac').addEventListener('click', async () => {
+ if (!PANEL) return;
+ const slug = $('k-test').value, z = QUIZZES.find(q => q.slug === slug), onayli = onaylilar()[slug], b = $('k-ac');
+ if (!z) return;
+ $('k-err').textContent = ''; $('k-tamam').hidden = true; liste($('k-hatalar'), []);
+ let sorular = z.questions, not = 'Sitedeki hazır hâli açıldı.';
+ if (onayli) {
+  b.disabled = true; b.textContent = 'Açılıyor…';
+  let j;
+  try { j = await panelIstek('test_getir', {slug: onayli}); } catch (e) { j = null; if (e.message === 'yetkisiz') { b.disabled = false; b.textContent = 'Soruları aç'; return; } }
+  b.disabled = false; b.textContent = 'Soruları aç';
+  if (!j || !j.ok || !j.test) { $('k-err').textContent = 'Onayladığın hâl açılamadı, tekrar dene.'; return; }
+  sorular = j.test.sorular; not = 'Daha önce onayladığın hâli açıldı.';
+ }
+ KONTROL = {slug, ad: z.name.slice(0, 60), not};
+ $('k-sorular').replaceChildren(...sorular.map((q, i) => kSoruKarti(q, i)));
+ $('k-bilgi').hidden = false; $('k-kaydet').hidden = false; kSay();
+});
+$('k-test').addEventListener('change', () => { KONTROL = null; $('k-sorular').replaceChildren(); $('k-bilgi').hidden = true; $('k-kaydet').hidden = true; liste($('k-hatalar'), []); $('k-err').textContent = ''; });
+$('k-kaydet').addEventListener('click', async () => {
+ if (!PANEL || !KONTROL) return;
+ const hatalar = [], sorular = [];
+ $('k-sorular').querySelectorAll('.kq').forEach((li, i) => {
+  li.classList.remove('hatali');
+  if (li.classList.contains('cikti')) return;
+  const n = i + 1, q = li.querySelector('.kq-q').value.trim(), o = [...li.querySelectorAll('.kq-ot')].map(x => x.value.replace(/\s+/g, ' ').trim());
+  const sec = li.querySelector('input[type=radio]:checked'), once = hatalar.length;
+  if (!q) hatalar.push(n + '. soruda soru metni boş.');
+  if (o.some(x => !x)) hatalar.push(n + '. soruda boş şık var.');
+  else if (new Set(o.map(x => x.toLocaleLowerCase('tr'))).size !== 4) hatalar.push(n + '. soruda aynı şık iki kez yazılmış.');
+  if (!sec) hatalar.push(n + '. soruda doğru şık işaretli değil.');
+  if (hatalar.length > once) { li.classList.add('hatali'); return; }
+  sorular.push({q, o, a: +sec.value, tr: li.querySelector('.kq-tr').value.trim(), c: li.dataset.c});
+ });
+ if (!hatalar.length && sorular.length < 5) hatalar.push('En az 5 soru kalmalı (şu an ' + sorular.length + ').');
+ liste($('k-hatalar'), hatalar); $('k-err').textContent = '';
+ if (hatalar.length) { ($('k-sorular').querySelector('.kq.hatali') || $('k-hatalar')).scrollIntoView({behavior: 'smooth', block: 'center'}); return; }
+ const b = $('k-kaydet'), yazi = b.textContent;
+ b.disabled = true; b.textContent = 'Kaydediliyor…';
+ let j;
+ try { j = await panelIstek('test_ekle', {ad: KONTROL.ad, kaynak: KONTROL.slug, sorular}); }
+ catch (e) { b.disabled = false; b.textContent = yazi; if (e.message !== 'yetkisiz') $('k-err').textContent = 'Bağlantı kurulamadı, tekrar dene.'; return; }
+ b.disabled = false; b.textContent = yazi;
+ if (!j || !j.ok) { $('k-err').textContent = 'Kaydedilemedi' + (j && j.no ? ' (' + j.no + '. soru)' : '') + '. Tekrar kontrol et.'; return; }
+ Object.keys(OZEL).forEach(k => { if (OZEL[k].kaynak === KONTROL.slug) delete OZEL[k]; });
+ OZEL = Object.assign({[j.test_slug]: {ad: j.ad, n: j.n, kaynak: KONTROL.slug}}, OZEL);
+ testSecenekleri(); $('p-test').value = j.test_slug;
+ $('k-sorular').replaceChildren(); $('k-kaydet').hidden = true; $('k-bilgi').hidden = true;
+ $('k-tamam').textContent = '✓ “' + j.ad + '” onaylandı (' + j.n + ' soru). “Yeni ödev”de “✓ onaylı” olarak seçili; ödevler bu hâliyle gider. Önceki ödevler değişmez.';
+ $('k-tamam').hidden = false; KONTROL = null;
+ $('k-tamam').scrollIntoView({behavior: 'smooth', block: 'center'});
+});
 $('t-kalip').addEventListener('click', async () => {
  const b = $('t-kalip');
  try { await navigator.clipboard.writeText(KALIP); }
@@ -1129,7 +1259,7 @@ $('t-kaydet').addEventListener('click', async () => {
  catch (e) { b.disabled = false; b.textContent = 'Testi kaydet'; if (e.message !== 'yetkisiz') $('t-err').textContent = 'Bağlantı kurulamadı, tekrar dene.'; return; }
  b.disabled = false; b.textContent = 'Testi kaydet';
  if (!j || !j.ok) { $('t-err').textContent = 'Kaydedilemedi' + (j && j.no ? ' (' + j.no + '. soru)' : '') + '. Tekrar kontrol et.'; return; }
- OZEL[j.test_slug] = {ad: j.ad, n: j.n}; testSecenekleri(); $('p-test').value = j.test_slug;
+ OZEL[j.test_slug] = {ad: j.ad, n: j.n, kaynak: ''}; testSecenekleri(); $('p-test').value = j.test_slug;
  TASLAK = null; $('t-metin').value = ''; $('t-sonuc').hidden = true; $('t-ad').value = ''; $('t-ad').dataset.oto = '1';
  $('t-tamam').textContent = '✓ “' + j.ad + '” kaydedildi. Yukarıdaki “Yeni ödev” bölümünde seçili; son teslim gününü seçip “Ödevi oluştur”a bas.';
  $('t-tamam').hidden = false;

@@ -27,8 +27,9 @@
  *
  * Öğretmen paneli (sitede index.html?panel): aynı POST ucuna {islem, anahtar, ...} gövdesiyle gelir.
  *   islem: "odevler" (liste + katılan sayısı + öğretmenin kendi testleri) · "odev_ekle" (kod üretir,
- *   Ödevler'e satır yazar) · "siralama" (WhatsApp metni) · "test_ekle" (ChatGPT'den gelen testi
- *   "Testler" sekmesine kaydeder; adı "ozel-" ile başlar). Ödev bu testlerden biriyse doGet
+ *   Ödevler'e satır yazar) · "siralama" (WhatsApp metni) · "test_ekle" (ChatGPT'den gelen ya da
+ *   öğretmenin kontrol edip onayladığı hazır testi "Testler" sekmesine kaydeder; adı "ozel-" ile başlar)
+ *   · "test_getir" (kayıtlı testi düzenlemek için geri verir). Ödev bu testlerden biriyse doGet
  *   yanıtına testin kendisi de eklenir (sayfada gömülü değildir). anahtar, kurulum() ile üretilip Betik Özellikleri'nde saklanır;
  *   depoda yoktur. Yanlış/eksik anahtar → {ok:false, hata:"yetkisiz"}.
  *
@@ -153,6 +154,10 @@ function yeniAnahtar_() {
 function panelIslem_(b, simdi) {
   if (!anahtarDogru_(b.anahtar)) return {ok: false, hata: 'yetkisiz', kalici: true};
   if (b.islem === 'odevler') return {ok: true, odevler: odevListesi_(), testler: testListesi_()};
+  if (b.islem === 'test_getir') {
+    const t = typeof b.slug === 'string' && b.slug.indexOf('ozel-') === 0 ? ozelTest_(b.slug) : null;
+    return t ? {ok: true, test: t} : {ok: false, hata: 'yok', kalici: true};
+  }
   if (b.islem === 'siralama') {
     const s = siralamaHazirla_(b.kod);
     return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
@@ -170,12 +175,20 @@ function panelIslem_(b, simdi) {
   return {ok: false, hata: 'gecersiz', kalici: true};
 }
 
-/* ---------- Öğretmenin kendi testleri (ChatGPT'den panele yapıştırılan) ---------- */
+/* ---------- Öğretmenin kendi testleri ----------
+   İki kaynaktan gelir: ChatGPT'den panele yapıştırılan test ya da öğretmenin panelde kontrol edip
+   onayladığı hazır test. İkincisinde "kaynak" hazır testin slug'ıdır; panel o hazır testin yerine
+   en son onaylanan sürümü gösterir. Hazır testin kendisi (sitedeki) değişmez. */
 
-/** Panelden gelen testi denetler: 5-40 soru, her soruda 4 farklı şık, 0-3 doğru cevap. {hata} ya da {ad, sorular}. */
+const KAYNAK_RE = /^[a-z0-9][a-z0-9-]{0,59}$/;
+
+/** Panelden gelen testi denetler: 5-40 soru, her soruda 4 farklı şık, 0-3 doğru cevap.
+ *  {hata} ya da {ad, sorular, kaynak}. */
 function testDenetle_(b) {
   const metin = (v, ust) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= ust;
   if (!metin(b.ad, 60)) return {hata: 'ad'};
+  const kaynak = b.kaynak == null || b.kaynak === '' ? '' : b.kaynak;
+  if (kaynak && (typeof kaynak !== 'string' || !KAYNAK_RE.test(kaynak) || kaynak.indexOf('ozel-') === 0)) return {hata: 'kaynak'};
   if (!Array.isArray(b.sorular) || b.sorular.length < 5 || b.sorular.length > 40) return {hata: 'soru_sayisi'};
   const sorular = [];
   for (let i = 0; i < b.sorular.length; i++) {
@@ -184,15 +197,17 @@ function testDenetle_(b) {
     const o = q.o.map(x => x.trim());
     if (new Set(o.map(x => x.toLowerCase())).size !== 4) return {hata: 'soru', no: i + 1};
     if (typeof q.a !== 'number' || !Number.isInteger(q.a) || q.a < 0 || q.a > 3) return {hata: 'soru', no: i + 1};
-    sorular.push({q: q.q.trim(), o: o, a: q.a, tr: typeof q.tr === 'string' ? q.tr.trim().slice(0, 300) : ''});
+    const soru = {q: q.q.trim(), o: o, a: q.a, tr: typeof q.tr === 'string' ? q.tr.trim().slice(0, 300) : ''};
+    if (typeof q.c === 'string' && q.c.trim()) soru.c = q.c.trim().slice(0, 60);
+    sorular.push(soru);
   }
-  return {ad: b.ad.replace(/\s+/g, ' ').trim(), sorular: sorular};
+  return {ad: b.ad.replace(/\s+/g, ' ').trim(), sorular: sorular, kaynak: kaynak};
 }
 
 function testEkle_(b, simdi) {
   const t = testDenetle_(b);
   if (t.hata) return {ok: false, hata: t.hata, no: t.no, kalici: true};
-  const icerik = JSON.stringify({ad: t.ad, sorular: t.sorular});
+  const icerik = JSON.stringify(t.kaynak ? {ad: t.ad, kaynak: t.kaynak, sorular: t.sorular} : {ad: t.ad, sorular: t.sorular});
   if (icerik.length > 45000) return {ok: false, hata: 'cok_uzun', kalici: true};
   const sh = sayfa_(TESTLER, TEST_BASLIK);
   const var_ = {};
@@ -201,17 +216,18 @@ function testEkle_(b, simdi) {
   do { slug = 'ozel-' + slugla_(t.ad) + '-' + kodUret_().slice(0, 4).toLowerCase(); } while (var_[slug]);
   sh.getRange(sh.getLastRow() + 1, 1, 1, TEST_BASLIK.length).setValues([[slug, metin_(t.ad), t.sorular.length, simdi, icerik]]);
   SpreadsheetApp.flush();
-  return {ok: true, test_slug: slug, ad: t.ad, n: t.sorular.length};
+  return {ok: true, test_slug: slug, ad: t.ad, n: t.sorular.length, kaynak: t.kaynak};
 }
 
-/** Kayıtlı test: {ad, sorular} ya da null. */
+/** Kayıtlı test: {ad, sorular, kaynak} ya da null. */
 function ozelTest_(slug) {
   const satirlar = sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues();
   for (let i = 1; i < satirlar.length; i++) {
     if (String(satirlar[i][0]) !== slug) continue;
     try {
       const t = JSON.parse(String(satirlar[i][4]));
-      return t && Array.isArray(t.sorular) ? {ad: String(t.ad || satirlar[i][1]), sorular: t.sorular} : null;
+      return t && Array.isArray(t.sorular) ?
+        {ad: String(t.ad || satirlar[i][1]), sorular: t.sorular, kaynak: typeof t.kaynak === 'string' ? t.kaynak : ''} : null;
     } catch (err) {
       return null;
     }
@@ -219,11 +235,22 @@ function ozelTest_(slug) {
   return null;
 }
 
-/** Öğretmenin testleri, en yeni üstte: [{slug, ad, n}]. */
+/** Öğretmenin testleri, en yeni üstte: [{slug, ad, n, kaynak}]. Aynı hazır testin
+ *  onaylanmış sürümlerinden yalnız en yenisi listelenir (eski ödevler eski sürümle çalışmaya devam eder). */
 function testListesi_() {
+  const gorulen = {};
   return sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues().slice(1).reverse()
     .filter(function (r) { return String(r[0]).indexOf('ozel-') === 0; })
-    .map(function (r) { return {slug: String(r[0]), ad: String(r[1]).replace(/^'/, ''), n: Number(r[2]) || 0}; });
+    .map(function (r) {
+      let kaynak = '';
+      try { kaynak = String(JSON.parse(String(r[4])).kaynak || ''); } catch (err) { /* bozuk içerik: kaynaksız say */ }
+      return {slug: String(r[0]), ad: String(r[1]).replace(/^'/, ''), n: Number(r[2]) || 0, kaynak: kaynak};
+    })
+    .filter(function (t) {
+      if (!t.kaynak) return true;
+      if (gorulen[t.kaynak]) return false;
+      return (gorulen[t.kaynak] = true);
+    });
 }
 
 /** "Unit 6: Adventures!" → "unit-6-adventures" (Türkçe harfler sadeleşir). */

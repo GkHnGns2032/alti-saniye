@@ -38,6 +38,7 @@ import http.server
 import io
 import json
 import pathlib
+import re
 import shutil
 import sys
 import tempfile
@@ -257,15 +258,26 @@ class SahteUcNokta:
                 katilan = len({kisi(r) for r in self.satirlar if r['kod'] == kod})
                 liste.append({'kod': kod, 'test_slug': slug, 'baslangic': iso(bas), 'bitis': iso(bit),
                               'sinif': sec.get('sinif', ''), 'katilan': katilan})
-            testler = [{'slug': k, 'ad': t['ad'], 'n': len(t['sorular'])} for k, t in reversed(list(self.testler.items()))]
+            testler, gorulen = [], set()
+            for k, t in reversed(list(self.testler.items())):  # Kod.gs gibi: aynı hazır testin yalnız en yeni onayı
+                if t.get('kaynak'):
+                    if t['kaynak'] in gorulen:
+                        continue
+                    gorulen.add(t['kaynak'])
+                testler.append({'slug': k, 'ad': t['ad'], 'n': len(t['sorular']), 'kaynak': t.get('kaynak', '')})
             return {'ok': True, 'odevler': liste, 'testler': testler}
         if g['islem'] == 'test_ekle':
             sor = g.get('sorular') or []
             if not g.get('ad') or not 5 <= len(sor) <= 40 or not all(len(q['o']) == 4 and 0 <= q['a'] <= 3 for q in sor):
                 return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
+            if g.get('kaynak') and (not re.match(r'^[a-z0-9][a-z0-9-]{0,59}$', g['kaynak']) or g['kaynak'].startswith('ozel-')):
+                return {'ok': False, 'hata': 'kaynak', 'kalici': True}
             slug = f'ozel-test-{len(self.testler):04d}'
-            self.testler[slug] = {'ad': g['ad'], 'sorular': sor}
-            return {'ok': True, 'test_slug': slug, 'ad': g['ad'], 'n': len(sor)}
+            self.testler[slug] = {'ad': g['ad'], 'sorular': sor, 'kaynak': g.get('kaynak') or ''}
+            return {'ok': True, 'test_slug': slug, 'ad': g['ad'], 'n': len(sor), 'kaynak': g.get('kaynak') or ''}
+        if g['islem'] == 'test_getir':
+            t = self.testler.get(g.get('slug'))
+            return {'ok': True, 'test': t} if t else {'ok': False, 'hata': 'yok', 'kalici': True}
         if g['islem'] == 'odev_ekle':
             y, a, gun = map(int, g['bitis'][:10].split('-'))
             bit = calendar.timegm((y, a, gun, 23, 59, 0)) - 3 * 3600  # Kod.gs gibi e-tablo saat diliminde (İstanbul, UTC+3)
@@ -808,6 +820,93 @@ def panel_ozel_test(o):
         s.kapat()
 
 
+def panel_hazir_kontrol(o):
+    """Öğretmen hazır testi panelde kontrol eder: düzeltir, doğru şıkkı değiştirir, soru çıkarır, onaylar.
+    Onaylı sürüm listede hazır testin yerine geçer, yeniden açılınca onaylanan hâl gelir, ödev onunla gider."""
+    from urllib.parse import unquote, urlsplit
+    o.uc.sifirla()
+    z = next(c for c in quizleri_oku() if c['slug'] == 'ingilizce-8-friendship')
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        page.click('#k-kart summary')
+        page.select_option('#k-test', 'ingilizce-8-friendship')
+        page.click('#k-ac')
+        kart = page.locator('#k-sorular > .kq')
+        expect(kart).to_have_count(20)
+        expect(page.locator('#k-bilgi')).to_contain_text('hazır hâli')
+        expect(kart.nth(1).locator('.kq-q')).to_have_value(z['questions'][1]['q'])
+        expect(kart.nth(1).locator(f'input[type=radio][value="{z["questions"][1]["a"]}"]')).to_be_checked()
+        # 1. soruyu düzelt, 2. sorunun doğru şıkkını değiştir, 3. soruyu çıkar
+        kart.nth(0).locator('.kq-q').fill('Ali never tells my secrets.\nHe is very _____.')
+        kart.nth(1).locator('.kq-ot').nth(0).fill('helps')
+        kart.nth(1).locator('input[type=radio][value="0"]').check()
+        kart.nth(2).locator('.kq-cikar').click()
+        expect(kart.nth(2)).to_have_class('kq cikti')
+        expect(page.locator('#k-kaydet')).to_have_text('Onayla ve kaydet (19 soru)')
+        # hatalı hâl kaydedilmez: boş şık
+        eski = kart.nth(3).locator('.kq-ot').nth(1).input_value()
+        kart.nth(3).locator('.kq-ot').nth(1).fill('  ')
+        page.click('#k-kaydet')
+        expect(page.locator('#k-hatalar')).to_contain_text('4. soruda boş şık var.')
+        expect(kart.nth(3)).to_have_class('kq hatali')
+        eşit(o.uc.testler, {}, 'hatalıyken kayıt yok')
+        kart.nth(3).locator('.kq-ot').nth(1).fill(eski)
+        page.click('#k-kaydet')
+        expect(page.locator('#k-tamam')).to_contain_text('onaylandı (19 soru)')
+        expect(page.locator('#k-hatalar')).to_be_hidden()
+        eşit(len(o.uc.testler), 1, 'kaydedilen onaylı test')
+        slug, t = next(iter(o.uc.testler.items()))
+        eşit((t['kaynak'], t['ad'], len(t['sorular'])), ('ingilizce-8-friendship', z['name'], 19), 'onaylı test')
+        eşit(t['sorular'][0]['q'], 'Ali never tells my secrets.\nHe is very _____.', 'düzeltilen soru')
+        eşit((t['sorular'][1]['o'][0], t['sorular'][1]['a']), ('helps', 0), 'değiştirilen doğru şık')
+        eşit(t['sorular'][2]['q'], z['questions'][3]['q'], '3. soru çıkarıldı')
+        eşit([q['a'] for q in t['sorular'][2:]], [q['a'] for q in z['questions'][3:]], 'dokunulmayan cevaplar aynı (karıştırılmadı)')
+        eşit({q['c'] for q in t['sorular']}, {'Unit 1 · Friendship'}, 'kategori')
+        # onaylı sürüm hazır testin yerine geçer
+        eşit(page.locator('#p-test').input_value(), slug, 'Yeni ödev\'de seçili test')
+        expect(page.locator('#p-test option[value="ingilizce-8-friendship"]')).to_have_count(0)
+        expect(page.locator(f'#p-test optgroup[label="Hazır testler"] option[value="{slug}"]')).to_have_text(z['name'] + ' ✓ onaylı (19 soru)')
+        expect(page.locator('#p-test optgroup[label="Kendi testlerin"]')).to_have_count(0)
+        expect(page.locator('#k-test option[value="ingilizce-8-friendship"]')).to_have_text(z['name'] + ' ✓ onaylı')
+        # yeniden açınca onaylanan hâl gelir
+        page.click('#k-ac')
+        expect(kart).to_have_count(19)
+        expect(page.locator('#k-bilgi')).to_contain_text('Daha önce onayladığın')
+        expect(kart.nth(0).locator('.kq-q')).to_have_value('Ali never tells my secrets.\nHe is very _____.')
+        # bu testle ödev → öğrenci düzeltilmiş soruları görür, hazır testin görünümüyle
+        page.fill('#p-gun', time.strftime('%Y-%m-%d', time.localtime(time.time() + 5 * GUN)))
+        page.click('#p-olustur')
+        expect(page.locator('#p-sonuc')).to_be_visible()
+        mesaj = unquote(page.get_attribute('#p-wa', 'href').split('text=', 1)[1])
+        for parca in (f'📚 Ödev: {z["name"]} (19 soru', f'#{slug}'):
+            if parca not in mesaj:
+                raise AssertionError(f'mesajda yok: {parca!r} · {mesaj!r}')
+        o.bitir(s)
+        link = urlsplit(mesaj.rsplit('\n', 1)[1])
+        s2 = o.sayfa()
+        try:
+            p2 = s2.page
+            p2.goto(f'{o.taban}{link.path}?{link.query}#{link.fragment}')
+            expect(p2.locator('#odev-eyebrow')).to_have_text('Ödev · ' + z['name'])
+            o.bilgi_gir(p2)
+            p2.click('#start')
+            expect(p2.locator('#unit')).to_have_text('Unit 1 · Friendship')
+            c = {'questions': t['sorular']}
+            d, y, b = cevapla(p2, c)
+            sonuc_denetle(p2, c, d, y, b)
+            expect(p2.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
+            eşit([r['test_slug'] for r in o.uc.satirlar], [slug], 'kaydedilen sonuç')
+            o.bitir(s2)
+        finally:
+            s2.kapat()
+        return 'düzelt + doğru şıkkı değiştir + çıkar → boş şık yakalandı → onaylandı (19) → listede "✓ onaylı" → yeniden açıldı → ödev → öğrenci çözdü'
+    finally:
+        s.kapat()
+
+
 def panel_ozel_hatalar(o):
     """Hatalı yapıştırmalar kaydedilmeden yakalanır; kalın yazı ve diyalog satırları doğru okunur."""
     o.uc.sifirla()
@@ -925,6 +1024,7 @@ def main():
         kos('panel  sıralama → WhatsApp', panel_siralama, o)
         kos('panel  ChatGPT testi → ödev', panel_ozel_test, o)
         kos('panel  ChatGPT hatalı metin', panel_ozel_hatalar, o)
+        kos('panel  hazır testi kontrol et', panel_hazir_kontrol, o)
         browser.close()
     print(f'duman testi: {gecen} geçti · {kalan} kaldı')
     return 1 if kalan else 0
