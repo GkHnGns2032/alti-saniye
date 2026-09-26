@@ -1,0 +1,36 @@
+name: Kalite kapısı
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kontrol-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kontrol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: araclar/gereksinimler.txt
+
+      - name: Playwright + Chromium kur
+        run: |
+          python -m pip install -r araclar/gereksinimler.txt
+          python -m playwright install --with-deps chromium
+
+      - name: python3 araclar/kontrol.py
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python araclar/kontrol.py

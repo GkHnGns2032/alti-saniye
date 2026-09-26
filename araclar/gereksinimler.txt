@@ -1,0 +1,2 @@
+# Yalnız kalite kapısı (araclar/kontrol.py) için; yap.py standart kütüphaneyle çalışır.
+playwright==1.56.0
