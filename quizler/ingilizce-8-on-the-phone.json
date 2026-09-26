@@ -1,0 +1,163 @@
+{
+ "slug": "ingilizce-8-on-the-phone",
+ "sira": 7,
+ "title": "Altı Saniye · On the Phone",
+ "name": "8. Sınıf İngilizce · Unit 4 On the Phone",
+ "desc": "4. ünite On the Phone: telefon kalıpları, mesaj bırakma, plan yapma. Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 4 · On the Phone",
+ "heroTop": "On the Phone",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "4. ünite <b>On the Phone</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [["20", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "ünite"]],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "PHONE · 8",
+ "messages": [
+  [0.88, "On the Phone ünitesinde tam puana çok yakınsın."],
+  [0.64, "Sağlam bir sonuç. Kaçırdıklarına bir göz at."],
+  [0.4, "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."],
+  [-99, "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."]
+ ],
+ "questions": [
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "“Hello, _____ Ayşe.\nCan I speak to Zeynep?”",
+   "o": ["This is", "That is", "Here is", "There is"],
+   "a": 0,
+   "tr": "Telefonda kendini tanıtmak: “This is Ayşe.” (Ben Ayşe.)"
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "“Can I speak to Mr. Aydın, please?”\n“_____, please. I’ll put you through.”",
+   "o": ["Hang up", "Call back", "Hold on", "Speak up"],
+   "a": 2,
+   "tr": "Hold on = hatta kalın, bekleyin."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "“Mr. Demir is in a meeting.\nWould you like to _____ a message?”",
+   "o": ["take", "leave", "make", "give"],
+   "a": 1,
+   "tr": "Arayan kişi mesaj bırakır: leave a message. Telefonu açan mesaj alır: take a message."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "I can’t hear you.\nCan you _____, please?",
+   "o": ["speak up", "hang up", "look up", "give up"],
+   "a": 0,
+   "tr": "speak up = daha yüksek sesle konuşmak."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "“Can I speak to Mrs. Kaya?”\n“Sorry, she’s _____ at the moment.”",
+   "o": ["on", "off", "out", "up"],
+   "a": 2,
+   "tr": "be out = dışarıda olmak, evde/ofiste olmamak."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "I texted you twice,\nbut you didn’t _____.",
+   "o": ["ask", "say", "tell", "answer"],
+   "a": 3,
+   "tr": "answer = cevap vermek."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "“Is this the Yılmaz family?”\n“No, sorry. You have the _____ number.”",
+   "o": ["wrong", "busy", "false", "bad"],
+   "a": 0,
+   "tr": "wrong number = yanlış numara."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "The line is busy.\nI’ll _____ later.",
+   "o": ["hang on", "call back", "pick up", "look for"],
+   "a": 1,
+   "tr": "call back = geri aramak."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "Please call me _____ 5 p.m.",
+   "o": ["on", "in", "at", "for"],
+   "a": 2,
+   "tr": "Saatlerden önce at kullanılır: at 5 p.m."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "My phone’s battery is dead.\nI need to _____ it.",
+   "o": ["call", "ring", "text", "charge"],
+   "a": 3,
+   "tr": "charge = şarj etmek."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "Mert isn’t at home.\nHe _____ football in the park now.",
+   "o": ["plays", "is playing", "played", "will play"],
+   "a": 1,
+   "tr": "“now” şu an olan bir işi anlatır: present continuous (is playing)."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "Don’t _____!\nI have something important to tell you.",
+   "o": ["hang up", "hold on", "call back", "pick up"],
+   "a": 0,
+   "tr": "hang up = telefonu kapatmak."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "A: Hello, can I speak to Burak?\nB: _____ Just a moment, I’ll get him.",
+   "o": ["Speaking.", "Bye.", "Sure.", "No, thanks."],
+   "a": 2,
+   "tr": "“I’ll get him” (onu çağırayım) dediği için cevap “Sure.” olmalı. “Speaking.” = Benim, konuşan benim."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "“Sorry, he isn’t here.\nCan I take a _____?”",
+   "o": ["call", "number", "line", "message"],
+   "a": 3,
+   "tr": "take a message = not almak, mesaj iletmek."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "A: What are you doing tomorrow evening?\nB: I _____ my grandparents.",
+   "o": ["visit", "am visiting", "visited", "was visiting"],
+   "a": 1,
+   "tr": "Planlanmış yakın gelecek için present continuous: I am visiting."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "A: Is Emre there?\nB: No, he isn’t. Can I ask who’s _____?",
+   "o": ["going", "doing", "coming", "calling"],
+   "a": 3,
+   "tr": "Who’s calling? = Kim arıyor? (Kiminle görüşüyorum?)"
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "The phone is ringing.\nCan you _____ it up?",
+   "o": ["pick", "give", "wake", "make"],
+   "a": 0,
+   "tr": "pick up (the phone) = telefonu açmak."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "Sorry, Selin can’t come to the phone.\nShe _____ a shower.",
+   "o": ["takes", "took", "is taking", "take"],
+   "a": 2,
+   "tr": "Şu an olan iş: present continuous (is taking a shower)."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "The line is _____.\nI can’t get through.",
+   "o": ["empty", "free", "open", "busy"],
+   "a": 3,
+   "tr": "The line is busy = hat meşgul. get through = bağlanmak, ulaşmak."
+  },
+  {
+   "c": "Unit 4 · On the Phone",
+   "q": "A: Can I leave a message for Ali?\nB: Of course. _____",
+   "o": ["Speak up.", "I’ll tell him.", "Wrong number.", "He’s speaking."],
+   "a": 1,
+   "tr": "Mesajı ileteceğini söylüyor: “I’ll tell him.” (Ona söylerim.)"
+  }
+ ]
+}
