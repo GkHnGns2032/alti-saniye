@@ -240,7 +240,8 @@ Sitedeki hazır testleri öğretmen ödev vermeden önce kendisi kontrol edebili
 1. Testi seç, **Soruları aç**'a bas. Her soru ayrı bir kartta açılır.
 2. Yanlış ya da uygunsuz bulduğun yazıya dokunup düzelt. Doğru cevabı değiştirmek için doğru şıkkın solundaki yuvarlağa dokun.
 3. Uygun olmayan soruyu **Soruyu çıkar** ile at. Fikrini değiştirirsen **Geri al**'a bas.
-4. En alttaki **Onayla ve kaydet**'e bas.
+4. Yerine soru koymak için en alttaki **＋ Yeni soru ekle**'ye bas. Boş bir kart açılır: soruyu ve dört şıkkı yaz, doğru şıkkın solundaki yuvarlağa dokun. (En çok 40 soru.)
+5. En alttaki **Onayla ve kaydet**'e bas.
 
 Bundan sonra **Yeni ödev** listesinde o testin yanında **✓ onaylı** yazar ve ödevler senin onayladığın hâliyle gider. Aynı testi yeniden açarsan onayladığın hâl gelir; istediğin kadar yeniden düzeltip onaylayabilirsin.
 

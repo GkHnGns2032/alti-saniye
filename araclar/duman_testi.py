@@ -846,42 +846,56 @@ def panel_hazir_kontrol(o):
         kart.nth(2).locator('.kq-cikar').click()
         expect(kart.nth(2)).to_have_class('kq cikti')
         expect(page.locator('#k-kaydet')).to_have_text('Onayla ve kaydet (19 soru)')
-        # hatalı hâl kaydedilmez: boş şık
+        # çıkarılanın yerine yeni soru: boş kart açılır, yazılır
+        page.click('#k-ekle')
+        expect(kart).to_have_count(21)
+        expect(kart.nth(20).locator('.kq-no')).to_have_text('21. soru (yeni)')
+        expect(kart.nth(20).locator('.kq-q')).to_be_focused()
+        expect(page.locator('#k-kaydet')).to_have_text('Onayla ve kaydet (20 soru)')
+        kart.nth(20).locator('.kq-q').fill('A true friend is always _____.')
+        for k, x in enumerate(('rude', 'lazy', 'loyal', 'mean')):
+            kart.nth(20).locator('.kq-ot').nth(k).fill(x)
+        # hatalı hâl kaydedilmez: boş şık, işaretsiz doğru şık
         eski = kart.nth(3).locator('.kq-ot').nth(1).input_value()
         kart.nth(3).locator('.kq-ot').nth(1).fill('  ')
         page.click('#k-kaydet')
         expect(page.locator('#k-hatalar')).to_contain_text('4. soruda boş şık var.')
+        expect(page.locator('#k-hatalar')).to_contain_text('21. soruda doğru şık işaretli değil.')
         expect(kart.nth(3)).to_have_class('kq hatali')
         eşit(o.uc.testler, {}, 'hatalıyken kayıt yok')
         kart.nth(3).locator('.kq-ot').nth(1).fill(eski)
+        kart.nth(20).locator('input[type=radio][value="2"]').check()
         page.click('#k-kaydet')
-        expect(page.locator('#k-tamam')).to_contain_text('onaylandı (19 soru)')
+        expect(page.locator('#k-tamam')).to_contain_text('onaylandı (20 soru)')
         expect(page.locator('#k-hatalar')).to_be_hidden()
         eşit(len(o.uc.testler), 1, 'kaydedilen onaylı test')
         slug, t = next(iter(o.uc.testler.items()))
-        eşit((t['kaynak'], t['ad'], len(t['sorular'])), ('ingilizce-8-friendship', z['name'], 19), 'onaylı test')
+        eşit((t['kaynak'], t['ad'], len(t['sorular'])), ('ingilizce-8-friendship', z['name'], 20), 'onaylı test')
         eşit(t['sorular'][0]['q'], 'Ali never tells my secrets.\nHe is very _____.', 'düzeltilen soru')
         eşit((t['sorular'][1]['o'][0], t['sorular'][1]['a']), ('helps', 0), 'değiştirilen doğru şık')
         eşit(t['sorular'][2]['q'], z['questions'][3]['q'], '3. soru çıkarıldı')
-        eşit([q['a'] for q in t['sorular'][2:]], [q['a'] for q in z['questions'][3:]], 'dokunulmayan cevaplar aynı (karıştırılmadı)')
+        eşit([q['a'] for q in t['sorular'][2:19]], [q['a'] for q in z['questions'][3:]], 'dokunulmayan cevaplar aynı (karıştırılmadı)')
+        eşit((t['sorular'][19]['q'], t['sorular'][19]['o'], t['sorular'][19]['a']),
+             ('A true friend is always _____.', ['rude', 'lazy', 'loyal', 'mean'], 2), 'eklenen soru sonda')
         eşit({q['c'] for q in t['sorular']}, {'Unit 1 · Friendship'}, 'kategori')
         # onaylı sürüm hazır testin yerine geçer
         eşit(page.locator('#p-test').input_value(), slug, 'Yeni ödev\'de seçili test')
         expect(page.locator('#p-test option[value="ingilizce-8-friendship"]')).to_have_count(0)
-        expect(page.locator(f'#p-test optgroup[label="Hazır testler"] option[value="{slug}"]')).to_have_text(z['name'] + ' ✓ onaylı (19 soru)')
+        expect(page.locator(f'#p-test optgroup[label="Hazır testler"] option[value="{slug}"]')).to_have_text(z['name'] + ' ✓ onaylı (20 soru)')
         expect(page.locator('#p-test optgroup[label="Kendi testlerin"]')).to_have_count(0)
         expect(page.locator('#k-test option[value="ingilizce-8-friendship"]')).to_have_text(z['name'] + ' ✓ onaylı')
         # yeniden açınca onaylanan hâl gelir
         page.click('#k-ac')
-        expect(kart).to_have_count(19)
+        expect(kart).to_have_count(20)
         expect(page.locator('#k-bilgi')).to_contain_text('Daha önce onayladığın')
+        expect(kart.nth(19).locator('.kq-q')).to_have_value('A true friend is always _____.')
         expect(kart.nth(0).locator('.kq-q')).to_have_value('Ali never tells my secrets.\nHe is very _____.')
         # bu testle ödev → öğrenci düzeltilmiş soruları görür, hazır testin görünümüyle
         page.fill('#p-gun', time.strftime('%Y-%m-%d', time.localtime(time.time() + 5 * GUN)))
         page.click('#p-olustur')
         expect(page.locator('#p-sonuc')).to_be_visible()
         mesaj = unquote(page.get_attribute('#p-wa', 'href').split('text=', 1)[1])
-        for parca in (f'📚 Ödev: {z["name"]} (19 soru', f'#{slug}'):
+        for parca in (f'📚 Ödev: {z["name"]} (20 soru', f'#{slug}'):
             if parca not in mesaj:
                 raise AssertionError(f'mesajda yok: {parca!r} · {mesaj!r}')
         o.bitir(s)
@@ -902,7 +916,7 @@ def panel_hazir_kontrol(o):
             o.bitir(s2)
         finally:
             s2.kapat()
-        return 'düzelt + doğru şıkkı değiştir + çıkar → boş şık yakalandı → onaylandı (19) → listede "✓ onaylı" → yeniden açıldı → ödev → öğrenci çözdü'
+        return 'düzelt + doğru şıkkı değiştir + çıkar + yeni soru → boş/işaretsiz yakalandı → onaylandı (20) → "✓ onaylı" → yeniden açıldı → ödev → öğrenci çözdü'
     finally:
         s.kapat()
 

@@ -302,6 +302,7 @@ details.pcard[open]>summary::after{content:"−"}
 .k-sorular:empty{display:none}
 .kq{display:grid;gap:8px;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--sheet)}
 .kq.hatali{border-color:var(--miss)}
+.kq.yeni:not(.hatali){border-color:var(--form)}
 .kq-bas{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700}
 .kq textarea,.kq input[type=text]{width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);color:var(--ink);font:15px/1.35 var(--f-body)}
 .kq textarea{min-height:64px;resize:vertical;font-weight:600}
@@ -392,11 +393,12 @@ details.pcard[open]>summary::after{content:"−"}
     <details class="pcard" id="k-kart">
      <summary><h2>Hazır testi kontrol et</h2></summary>
      <div class="pcard-govde">
-     <p class="pnote">Testi seç ve soruları aç. Yanlış bulduğun yere dokunup düzelt, doğru şıkkı işaretle, uygun olmayan soruyu çıkar. Sonunda <b>Onayla ve kaydet</b>'e bas: ödevler bundan sonra senin onayladığın hâliyle gider.</p>
+     <p class="pnote">Testi seç ve soruları aç. Yanlış bulduğun yere dokunup düzelt, doğru şıkkı işaretle, uygun olmayan soruyu çıkar, istersen en alttan yeni soru ekle. Sonunda <b>Onayla ve kaydet</b>'e bas: ödevler bundan sonra senin onayladığın hâliyle gider.</p>
      <label class="inp" for="k-test"><span>Test</span><select id="k-test"></select></label>
      <button class="btn wide" id="k-ac" type="button">Soruları aç</button>
      <p class="pnote" id="k-bilgi" hidden></p>
      <ol class="k-sorular" id="k-sorular"></ol>
+     <button class="btn ghost wide" id="k-ekle" type="button" hidden>＋ Yeni soru ekle</button>
      <ul class="t-liste hata" id="k-hatalar" hidden></ul>
      <p class="who-err" id="k-err" role="alert"></p>
      <button class="btn wa wide" id="k-kaydet" type="button" hidden>Onayla ve kaydet</button>
@@ -1148,12 +1150,12 @@ function kSoruKarti(q, i){
  const li = document.createElement('li'); li.className = 'kq';
  li.innerHTML = '<div class="kq-bas"><span class="kq-no"></span><button class="linkbtn kq-cikar" type="button">Soruyu çıkar</button></div>' +
   '<div class="kq-govde"><textarea class="kq-q" maxlength="300" aria-label="Soru"></textarea>' +
-  [0, 1, 2, 3].map(k => '<label class="kq-o"><input type="radio" name="kq-a-' + i + '" value="' + k + '" aria-label="' + 'ABCD'[k] + ' doğru"><input type="text" class="kq-ot" maxlength="100" aria-label="' + 'ABCD'[k] + ' şıkkı"></label>').join('') +
+  [0, 1, 2, 3].map(k => '<label class="kq-o"><input type="radio" name="kq-a-' + i + '" value="' + k + '" aria-label="' + 'ABCD'[k] + ' doğru"><input type="text" class="kq-ot" maxlength="100" placeholder="' + 'ABCD'[k] + ' şıkkı" aria-label="' + 'ABCD'[k] + ' şıkkı"></label>').join('') +
   '<input type="text" class="kq-tr" maxlength="300" placeholder="Açıklama (isteğe bağlı)" aria-label="Açıklama"></div>';
  li.querySelector('.kq-no').textContent = (i + 1) + '. soru';
  li.querySelector('.kq-q').value = q.q;
  li.querySelectorAll('.kq-ot').forEach((x, k) => { x.value = q.o[k] || ''; });
- li.querySelectorAll('input[type=radio]')[q.a].checked = true;
+ if (Number.isInteger(q.a)) li.querySelectorAll('input[type=radio]')[q.a].checked = true;
  li.querySelector('.kq-tr').value = q.tr || '';
  li.dataset.c = q.c || '';
  li.querySelector('.kq-cikar').addEventListener('click', () => {
@@ -1167,6 +1169,7 @@ function kSoruKarti(q, i){
 function kSay(){
  const n = $('k-sorular').querySelectorAll('.kq:not(.cikti)').length, top = $('k-sorular').children.length;
  $('k-kaydet').textContent = 'Onayla ve kaydet (' + n + ' soru)';
+ $('k-ekle').disabled = n >= 40; $('k-ekle').textContent = n >= 40 ? 'En çok 40 soru olabilir' : '＋ Yeni soru ekle';
  $('k-bilgi').textContent = KONTROL.not + (top - n ? ' ' + (top - n) + ' soru çıkarıldı.' : '');
 }
 $('k-ac').addEventListener('click', async () => {
@@ -1183,11 +1186,21 @@ $('k-ac').addEventListener('click', async () => {
   if (!j || !j.ok || !j.test) { $('k-err').textContent = 'Onayladığın hâl açılamadı, tekrar dene.'; return; }
   sorular = j.test.sorular; not = 'Daha önce onayladığın hâli açıldı.';
  }
- KONTROL = {slug, ad: z.name.slice(0, 60), not};
+ KONTROL = {slug, ad: z.name.slice(0, 60), not, c: (z.questions[0] && z.questions[0].c) || ''};
  $('k-sorular').replaceChildren(...sorular.map((q, i) => kSoruKarti(q, i)));
- $('k-bilgi').hidden = false; $('k-kaydet').hidden = false; kSay();
+ $('k-bilgi').hidden = false; $('k-kaydet').hidden = false; $('k-ekle').hidden = false; kSay();
 });
-$('k-test').addEventListener('change', () => { KONTROL = null; $('k-sorular').replaceChildren(); $('k-bilgi').hidden = true; $('k-kaydet').hidden = true; liste($('k-hatalar'), []); $('k-err').textContent = ''; });
+$('k-ekle').addEventListener('click', () => { // boş kart: öğretmen soruyu, 4 şıkkı yazar, doğru şıkkı işaretler
+ if (!KONTROL) return;
+ const li = kSoruKarti({q: '', o: ['', '', '', ''], a: null, tr: '', c: KONTROL.c}, $('k-sorular').children.length);
+ li.classList.add('yeni'); li.querySelector('.kq-no').textContent += ' (yeni)';
+ li.querySelector('.kq-q').placeholder = 'Soruyu yaz (boşluk için _____)';
+ const ipucu = document.createElement('p'); ipucu.className = 'pnote'; ipucu.textContent = 'Dört şıkkı yaz, doğru olanın solundaki yuvarlağa dokun.';
+ li.querySelector('.kq-q').after(ipucu);
+ $('k-sorular').append(li); kSay();
+ li.querySelector('.kq-q').focus(); li.scrollIntoView({behavior: 'smooth', block: 'center'});
+});
+$('k-test').addEventListener('change', () => { KONTROL = null; $('k-sorular').replaceChildren(); $('k-bilgi').hidden = true; $('k-kaydet').hidden = true; $('k-ekle').hidden = true; liste($('k-hatalar'), []); $('k-err').textContent = ''; });
 $('k-kaydet').addEventListener('click', async () => {
  if (!PANEL || !KONTROL) return;
  const hatalar = [], sorular = [];
@@ -1216,7 +1229,7 @@ $('k-kaydet').addEventListener('click', async () => {
  Object.keys(OZEL).forEach(k => { if (OZEL[k].kaynak === KONTROL.slug) delete OZEL[k]; });
  OZEL = Object.assign({[j.test_slug]: {ad: j.ad, n: j.n, kaynak: KONTROL.slug}}, OZEL);
  testSecenekleri(); $('p-test').value = j.test_slug;
- $('k-sorular').replaceChildren(); $('k-kaydet').hidden = true; $('k-bilgi').hidden = true;
+ $('k-sorular').replaceChildren(); $('k-kaydet').hidden = true; $('k-ekle').hidden = true; $('k-bilgi').hidden = true;
  $('k-tamam').textContent = '✓ “' + j.ad + '” onaylandı (' + j.n + ' soru). “Yeni ödev”de “✓ onaylı” olarak seçili; ödevler bu hâliyle gider. Önceki ödevler değişmez.';
  $('k-tamam').hidden = false; KONTROL = null;
  $('k-tamam').scrollIntoView({behavior: 'smooth', block: 'center'});
