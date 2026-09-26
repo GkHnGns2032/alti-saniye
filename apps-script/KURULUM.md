@@ -40,7 +40,7 @@ Bu rehberin sonunda şunlar olacak: öğrencilere WhatsApp'tan bir link gönderi
 
 ## 3. Kodu yapıştır
 
-1. E-tabloda **Uzantılar > Apps Script** menüsünü aç. Yeni sekmede bir kod düzenleyicisi açılır.
+1. E-tabloda **Uzantılar > Apps Komut Dosyası** menüsünü aç (İngilizce menüde adı **Apps Script**). Yeni sekmede bir kod düzenleyicisi açılır.
 2. Sol üstte "Adsız proje" yazısına tıkla, adını **Altı Saniye Ödev** yap.
 3. Ortadaki `Kod.gs` dosyasında yazan her şeyi sil (`function myFunction() {...}`).
 4. Bu depodaki [`apps-script/Kod.gs`](Kod.gs) dosyasını aç. GitHub'da sağ üstteki **Raw** düğmesine bas, sayfadaki her şeyi seç (Ctrl+A / Cmd+A) ve kopyala.
@@ -48,7 +48,7 @@ Bu rehberin sonunda şunlar olacak: öğrencilere WhatsApp'tan bir link gönderi
 6. Üstteki işlev listesinden **kurulum**'u seç ve **Çalıştır**'a bas.
 7. Google senden izin ister:
    - **İzinleri incele**'ye bas ve hesabını seç.
-   - "Google bu uygulamayı doğrulamadı" uyarısı çıkarsa **Gelişmiş**'e, sonra **Altı Saniye Ödev (güvenli değil) sayfasına git**'e bas.
+   - "Google bu uygulamayı doğrulamadı" uyarısı çıkarsa **Gelişmiş**'e, sonra en alttaki **… uygulamasına git (güvenli değil)** yazısına bas. Uyarıda "geliştirici" olarak kendi gmail adresin yazmalı.
    - **İzin ver**'e bas.
 
    Bu uyarının sebebi kodu Google'ın değil senin eklemiş olman. Kod yalnızca bu e-tabloyu okuyup yazar.
