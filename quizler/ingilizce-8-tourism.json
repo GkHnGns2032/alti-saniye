@@ -1,0 +1,292 @@
+{
+ "slug": "ingilizce-8-tourism",
+ "sira": 10,
+ "title": "Altı Saniye · Tourism",
+ "name": "8. Sınıf İngilizce · Unit 7 Tourism",
+ "desc": "7. ünite Tourism: seyahat ve konaklama sözcükleri, ünlü yerler, Have you ever…? Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 7 · Tourism",
+ "heroTop": "Tourism",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "7. ünite <b>Tourism</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [
+  [
+   "20",
+   "soru"
+  ],
+  [
+   "4",
+   "şık"
+  ],
+  [
+   "6",
+   "saniye"
+  ],
+  [
+   "1",
+   "ünite"
+  ]
+ ],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "TOURISM · 8",
+ "messages": [
+  [
+   0.88,
+   "Tourism ünitesinde tam puana çok yakınsın."
+  ],
+  [
+   0.64,
+   "Sağlam bir sonuç. Kaçırdıklarına bir göz at."
+  ],
+  [
+   0.4,
+   "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."
+  ],
+  [
+   -99,
+   "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."
+  ]
+ ],
+ "questions": [
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Where can you book a room?",
+   "o": [
+    "At a museum",
+    "At a bakery",
+    "At a gym",
+    "At a hotel"
+   ],
+   "a": 3,
+   "tr": "book a room = oda ayırtmak. Bu otelde yapılır."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "“Have you ever _____ to Cappadocia?”",
+   "o": [
+    "go",
+    "went",
+    "going",
+    "been"
+   ],
+   "a": 3,
+   "tr": "Have you ever been to…? = Hiç … bulundun mu? (been, be fiilinin 3. hâli)"
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Pamukkale is famous _____\nits white travertines.",
+   "o": [
+    "of",
+    "at",
+    "for",
+    "with"
+   ],
+   "a": 2,
+   "tr": "be famous for = … ile ünlü olmak."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "I want to visit Italy.\nI need a _____ and a visa.",
+   "o": [
+    "receipt",
+    "menu",
+    "souvenir",
+    "passport"
+   ],
+   "a": 3,
+   "tr": "passport = pasaport. Yurt dışına çıkmak için pasaport (ve bazen vize) gerekir."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "I bought a small Galata Tower model\nas a _____.",
+   "o": [
+    "passport",
+    "souvenir",
+    "luggage",
+    "guide"
+   ],
+   "a": 1,
+   "tr": "souvenir = hatıra eşya, gezilen yerden alınan hediyelik."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Our _____ told us the history\nof the palace.",
+   "o": [
+    "taxi driver",
+    "tour guide",
+    "cashier",
+    "lifeguard"
+   ],
+   "a": 1,
+   "tr": "tour guide = tur rehberi. Gezilen yerleri anlatır."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "I’ve _____ been to Paris,\nbut I want to go there one day.",
+   "o": [
+    "ever",
+    "already",
+    "just",
+    "never"
+   ],
+   "a": 3,
+   "tr": "never = hiç (olumsuz). “Ama bir gün gitmek istiyorum” diyor, yani hiç gitmemiş."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "A: Have you ever tried Turkish delight?\nB: Yes, I _____.",
+   "o": [
+    "have",
+    "did",
+    "am",
+    "was"
+   ],
+   "a": 0,
+   "tr": "Present perfect sorusuna kısa cevap: Yes, I have. / No, I haven’t."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "We stayed at a cheap _____\nwith shared rooms.",
+   "o": [
+    "palace",
+    "museum",
+    "hostel",
+    "airport"
+   ],
+   "a": 2,
+   "tr": "hostel = ucuz, odaları paylaşımlı konaklama yeri."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Where do you get on a plane?",
+   "o": [
+    "At the airport",
+    "At the harbour",
+    "At the station",
+    "At the campsite"
+   ],
+   "a": 0,
+   "tr": "Uçağa havalimanında (airport) binilir. harbour = liman, station = istasyon."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "We carried our _____ to the room.\nIt was very heavy.",
+   "o": [
+    "ticket",
+    "luggage",
+    "passport",
+    "receipt"
+   ],
+   "a": 1,
+   "tr": "luggage = bagaj, valizler."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Antalya has beautiful beaches.\nIt is a popular _____ for tourists.",
+   "o": [
+    "kitchen",
+    "destination",
+    "hospital",
+    "subject"
+   ],
+   "a": 1,
+   "tr": "destination = gidilecek yer, turistik yer."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "A: How was your holiday in Mardin?\nB: _____ The old houses were amazing.",
+   "o": [
+    "I went by bus.",
+    "For a week.",
+    "With my family.",
+    "It was fantastic!"
+   ],
+   "a": 3,
+   "tr": "“How was…?” = Nasıldı? Tatilin nasıl geçtiğini anlatan cevap: It was fantastic!"
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Ephesus is an ancient city.\nIt has many _____ sites.",
+   "o": [
+    "modern",
+    "historical",
+    "empty",
+    "digital"
+   ],
+   "a": 1,
+   "tr": "ancient = antik. Antik bir şehirde tarihi (historical) yerler vardır."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "I have visited Istanbul _____ times.\nI love it there.",
+   "o": [
+    "never",
+    "ever",
+    "several",
+    "yet"
+   ],
+   "a": 2,
+   "tr": "several times = birkaç kez."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "We went _____ in the old town\nand took lots of photos.",
+   "o": [
+    "sightseeing",
+    "swimming",
+    "skiing",
+    "sleeping"
+   ],
+   "a": 0,
+   "tr": "go sightseeing = gezip görülecek yerleri gezmek."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "I’d like to book a room\nfor three _____.",
+   "o": [
+    "nights",
+    "photos",
+    "tickets",
+    "beaches"
+   ],
+   "a": 0,
+   "tr": "Otelde oda kaç gece (night) için ayırtılır."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "Hotel receptionist: “Do you have\na _____?” Guest: “Yes, for two nights.”",
+   "o": [
+    "souvenir",
+    "luggage",
+    "reservation",
+    "passport"
+   ],
+   "a": 2,
+   "tr": "reservation = rezervasyon, yer ayırtma."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "The Blue Mosque is one of the most\nfamous _____ in Istanbul.",
+   "o": [
+    "landmarks",
+    "beaches",
+    "forests",
+    "airports"
+   ],
+   "a": 0,
+   "tr": "landmark = bir şehrin simgesi olan ünlü yapı ya da yer."
+  },
+  {
+   "c": "Unit 7 · Tourism",
+   "q": "I’d like to visit Rome _____\nits history is very rich.",
+   "o": [
+    "but",
+    "so",
+    "because",
+    "or"
+   ],
+   "a": 2,
+   "tr": "because = çünkü. Roma'yı görmek istemesinin sebebini söylüyor."
+  }
+ ]
+}
