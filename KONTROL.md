@@ -67,3 +67,4 @@ Google'a hiç istek atılmaz. Sayfa, `ayar.json`'unda sahte adres olan geçici b
 | adres kurulmamış | Yer tutucu adreste uyarı görünür ve hiçbir istek gitmez. |
 | `?odev` yok | Tam akış çalışır; uç noktaya **0 istek** gider, ödev ekranı/kutusu görünmez, ödev anahtarı yazılmaz. |
 | CORS: text/plain | Route'suz bağlamda, yazı tipi linkleri çıkarılmış aynı sayfayla tam akış koşar: 0 OPTIONS, yanıt okunur. Negatif kontrol olarak `application/json` OPTIONS tetikler ve istek düşer. |
+| panel | `?panel` anahtarsız açılınca "link gerekli" uyarısı çıkar ve hiç istek gitmez; yanlış anahtarda "geçersiz" çıkar. Ödev oluşturulunca WhatsApp mesajı test, son teslim ve linki içerir, ödev listeye düşer, mesajdaki link öğrenci olarak açılınca ödev formuna iner. Sıralama listesi ve "WhatsApp'ta paylaş" linki denetlenir. |
