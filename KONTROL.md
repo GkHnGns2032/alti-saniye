@@ -13,7 +13,7 @@ Her push ve PR'da GitHub Actions da aynı komutu koşar (`.github/workflows/kont
 | 1. Doğrulayıcı öz-testi | `araclar/dogrulayici_testi.py`: bilerek bozulmuş örnek quizlerle doğrulayıcının her hatayı yakaladığını ve hiçbir dosya yazmadığını denetler. |
 | 2. İçerik doğrulama | `yap.py --dogrula`: `quizler/*.json` denetlenir, hiçbir şey yazılmaz. |
 | 3. Üretim | `yap.py`: `index.html` ve `<slug>/index.html` üretilir. Çıktı depodakinden farklıysa yerelde uyarı verir; **CI'da kalır** (JSON değişmiş ama `yap.py` çıktısı commit edilmemiş ya da üretilmiş dosya elle düzenlenmiş demektir). |
-| 4. Sunucu testi | `araclar/sunucu_testi.js` (Node): `apps-script/Kod.gs` taklit Google servisleriyle (e-tablo, kilit, yanıt) çalıştırılır. Pencere yanıtı, sunucu saatiyle "zamanında / süre dışı", bilinmeyen kodun reddi, `deneme_no` artışı, aynı gönderimin tek satır kalması, formül enjeksiyonu, tarih biçimleri denetlenir. Node yoksa yerelde atlanır; **CI'da kalır**. |
+| 4. Sunucu testi | `araclar/sunucu_testi.js` (Node): `apps-script/Kod.gs` taklit Google servisleriyle (e-tablo, kilit, yanıt) çalıştırılır. Pencere yanıtı, sunucu saatiyle "zamanında / süre dışı", bilinmeyen kodun reddi, `deneme_no` artışı, aynı gönderimin tek satır kalması, formül enjeksiyonu, tarih biçimleri ve tablo menüsündeki sıralama (ilk deneme, puan/süre sırası, süre dışı işareti, WhatsApp metni) denetlenir. Node yoksa yerelde atlanır; **CI'da kalır**. |
 | 5. Duman testi | `araclar/duman_testi.py`: gerçek tarayıcıda (Chromium) her test seçilir, bütün sorular cevaplanır, sonuç ekranı ve doğru/yanlış/boş sayıları denetlenir. `<slug>/` yönlendirmeleri de denetlenir. Ödev modu (`?odev=KOD`) sahte bir uç noktayla denenir (aşağıda). **Konsol hatası = KALDI.** |
 
 ## Doğrulayıcı neye bakar

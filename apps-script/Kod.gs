@@ -20,6 +20,9 @@
  *   Yanıt: {ok:true, durum, deneme_no, sunucu_zamani}  ya da  {ok:false, hata, kalici?}
  *   kalici:true → tarayıcı bu gönderimi kuyruktan siler (yeniden denemenin anlamı yok).
  *
+ * Tablo menüsü "Altı Saniye > Sıralama oluştur": bir ödev kodunun sonuçlarını en iyiden en kötüye
+ * dizer, "Sıralama" sekmesine yazar ve WhatsApp'a yapıştırılacak metni gösterir (aşağıda).
+ *
  * Neden text/plain? Tarayıcı, application/json gövdeli çapraz kaynaklı bir POST için önce
  * OPTIONS (CORS ön-kontrolü) yollar; Apps Script OPTIONS'a yanıt veremez ve istek düşer.
  * text/plain "basit istek" sayılır, ön-kontrol olmaz. Apps Script yanıtı 302 ile
@@ -94,6 +97,108 @@ function kurulum() {
   sayfa_(ODEVLER, ODEV_BASLIK);
   sayfa_(SONUCLAR, SONUC_BASLIK);
   console.log('Sekmeler hazır. E-tablo saat dilimi: ' + tablo_().getSpreadsheetTimeZone());
+}
+
+/* ---------- Sıralama (tablo menüsü: Altı Saniye > Sıralama oluştur) ----------
+ * Bir ödev kodunun sonuçlarını en iyiden en kötüye dizer, "Sıralama" sekmesine yazar ve
+ * WhatsApp'a yapıştırılacak metni gösterir. Kurallar (öğretmenin kararı):
+ *   - Her öğrencinin (numara) İLK denemesi sayılır; sonraki denemeler cevaplar görüldükten sonradır.
+ *   - Sıra: puan (yüksekten düşüğe), eşitlikte daha kısa sürede bitiren öne.
+ *   - Tam ad soyad yazılır. "süre dışı" sonuçlar listede kalır, yanlarında işaret olur.
+ * Web uygulamasına (doGet/doPost) dokunmaz: bu bölüm için yeniden dağıtım gerekmez.
+ */
+
+const SIRALAMA = 'Sıralama';
+const SIRALAMA_BASLIK = ['sira', 'ad_soyad', 'numara', 'puan', 'dogru', 'yanlis', 'bos', 'sure', 'durum'];
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('Altı Saniye').addItem('Sıralama oluştur', 'siralamaMenusu').addToUi();
+}
+
+function siralamaMenusu() {
+  const ui = SpreadsheetApp.getUi();
+  const cevap = ui.prompt('Sıralama', 'Hangi ödevin sıralaması? Ödev kodunu yaz (ör. AMPBGG):', ui.ButtonSet.OK_CANCEL);
+  if (cevap.getSelectedButton() !== ui.Button.OK) return;
+  const s = siralamaHazirla_(cevap.getResponseText());
+  if (!s.satirlar.length) {
+    ui.alert('Sıralama', '"' + s.kod + '" kodlu ödev için henüz sonuç yok.', ui.ButtonSet.OK);
+    return;
+  }
+  const html = HtmlService.createHtmlOutput(
+    '<div style="font:14px sans-serif">' +
+    '<p style="margin:0 0 8px">"' + html_(SIRALAMA) + '" sekmesi güncellendi. Aşağıdaki metni WhatsApp\'a yapıştır:</p>' +
+    '<textarea id="t" readonly style="width:100%;height:300px;font:14px sans-serif;box-sizing:border-box">' +
+    html_(s.metin) + '</textarea>' +
+    '<button style="margin-top:8px;padding:8px 16px;font:bold 14px sans-serif" ' +
+    'onclick="var t=document.getElementById(\'t\');t.select();document.execCommand(\'copy\');this.textContent=\'Kopyalandı ✓\'">Kopyala</button>' +
+    '</div>').setWidth(480).setHeight(420);
+  ui.showModalDialog(html, 'WhatsApp sıralama metni');
+}
+
+/** Sıralamayı hesaplar ve "Sıralama" sekmesine yazar. {kod, satirlar, metin} döndürür. */
+function siralamaHazirla_(kodGirdisi) {
+  const kod = normKod_(kodGirdisi);
+  const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
+  const son = sh.getLastRow();
+  const veriler = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
+  const ilk = {}; // numara → ilk deneme
+  veriler.forEach(function (r, i) {
+    if (!kod || normKod_(r[1]) !== kod) return;
+    const numara = String(r[3]).trim();
+    const deneme = Number(r[10]) || 1;
+    const o = {sira_no: i, test_slug: String(r[2]), numara: numara, ad: String(r[4]).replace(/^'/, '').trim(),
+      dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0, bos: Number(r[7]) || 0, puan: Number(r[8]) || 0,
+      durum: String(r[9]), deneme: deneme, sure: r[12] === '' || r[12] == null ? Infinity : Number(r[12])};
+    const onceki = ilk[numara];
+    if (!onceki || deneme < onceki.deneme) ilk[numara] = o;
+  });
+  const satirlar = Object.keys(ilk).map(function (k) { return ilk[k]; }).sort(function (a, b) {
+    return b.puan - a.puan || a.sure - b.sure || a.sira_no - b.sira_no;
+  });
+
+  const odev = odevBul_(kod);
+  const test = satirlar.length ? satirlar[0].test_slug : (odev ? odev.test_slug : '');
+  const sinif = odev ? odevSinifi_(kod) : '';
+  const tz = tablo_().getSpreadsheetTimeZone();
+
+  const tablo = [[kod + ' · ' + test + (sinif ? ' · ' + sinif : '') + ' · güncellendi: ' +
+    Utilities.formatDate(new Date(), tz, 'dd.MM.yyyy HH:mm'), '', '', '', '', '', '', '', ''], SIRALAMA_BASLIK];
+  satirlar.forEach(function (o, i) {
+    tablo.push([i + 1, metin_(o.ad), o.numara, o.puan, o.dogru, o.yanlis, o.bos, sure_(o.sure), o.durum]);
+  });
+  let hedef = tablo_().getSheetByName(SIRALAMA);
+  if (!hedef) hedef = tablo_().insertSheet(SIRALAMA);
+  hedef.clear();
+  hedef.getRange(1, 1, tablo.length, SIRALAMA_BASLIK.length).setValues(tablo);
+  hedef.setFrozenRows(2);
+
+  const madalya = ['🥇', '🥈', '🥉'];
+  const metin = ['🏆 Ödev sıralaması · ' + test + (sinif ? ' · ' + sinif : ''), '(ilk denemeler, 100 üzerinden)', '']
+    .concat(satirlar.map(function (o, i) {
+      return (madalya[i] || (i + 1) + '.') + ' ' + o.ad + ' — ' + String(o.puan).replace('.', ',') +
+        (o.durum === SURE_DISI ? ' (süre dışı)' : '');
+    }))
+    .concat(['', satirlar.length + ' öğrenci katıldı.'])
+    .join('\n');
+  return {kod: kod, satirlar: satirlar, metin: metin};
+}
+
+function odevSinifi_(kod) {
+  const satirlar = sayfa_(ODEVLER, ODEV_BASLIK).getDataRange().getValues();
+  for (let i = 1; i < satirlar.length; i++) {
+    if (normKod_(satirlar[i][0]) === kod) return String(satirlar[i][4]).trim();
+  }
+  return '';
+}
+
+function sure_(ms) {
+  if (!isFinite(ms)) return '';
+  const sn = Math.round(ms / 1000);
+  return Math.floor(sn / 60) + ':' + ('0' + (sn % 60)).slice(-2);
+}
+
+function html_(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /* ---------- Kayıt ---------- */
