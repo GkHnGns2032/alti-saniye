@@ -191,6 +191,26 @@ Sıralama kuralları:
 
 **Otomatik yenilemeyi açmak için (bir kez):** Apps Script düzenleyicisinde üstteki işlev listesinden **kurulum**'u seç ve **Çalıştır**'a bas. Google zamanlayıcı için yeniden izin isteyebilir; 3. adımdaki gibi ver. **Yürütme günlüğü**'nde "sıralama zamanlayıcısı kuruldu (5 dk)" yazısını görmelisin.
 
+## 10. Öğretmen paneli: telefondan tek ekran (önerilen)
+
+Tabloya hiç girmeden, telefondan tek bir sayfayla ödev verip sıralama gönderebilirsin:
+- **Yeni ödev:** Testi seç, son teslim gününü seç, **Ödevi oluştur**'a bas, sonra **WhatsApp'ta gönder**'e bas. Ödev kodunu ve tablodaki satırı sistem kendisi oluşturur.
+- **Ödevlerim:** Her ödevin kaç öğrenci tarafından çözüldüğü görünür. **Sıralamayı göster**'e, sonra **Sıralamayı WhatsApp'ta paylaş**'a bas.
+
+**Kurulum (bilgisayardan, bir kez):**
+1. Güncel `Kod.gs`'i yapıştır ve kaydet.
+2. **kurulum**'u **Çalıştır**. Yürütme günlüğünde **ÖĞRETMEN PANELİ** ile başlayan bir satırda gizli link yazar: `https://…/index.html?panel#…`. Bu linki kopyala.
+3. **Dağıt > Yeni dağıtım > Web uygulaması** (Ben / Herkes). Yeni `…/exec` adresini `ayar.json`'a koy (5. adım).
+4. Gizli linki öğretmene gönder (ör. kendi WhatsApp'ına).
+
+**Telefonda ana ekrana ekle (bir kez):**
+- **iPhone (Safari):** Linki aç, alttaki **Paylaş** simgesine (kare ve yukarı ok) dokun, **Ana Ekrana Ekle**'yi seç.
+- **Android (Chrome):** Linki aç, sağ üstte **⋮** menüsünü aç, **Ana ekrana ekle**'yi seç.
+
+Bundan sonra ana ekrandaki simgeye dokunmak yeter.
+
+**Gizlilik:** Link yalnızca öğretmene özeldir; öğrencilerle ya da gruplarla paylaşma. Başkasının eline geçerse Apps Script'te **anahtariYenile** işlevini **Çalıştır**. Eski link çalışmaz hâle gelir, günlükte yeni link yazar. Linki günlükte yeniden görmek için **ogretmenLinki**'ni çalıştırman yeterli.
+
 ## Kodu güncellemek
 
 `Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Ardından **kurulum**'u bir kez **Çalıştır** (zamanlayıcı yeni kodla kurulsun). Yalnızca sıralama bölümü değiştiyse bu kadarı yeter. Aşağıdaki yeniden dağıtım yalnızca öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.

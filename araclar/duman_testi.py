@@ -21,12 +21,15 @@ Ek olarak <slug>/index.html yönlendirmesinin doğru teste indiği denetlenir.
     açılmadı, geçersiz kod, sunucu saatiyle "süre dışı", gönderim başarısız → kuyruk → düğmeyle ve
     sayfa yeniden açılınca gönderim, kesin ret, adres kurulmamış, ?odev yokken sıfır istek,
     text/plain gövdenin ön-kontrolsüz gidip yanıtının okunabildiği (application/json ise ön-kontrol).
+Öğretmen paneli (?panel#ANAHTAR) senaryoları: anahtarsız/yanlış anahtar, ödev listesi, ödev oluşturma
+→ WhatsApp linki → o linkin öğrenci olarak açılıp ödev formuna inmesi, sıralamanın WhatsApp'ta paylaşımı.
 Herhangi bir konsol hatası ya da yakalanmamış JS istisnası = FAIL.
 Test ağdan bağımsızdır: yerel sunucu dışındaki istekler (Google Fonts) boş 200 yanıtla
 karşılanır; yazı tipi yedeğe düşer, davranış değişmez, CI'da ağ kesintisi testi bozmaz.
 
 Kullanım:  python3 araclar/duman_testi.py      (önce python3 yap.py koşulmuş olmalı)
 """
+import calendar
 import contextlib
 import functools
 import http.server
@@ -162,6 +165,7 @@ def yonlendirme_senaryosu(browser, taban, c):
 # ---------------------------------------------------------------- Ödev modu
 
 GUN = 86400
+PANEL_ANAHTAR = 'f0' * 20
 
 
 def iso(t):
@@ -195,6 +199,8 @@ class SahteUcNokta:
             self.satirlar.clear()
             self.istekler.clear()
             self.post_modu = post_modu
+            for k in [k for k in self.odevler if k.startswith('P')]:
+                del self.odevler[k]  # panelden eklenenler
 
     def istek_say(self, yontem, yol='/exec'):
         return sum(1 for m, y, _, _ in self.istekler if m == yontem and y == yol)
@@ -217,6 +223,8 @@ class SahteUcNokta:
             g = json.loads(govde)
         except ValueError:
             return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
+        if 'islem' in g:
+            return self.panel(g)
         o = self.odevler.get(str(g.get('kod', '')).strip().upper())
         if not o or o[3].get('post_red'):
             return {'ok': False, 'hata': 'bilinmeyen_kod', 'kalici': True}
@@ -230,6 +238,37 @@ class SahteUcNokta:
         deneme = 1 + sum(1 for r in self.satirlar if r['kod'] == g['kod'] and r['numara'] == g['numara'])
         self.satirlar.append(dict(g, durum=durum, deneme_no=deneme))
         return {'ok': True, 'durum': durum, 'deneme_no': deneme, 'sunucu_zamani': iso(simdi)}
+
+    def panel(self, g):
+        """Kod.gs panelIslem_ sözleşmesi: odevler / odev_ekle / siralama, anahtarla."""
+        if g.get('anahtar') != PANEL_ANAHTAR:
+            return {'ok': False, 'hata': 'yetkisiz', 'kalici': True}
+        kisi = lambda r: (r['numara'], r['ad_soyad'].lower())  # noqa: E731
+        if g['islem'] == 'odevler':
+            liste = []
+            for kod, (slug, bas, bit, sec) in reversed(list(self.odevler.items())):
+                katilan = len({kisi(r) for r in self.satirlar if r['kod'] == kod})
+                liste.append({'kod': kod, 'test_slug': slug, 'baslangic': iso(bas), 'bitis': iso(bit),
+                              'sinif': sec.get('sinif', ''), 'katilan': katilan})
+            return {'ok': True, 'odevler': liste}
+        if g['islem'] == 'odev_ekle':
+            y, a, gun = map(int, g['bitis'][:10].split('-'))
+            bit = calendar.timegm((y, a, gun, 23, 59, 0)) - 3 * 3600  # Kod.gs gibi e-tablo saat diliminde (İstanbul, UTC+3)
+            if bit <= time.time():
+                return {'ok': False, 'hata': 'gecmis_tarih', 'kalici': True}
+            kod = 'P' + str(len(self.odevler)).zfill(5)
+            self.odevler[kod] = (g['test_slug'], time.time() - 60, bit, {'sinif': g.get('sinif', '')})
+            return {'ok': True, 'kod': kod, 'test_slug': g['test_slug'], 'bitis': iso(bit), 'sinif': g.get('sinif', '')}
+        if g['islem'] == 'siralama':
+            ilk = {}
+            for r in self.satirlar:
+                if r['kod'] == g['kod'] and kisi(r) not in ilk:
+                    ilk[kisi(r)] = r
+            sira = sorted(ilk.values(), key=lambda r: (-r['puan'], r['istemci_sure_ms']))
+            metin = '🏆 Ödev sıralaması\n\n' + '\n'.join(f"{i + 1}. {r['ad_soyad']} — {r['puan']}" for i, r in enumerate(sira))
+            return {'ok': True, 'kod': g['kod'], 'katilan': len(sira), 'metin': metin if sira else '',
+                    'satirlar': [{'ad': r['ad_soyad'], 'puan': r['puan'], 'durum': r['durum']} for r in sira]}
+        return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
 
     @contextlib.contextmanager
     def calis(self):
@@ -591,6 +630,100 @@ def odev_parametresiz(o):
         s.kapat()
 
 
+def panel_anahtarsiz(o):
+    o.uc.sifirla()
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel')
+        expect(page.locator('#panel')).to_be_visible()
+        expect(page.locator('#panel-note-title')).to_have_text('Öğretmen linki gerekli')
+        expect(page.locator('#panel-govde')).to_be_hidden()
+        eşit(o.uc.istekler, [], 'uç noktaya istek')
+        page.goto(f'{o.taban}/index.html?panel#' + 'ab' * 20)  # biçimce geçerli ama yanlış anahtar
+        page.reload()
+        expect(page.locator('#panel-note-title')).to_have_text('Link geçersiz')
+        eşit(page.evaluate("localStorage.getItem('alti-saniye:ogretmen')"), 'null', 'yanlış anahtar saklanmamalı')
+        o.bitir(s)
+        return 'anahtarsız → "link gerekli", 0 istek · yanlış anahtar → "geçersiz"'
+    finally:
+        s.kapat()
+
+
+def panel_odev_olustur(o):
+    """Panelden ödev oluştur → WhatsApp mesajındaki link öğrenci olarak açılır ve ödev formuna iner."""
+    from urllib.parse import unquote, urlsplit
+    o.uc.sifirla()
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#panel-govde')).to_be_visible()
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        expect(page.locator('#p-test option')).to_have_count(len(o.quiz))
+        expect(page.locator('#p-gun')).not_to_have_value('')
+        # geçmiş tarih reddedilir
+        page.fill('#p-gun', '2020-01-01')
+        page.click('#p-olustur')
+        expect(page.locator('#p-err')).to_contain_text('bugünden önce')
+        gun = time.strftime('%Y-%m-%d', time.localtime(time.time() + 5 * GUN))
+        page.select_option('#p-test', 'ingilizce-8-friendship')
+        page.fill('#p-gun', gun)
+        page.fill('#p-sinif', '8-A')
+        page.click('#p-olustur')
+        expect(page.locator('#p-sonuc')).to_be_visible()
+        href = page.get_attribute('#p-wa', 'href')
+        if not href.startswith('https://wa.me/?text='):
+            raise AssertionError(f'WhatsApp linki değil: {href}')
+        mesaj = unquote(href.split('text=', 1)[1])
+        for parca in ('📚 Ödev: 8. Sınıf İngilizce · Unit 1 Friendship (20 soru', '⏰ Son teslim:', '23:59',
+                      '?odev=P', '#ingilizce-8-friendship'):
+            if parca not in mesaj:
+                raise AssertionError(f'mesajda yok: {parca!r} · {mesaj!r}')
+        kod = [k for k in o.uc.odevler if k.startswith('P')]
+        eşit(len(kod), 1, 'oluşturulan ödev')
+        expect(page.locator(f'#p-odev-{kod[0]}')).to_be_visible()  # listeye düştü
+        ogrenci_link = mesaj.rsplit('\n', 1)[1]
+        parca = urlsplit(ogrenci_link)
+        o.bitir(s)
+        # mesajdaki link öğrencinin telefonunda: ödev formu açılır, test Friendship
+        s2 = o.sayfa()
+        try:
+            s2.page.goto(f'{o.taban}{parca.path}?{parca.query}#{parca.fragment}')
+            expect(s2.page.locator('#who')).to_be_visible()
+            expect(s2.page.locator('#odev-eyebrow')).to_contain_text('Friendship')
+            o.bitir(s2)
+        finally:
+            s2.kapat()
+        return f'ödev {kod[0]} oluştu → WhatsApp mesajı → öğrenci linki ödev formunu açtı'
+    finally:
+        s.kapat()
+
+
+def panel_siralama(o):
+    o.uc.sifirla()
+    for no, ad, puan in (('5', 'Ayşe Kaya', 70), ('6', 'Ali Can', 90), ('5', 'Ayşe Kaya', 100)):
+        o.uc.dopost(json.dumps({'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': no, 'ad_soyad': ad,
+                                'puan': puan, 'istemci_sure_ms': 1000, 'gonderim_id': f'g-{no}-{puan}'}))
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        kart = page.locator('#p-odev-ACIK1')
+        expect(kart.locator('.p-katilan')).to_have_text('👥 2 öğrenci çözdü')
+        kart.locator('.p-sira').click()
+        expect(kart.locator('.prank li')).to_have_count(2)
+        expect(kart.locator('.prank li').first).to_have_text('🥇 Ali Can — 90')
+        href = kart.locator('.p-sira-wa').get_attribute('href')
+        from urllib.parse import unquote
+        if not href.startswith('https://wa.me/?text=') or 'Ali Can — 90' not in unquote(href):
+            raise AssertionError(f'sıralama WhatsApp linki hatalı: {href}')
+        o.bitir(s)
+        return 'katılan 2 · sıralama listesi · "WhatsApp\'ta paylaş" linki'
+    finally:
+        s.kapat()
+
+
 def odev_cors(o):
     """Ön-kontrol kanıtı. Playwright'ta route() açıkken CORS ön-kontrolünü Playwright kendisi karşılar,
     OPTIONS sunucuya ulaşmaz; bu yüzden bu senaryo HİÇ route olmayan bir bağlamda koşar. Sayfa,
@@ -665,6 +798,9 @@ def main():
         kos('ödev   adres kurulmamış', odev_kurulmamis, browser, bos_taban)
         kos('ödev   ?odev yok → 0 istek', odev_parametresiz, o)
         kos('ödev   CORS: text/plain', odev_cors, o)
+        kos('panel  anahtarsız / yanlış', panel_anahtarsiz, o)
+        kos('panel  ödev oluştur → WhatsApp', panel_odev_olustur, o)
+        kos('panel  sıralama → WhatsApp', panel_siralama, o)
         browser.close()
     print(f'duman testi: {gecen} geçti · {kalan} kaldı')
     return 1 if kalan else 0

@@ -263,6 +263,30 @@ button{cursor:pointer;touch-action:manipulation}
 .send.no strong{color:var(--miss-text)}
 .send .btn{min-height:44px;font-size:16px;padding:0 16px}
 
+/* ---------- Öğretmen paneli (yalnız ?panel ile açılınca görünür) ---------- */
+.panel{gap:18px;padding-block:8px 24px;max-width:640px;width:100%;align-self:center}
+.panel h1{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(46px,13vw,72px);line-height:.9;text-transform:uppercase}
+.panel h1 span{color:var(--form)}
+.panel h2{margin:0;font-size:20px}
+.pcard{display:grid;gap:14px;padding:16px;border:1.5px solid var(--line);border-radius:14px;background:var(--sheet);box-shadow:var(--shadow)}
+.inp select{width:100%;min-height:54px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--sheet);font:inherit;font-size:17px;font-weight:600;color:var(--ink)}
+.btn.wa{background:var(--lit);color:#fff;text-decoration:none;width:100%}
+.btn.wide{width:100%}
+a.btn.ghost{text-decoration:none}
+.pnote{margin:0;font-size:14px;color:var(--muted)}
+.pmsg{margin:0;padding:10px 12px;border-radius:10px;background:var(--paper);font-size:14px;white-space:pre-line;overflow-wrap:anywhere}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.pitem{display:grid;gap:8px;padding:14px;border:1.5px solid var(--line);border-radius:14px;background:var(--sheet)}
+.pitem strong{font-size:17px;line-height:1.25}
+.pitem small{font-size:13.5px;color:var(--muted)}
+.pitem .chip{justify-self:start}
+.pitem .chip.kapali{background:var(--line);color:var(--muted)}
+.prank{margin:0;padding:0 0 0 4px;list-style:none;display:grid;gap:4px;font-size:15px}
+.p-sira-kutu{display:grid;gap:10px}
+.pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+.linkbtn{border:0;background:none;padding:6px 0;font-weight:700;font-size:15px;color:var(--form)}
+.pitem .btn{min-height:48px;font-size:16px;text-align:center;padding:6px 14px}
+
 @media (max-width:899px){
  .intro{gap:16px;padding-bottom:0}
  .hero .ring{--r:88px}
@@ -311,6 +335,30 @@ button{cursor:pointer;touch-action:manipulation}
     <div class="start-row"><button class="btn" id="who-go" type="submit">Devam <span aria-hidden="true">→</span></button></div>
    </form>
    <p class="queue-note" id="queue-note" role="status" hidden></p>
+  </section>
+
+  <section class="panel" id="panel" hidden aria-labelledby="panel-title">
+   <div class="intro-top"><span class="eyebrow">Öğretmen</span></div>
+   <h1 id="panel-title">Ödev<span>ler</span></h1>
+   <div class="note no" id="panel-note" hidden><strong id="panel-note-title"></strong><p id="panel-note-text"></p></div>
+   <div id="panel-govde" style="display:grid;gap:18px">
+    <div class="pcard">
+     <h2>Yeni ödev</h2>
+     <label class="inp" for="p-test"><span>Test</span><select id="p-test"></select></label>
+     <label class="inp" for="p-gun"><span>Son teslim günü (o gün 23:59'a kadar açık)</span><input type="date" id="p-gun"></label>
+     <label class="inp" for="p-sinif"><span>Sınıf (isteğe bağlı)</span><input id="p-sinif" maxlength="20" placeholder="8-A" autocomplete="off"></label>
+     <p class="who-err" id="p-err" role="alert"></p>
+     <button class="btn wide" id="p-olustur" type="button">Ödevi oluştur</button>
+     <div class="pcard" id="p-sonuc" hidden>
+      <strong>Ödev hazır ✓ Şimdi WhatsApp'ta gönder:</strong>
+      <p class="pmsg" id="p-mesaj"></p>
+      <a class="btn wa" id="p-wa" href="#" target="_blank" rel="noopener">WhatsApp'ta gönder</a>
+     </div>
+    </div>
+    <div class="pbar"><h2>Ödevlerim</h2><button class="linkbtn" id="p-yenile" type="button">Yenile ↻</button></div>
+    <p class="pnote" id="p-liste-not">Yükleniyor…</p>
+    <ol class="plist" id="p-liste"></ol>
+   </div>
   </section>
 
   <section class="intro" id="intro" aria-labelledby="intro-title">
@@ -397,6 +445,8 @@ if (!['play','watch'].includes(S.mode)) S.mode = 'play';
 if (![1,1.5,2].includes(S.gap)) S.gap = 1.5;
 // Ödev modu yalnız ?odev=KOD ile açılır; parametre yoksa ODEV null kalır ve hiçbir ödev kodu çalışmaz.
 const ODEV = (() => { try { const k = new URLSearchParams(location.search).get('odev'); return k === null ? null : {kod: k.trim(), mod: S.mode}; } catch { return null; } })();
+// Öğretmen paneli yalnız ?panel ile açılır; anahtar linkin # kısmındadır (sunucuya/loglara gitmez).
+const PANEL = (() => { try { return new URLSearchParams(location.search).has('panel'); } catch { return false; } })();
 
 let order = [], pos = 0, phase = 'intro', marks = {}, shown = {}, timer = null, ticker = null, endAt = 0, left = 0, paused = false, lastDigit = 6, wake = null, ac = null;
 const pad = n => String(n).padStart(2,'0');
@@ -467,7 +517,7 @@ function paintSheet(){
 }
 
 /* ---------- Akış ---------- */
-function show(name){ ['pick','odev','intro','play','finish'].forEach(s => $(s).hidden = s !== name); app.classList.toggle('picking', name === 'pick' || name === 'odev'); window.scrollTo(0,0); }
+function show(name){ ['pick','odev','panel','intro','play','finish'].forEach(s => $(s).hidden = s !== name); app.classList.toggle('picking', name === 'pick' || name === 'odev' || name === 'panel'); window.scrollTo(0,0); }
 function clearTimers(){ clearTimeout(timer); timer = null; }
 function schedule(fn, ms){ clearTimers(); endAt = performance.now() + ms; timer = setTimeout(fn, ms); }
 function restartAnim(el, cls, dur){ el.classList.remove(cls); el.style.setProperty('--dur', dur + 's'); void el.offsetWidth; el.classList.add(cls); }
@@ -634,7 +684,7 @@ $('again').addEventListener('click', start);
 $('home').addEventListener('click', home);
 $('back').addEventListener('click', goTests);
 $('to-tests').addEventListener('click', goTests);
-window.addEventListener('hashchange', () => { if (ODEV) return; const z = QUIZZES.find(q => q.slug === decodeURIComponent(location.hash.slice(1))); if (z && z !== QUIZ && (phase === 'intro' || phase === 'done')) { selectQuiz(z.slug); home(); } });
+window.addEventListener('hashchange', () => { if (ODEV || PANEL) return; const z = QUIZZES.find(q => q.slug === decodeURIComponent(location.hash.slice(1))); if (z && z !== QUIZ && (phase === 'intro' || phase === 'done')) { selectQuiz(z.slug); home(); } });
 $('quit').addEventListener('click', home);
 $('pause').addEventListener('click', () => setPaused(!paused));
 $('play').addEventListener('click', e => { if (paused && !e.target.closest('button')) setPaused(false); });
@@ -802,8 +852,100 @@ function gonderimKutusu(durum, j){
 }
 $('send-retry').addEventListener('click', () => { if (!ODEV) return; $('send-retry').disabled = true; sonGonder(); });
 
+/* ---------- Öğretmen paneli (?panel#ANAHTAR) ----------
+   Tek ekran: yeni ödev oluştur (kodu ve tablo satırını sunucu üretir) → WhatsApp'ta gönder;
+   ödevlerin katılım sayısı ve sıralamayı WhatsApp'ta paylaş. İstekler ödevle aynı uca,
+   text/plain JSON gövdeyle gider (CORS ön-kontrolü yok). Anahtar linkin # kısmında durur
+   (ana ekrana eklenen kısayol da onu taşır) ve localStorage'da yedeklenir. */
+let PANEL_ANAHTAR = '';
+function panelNot(baslik, metin){ $('panel-note').hidden = false; $('panel-note-title').textContent = baslik; $('panel-note-text').textContent = metin; $('panel-govde').hidden = true; }
+async function panelIstek(islem, ek){
+ const r = await fetch(AYAR.gonderim, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({islem, anahtar: PANEL_ANAHTAR}, ek || {}))});
+ const j = await r.json();
+ if (j && j.hata === 'yetkisiz') { store.set('ogretmen', null); panelNot('Link geçersiz', 'Bu öğretmen linki artık çalışmıyor. Yeni linki iste.'); throw new Error('yetkisiz'); }
+ return j;
+}
+const gunSaat = ms => new Date(ms).toLocaleString('tr-TR', {day:'numeric', month:'long', weekday:'long'}) + ', ' + new Date(ms).toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+const waLink = metin => 'https://wa.me/?text=' + encodeURIComponent(metin);
+function odevMesaji(kod, slug, bitis){
+ const z = QUIZZES.find(q => q.slug === slug);
+ const link = location.origin + location.pathname + '?odev=' + encodeURIComponent(kod) + '#' + slug;
+ return '📚 Ödev: ' + (z ? z.name + ' (' + z.questions.length + ' soru, her soruda 6 saniye)' : slug) + '\n' +
+  (bitis ? '⏰ Son teslim: ' + gunSaat(Date.parse(bitis)) + '\n' : '') +
+  'Linki aç, okul numaranı ve adını soyadını yaz, başla.\n' + link;
+}
+function panelAc(){
+ app.classList.add('panel-mode'); document.title = 'Öğretmen · Altı Saniye';
+ show('panel');
+ const h = decodeURIComponent(location.hash.slice(1)), gecerli = /^[0-9a-f]{32,128}$/.test(h);
+ if (gecerli) store.set('ogretmen', h);
+ PANEL_ANAHTAR = gecerli ? h : (store.get('ogretmen') || '');
+ if (!AYAR.gonderim) return panelNot('Kurulmamış', 'Bu sayfada ödev sistemi henüz ayarlanmamış.');
+ if (!PANEL_ANAHTAR) return panelNot('Öğretmen linki gerekli', 'Bu sayfa sana gönderilen özel öğretmen linkiyle açılır.');
+ $('p-test').replaceChildren(...QUIZZES.map(z => { const o = document.createElement('option'); o.value = z.slug; o.textContent = z.name + ' (' + z.questions.length + ' soru)'; return o; }));
+ const bugun = new Date(), gun = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+ $('p-gun').min = gun(bugun); $('p-gun').value = gun(new Date(bugun.getTime() + 7 * 864e5));
+ panelListe();
+}
+async function panelListe(){
+ $('p-liste-not').hidden = false; $('p-liste-not').textContent = 'Yükleniyor…';
+ let j;
+ try { j = await panelIstek('odevler'); } catch (e) { if (e.message !== 'yetkisiz') $('p-liste-not').textContent = 'Bağlantı kurulamadı. “Yenile”ye bas.'; return; }
+ const ol = $('p-liste'); ol.replaceChildren();
+ const liste = (j && j.odevler) || [];
+ $('p-liste-not').textContent = liste.length ? '' : 'Henüz ödev yok. Yukarıdan ilkini oluştur.';
+ $('p-liste-not').hidden = !!liste.length;
+ liste.forEach(o => {
+  const z = QUIZZES.find(q => q.slug === o.test_slug), bit = Date.parse(o.bitis), acik = !o.bitis || bit >= Date.now();
+  const li = document.createElement('li'); li.className = 'pitem'; li.id = 'p-odev-' + o.kod;
+  li.innerHTML = '<span class="chip"></span><strong></strong><small class="p-bilgi"></small><small class="p-katilan"></small>' +
+   '<a class="btn ghost wide p-tekrar" target="_blank" rel="noopener">Ödev linkini tekrar gönder</a>' +
+   '<button class="btn wide p-sira" type="button">Sıralamayı göster</button><div class="p-sira-kutu" hidden></div>';
+  li.querySelector('.chip').textContent = acik ? 'Açık' : 'Süresi doldu';
+  if (!acik) li.querySelector('.chip').classList.add('kapali');
+  li.querySelector('strong').textContent = z ? z.name : o.test_slug;
+  li.querySelector('.p-bilgi').textContent = (o.bitis ? 'Son teslim: ' + gunSaat(bit) : 'Süresiz') + (o.sinif ? ' · ' + o.sinif : '') + ' · Kod ' + o.kod;
+  li.querySelector('.p-katilan').textContent = '👥 ' + o.katilan + ' öğrenci çözdü';
+  li.querySelector('.p-tekrar').href = waLink(odevMesaji(o.kod, o.test_slug, o.bitis));
+  if (!acik) li.querySelector('.p-tekrar').hidden = true;
+  li.querySelector('.p-sira').addEventListener('click', () => panelSiralama(o.kod, li));
+  ol.append(li);
+ });
+}
+async function panelSiralama(kod, li){
+ const kutu = li.querySelector('.p-sira-kutu'), b = li.querySelector('.p-sira');
+ b.disabled = true; b.textContent = 'Hazırlanıyor…';
+ let j;
+ try { j = await panelIstek('siralama', {kod}); } catch (e) { b.disabled = false; b.textContent = 'Sıralamayı göster'; if (e.message !== 'yetkisiz') alert('Bağlantı kurulamadı, tekrar dene.'); return; }
+ b.disabled = false; b.textContent = 'Sıralamayı göster';
+ kutu.hidden = false; kutu.replaceChildren();
+ if (!j || !j.katilan) { const p = document.createElement('p'); p.className = 'pnote'; p.textContent = 'Henüz kimse çözmedi.'; kutu.append(p); return; }
+ b.hidden = true;
+ const ol = document.createElement('ol'); ol.className = 'prank';
+ j.satirlar.forEach((r, i) => { const x = document.createElement('li'); x.textContent = (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + r.ad + ' — ' + String(r.puan).replace('.', ',') + (r.durum === 'süre dışı' ? ' (süre dışı)' : ''); ol.append(x); });
+ const a = document.createElement('a'); a.className = 'btn wa p-sira-wa'; a.target = '_blank'; a.rel = 'noopener'; a.href = waLink(j.metin); a.textContent = 'Sıralamayı WhatsApp\'ta paylaş';
+ kutu.append(ol, a);
+}
+$('p-olustur').addEventListener('click', async () => {
+ if (!PANEL) return;
+ const gun = $('p-gun').value, b = $('p-olustur');
+ $('p-err').textContent = '';
+ if (!gun) { $('p-err').textContent = 'Son teslim gününü seç.'; return; }
+ b.disabled = true; b.textContent = 'Oluşturuluyor…'; $('p-sonuc').hidden = true;
+ let j;
+ try { j = await panelIstek('odev_ekle', {test_slug: $('p-test').value, bitis: gun + ' 23:59', sinif: $('p-sinif').value}); }
+ catch (e) { if (e.message !== 'yetkisiz') $('p-err').textContent = 'Bağlantı kurulamadı, tekrar dene.'; b.disabled = false; b.textContent = 'Ödevi oluştur'; return; }
+ b.disabled = false; b.textContent = 'Ödevi oluştur';
+ if (!j || !j.ok) { $('p-err').textContent = j && j.hata === 'gecmis_tarih' ? 'Son teslim günü bugünden önce olamaz.' : 'Ödev oluşturulamadı, tekrar dene.'; return; }
+ const m = odevMesaji(j.kod, j.test_slug, j.bitis);
+ $('p-mesaj').textContent = m; $('p-wa').href = waLink(m); $('p-sonuc').hidden = false;
+ panelListe();
+});
+$('p-yenile').addEventListener('click', () => { if (PANEL && PANEL_ANAHTAR) panelListe(); });
+
 const wanted = QUIZZES.find(z => z.slug === decodeURIComponent(location.hash.slice(1)));
-if (ODEV) odevAc();
+if (PANEL) panelAc();
+else if (ODEV) odevAc();
 else if (QUIZZES.length === 1) { $('back').hidden = true; $('to-tests').hidden = true; selectQuiz(QUIZZES[0].slug); home(); }
 else if (wanted) { selectQuiz(wanted.slug); home(); }
 else { selectQuiz(QUIZZES[0].slug); goTests(); }

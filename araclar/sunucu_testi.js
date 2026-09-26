@@ -61,7 +61,13 @@ function ortam({kilit = true, istem = null} = {}) {
     getSpreadsheetTimeZone: () => 'Europe/Istanbul'
   };
   const tetikler = [];
+  const ozellikler = {};
+  let uuid = 0;
   const ctx = {
+    PropertiesService: {getScriptProperties: () => ({
+      getProperty: k => (k in ozellikler ? ozellikler[k] : null),
+      setProperty: (k, v) => { ozellikler[k] = v; }
+    })},
     console: {log() {}, error() {}},
     ScriptApp: {
       getProjectTriggers: () => tetikler.slice(),
@@ -78,6 +84,7 @@ function ortam({kilit = true, istem = null} = {}) {
       createTextOutput: t => ({t, mime: null, setMimeType(m) { this.mime = m; return this; }})
     },
     Utilities: {
+      getUuid: () => ('0000000' + (++uuid)).slice(-8) + '-aaaa-bbbb-cccc-' + ('00000000000' + uuid).slice(-12),
       parseDate(s, tz, bicim) {
         if (bicim !== 'yyyy-MM-dd HH:mm:ss') throw new Error('taklit: desteklenmeyen biçim ' + bicim);
         const [g, sa] = s.split(' '), [y, a, gun] = g.split('-').map(Number), [h, m, sn] = sa.split(':').map(Number);
@@ -95,7 +102,7 @@ function ortam({kilit = true, istem = null} = {}) {
   vm.runInContext(KOD, ctx, {filename: 'Kod.gs'});
   const cevap = o => { if (o.mime !== 'application/json') throw new Error('JSON mime yok'); return JSON.parse(o.t); };
   return {
-    ctx, sayfalar, ui, tetikler,
+    ctx, sayfalar, ui, tetikler, ozellikler,
     odev: (...satirlar) => {
       const sh = ss.insertSheet('Ödevler');
       sh.v = [['kod', 'test_slug', 'baslangic', 'bitis', 'sinif', 'not'], ...satirlar];
@@ -354,6 +361,83 @@ VAKALAR.push(
     return a.ui.uyarilar.length === 1 && a.ui.uyarilar[0].includes('henüz sonuç yok') && a.ui.diyaloglar.length === 0 &&
       b.ui.uyarilar.length === 0 && b.ui.diyaloglar.length === 0 && !Object.keys(b.sayfalar).some(k => k.startsWith('Sıralama')) &&
       !Object.keys(a.sayfalar).some(k => k.startsWith('Sıralama'));
+  }]
+);
+
+/* ---------- Öğretmen paneli ---------- */
+const ANAHTAR = 'a'.repeat(64);
+function panelOrtami() {
+  const o = siralamaOrtami();
+  o.ozellikler.OGRETMEN_ANAHTARI = ANAHTAR;
+  o.panel = (islem, ek = {}) => o.post(Object.assign({islem, anahtar: ANAHTAR}, ek));
+  return o;
+}
+const gelecek = () => { const d = new Date(simdi + 5 * GUN); return d.toISOString().slice(0, 10) + ' 23:59'; };
+VAKALAR.push(
+  ['panel: anahtarsız / yanlış anahtar / anahtar kurulmamış → yetkisiz, hiçbir şey yazılmaz', () => {
+    const o = panelOrtami();
+    const once = o.sayfalar['Ödevler'].v.length;
+    const a = o.post({islem: 'odevler'});
+    const b = o.post({islem: 'odev_ekle', anahtar: 'b'.repeat(64), test_slug: 'ingilizce-8', bitis: gelecek()});
+    const c = siralamaOrtami().post({islem: 'odevler', anahtar: ''});
+    return [a, b, c].every(r => r.ok === false && r.hata === 'yetkisiz') && o.sayfalar['Ödevler'].v.length === once;
+  }],
+  ['panel: öğrenci gönderimi panel yolundan etkilenmez (islem alanı yok)', () => {
+    const o = panelOrtami();
+    const r = o.post(govde({numara: '44', ad_soyad: 'Yeni Öğrenci'}));
+    return r.ok && r.durum === 'zamanında';
+  }],
+  ['panel: odev_ekle → 6 harfli benzersiz kod, Ödevler\'e satır (tarih e-tablo saat diliminde, günün sonu)', () => {
+    const o = panelOrtami();
+    const g = gelecek();
+    const r = o.panel('odev_ekle', {test_slug: 'ingilizce-8-friendship', bitis: g, sinif: ' 8-A '});
+    const v = o.sayfalar['Ödevler'].v;
+    const son = v[v.length - 1];
+    const beklenen = new Date(Date.UTC(+g.slice(0, 4), +g.slice(5, 7) - 1, +g.slice(8, 10), 23, 59) - 180 * 6e4);
+    return r.ok && /^[A-HJ-NP-Z2-9]{6}$/.test(r.kod) && son[0] === r.kod && son[1] === 'ingilizce-8-friendship' &&
+      son[2] === '' && son[3].getTime() === beklenen.getTime() && son[4] === '8-A' && r.bitis === beklenen.toISOString() &&
+      o.sayfalar['Ödevler'].bicim[v.length + ':1'] === '@' && o.get({odev: r.kod}).acik === true;
+  }],
+  ['panel: odev_ekle geçmiş tarih / bozuk tarih / bozuk test adı → reddedilir', () => {
+    const o = panelOrtami();
+    const once = o.sayfalar['Ödevler'].v.length;
+    const r = [o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: '2020-01-01 10:00'}),
+      o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: 'yarın'}),
+      o.panel('odev_ekle', {test_slug: '../x', bitis: gelecek()})];
+    return r[0].hata === 'gecmis_tarih' && r[1].hata === 'gecersiz' && r[2].hata === 'gecersiz' &&
+      o.sayfalar['Ödevler'].v.length === once;
+  }],
+  ['panel: art arda eklenen ödevlerin kodları farklı', () => {
+    const o = panelOrtami();
+    const k = new Set();
+    for (let i = 0; i < 20; i++) k.add(o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek()}).kod);
+    return k.size === 20;
+  }],
+  ['panel: odevler → en yeni üstte, test, bitiş, katılan öğrenci sayısı', () => {
+    const o = panelOrtami();
+    const yeni = o.panel('odev_ekle', {test_slug: 'ingilizce-8-teen-life', bitis: gelecek(), sinif: '8-B'});
+    const r = o.panel('odevler');
+    const ilk = r.odevler[0], acik = r.odevler.find(x => x.kod === 'ACIK1');
+    return r.ok && ilk.kod === yeni.kod && ilk.test_slug === 'ingilizce-8-teen-life' && ilk.sinif === '8-B' &&
+      ilk.katilan === 0 && ilk.bitis === yeni.bitis && acik.katilan === 4 && acik.sinif === '8-A';
+  }],
+  ['panel: siralama → WhatsApp metni ve satırlar; sonuçsuz ödevde boş metin', () => {
+    const o = panelOrtami();
+    const r = o.panel('siralama', {kod: 'acik1'});
+    const bos = o.panel('siralama', {kod: 'GELECEK'});
+    return r.ok && r.katilan === 4 && r.metin.startsWith('🏆 ') && r.metin.includes('🥇 Ali Veli — 90') &&
+      r.satirlar[0].ad === 'Ali Veli' && bos.ok && bos.katilan === 0 && bos.metin === '';
+  }],
+  ['kurulum: öğretmen anahtarı bir kez üretilir, ikinci kurulumda değişmez; anahtariYenile değiştirir', () => {
+    const o = siralamaOrtami();
+    o.ctx.kurulum();
+    const a = o.ozellikler.OGRETMEN_ANAHTARI;
+    o.ctx.kurulum();
+    const b = o.ozellikler.OGRETMEN_ANAHTARI;
+    const link = o.ctx.anahtariYenile();
+    const c = o.ozellikler.OGRETMEN_ANAHTARI;
+    return /^[0-9a-f]{40,}$/.test(a) && a === b && c !== a && link.endsWith('index.html?panel#' + c) &&
+      o.ctx.ogretmenLinki() === link;
   }]
 );
 

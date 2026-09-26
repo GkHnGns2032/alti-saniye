@@ -25,6 +25,11 @@
  * kopyalanabilir). kurulum() bunu 5 dakikada bir kendiliğinden yenileyen zamanlayıcıyı kurar;
  * bilgisayarda "Altı Saniye > Sıralama oluştur" menüsü anında yeniler (aşağıda).
  *
+ * Öğretmen paneli (sitede index.html?panel): aynı POST ucuna {islem, anahtar, ...} gövdesiyle gelir.
+ *   islem: "odevler" (liste + katılan sayısı) · "odev_ekle" (kod üretir, Ödevler'e satır yazar) ·
+ *   "siralama" (WhatsApp metni). anahtar, kurulum() ile üretilip Betik Özellikleri'nde saklanır;
+ *   depoda yoktur. Yanlış/eksik anahtar → {ok:false, hata:"yetkisiz"}.
+ *
  * Neden text/plain? Tarayıcı, application/json gövdeli çapraz kaynaklı bir POST için önce
  * OPTIONS (CORS ön-kontrolü) yollar; Apps Script OPTIONS'a yanıt veremez ve istek düşer.
  * text/plain "basit istek" sayılır, ön-kontrol olmaz. Apps Script yanıtı 302 ile
@@ -40,6 +45,9 @@ const SONUC_BASLIK = ['sunucu_zamani', 'kod', 'test_slug', 'numara', 'ad_soyad',
 const ZAMANINDA = 'zamanında';
 const SURE_DISI = 'süre dışı';
 const GUN_MS = 24 * 60 * 60 * 1000;
+// Öğretmen panelinin linki bu adresle kurulur (kurulum() günlüğe yazar). Site taşınırsa burayı değiştir.
+const SITE = 'https://gkhngns2032.github.io/alti-saniye/';
+const ANAHTAR_OZELLIGI = 'OGRETMEN_ANAHTARI';
 
 /* ---------- Web uygulaması giriş noktaları ---------- */
 
@@ -74,6 +82,7 @@ function doPost(e) {
     } catch (err) {
       return json_({ok: false, hata: 'gecersiz', kalici: true});
     }
+    if (govde && typeof govde === 'object' && 'islem' in govde) return json_(panelIslem_(govde, simdi));
     const g = gonderimDenetle_(govde);
     if (g.hata) return json_({ok: false, hata: g.hata, kalici: true});
 
@@ -107,8 +116,110 @@ function kurulum() {
   });
   ScriptApp.newTrigger('siralamalariGuncelle').timeBased().everyMinutes(5).create();
   const n = siralamalariGuncelle();
+  const ozellik = PropertiesService.getScriptProperties();
+  if (!ozellik.getProperty(ANAHTAR_OZELLIGI)) ozellik.setProperty(ANAHTAR_OZELLIGI, yeniAnahtar_());
   console.log('Sekmeler hazır, sıralama zamanlayıcısı kuruldu (5 dk), ' + n + ' sıralama yenilendi. ' +
     'E-tablo saat dilimi: ' + tablo_().getSpreadsheetTimeZone());
+  ogretmenLinki();
+}
+
+/** Öğretmen panelinin gizli linkini günlüğe yazar (Çalıştır → Yürütme günlüğü). */
+function ogretmenLinki() {
+  const k = PropertiesService.getScriptProperties().getProperty(ANAHTAR_OZELLIGI);
+  console.log(k ? 'ÖĞRETMEN PANELİ (yalnız öğretmenle paylaş): ' + SITE + 'index.html?panel#' + k
+    : 'Anahtar yok: önce kurulum\'u çalıştır.');
+  return k ? SITE + 'index.html?panel#' + k : '';
+}
+
+/** Link başkasının eline geçerse: yeni anahtar üretir, eski link çalışmaz olur. */
+function anahtariYenile() {
+  PropertiesService.getScriptProperties().setProperty(ANAHTAR_OZELLIGI, yeniAnahtar_());
+  return ogretmenLinki();
+}
+
+function yeniAnahtar_() {
+  return (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+}
+
+/* ---------- Öğretmen paneli ---------- */
+
+function panelIslem_(b, simdi) {
+  if (!anahtarDogru_(b.anahtar)) return {ok: false, hata: 'yetkisiz', kalici: true};
+  if (b.islem === 'odevler') return {ok: true, odevler: odevListesi_()};
+  if (b.islem === 'siralama') {
+    const s = siralamaHazirla_(b.kod);
+    return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
+      satirlar: s.satirlar.map(function (o) { return {ad: o.ad, puan: o.puan, durum: o.durum}; })};
+  }
+  if (b.islem === 'odev_ekle') {
+    const kilit = LockService.getScriptLock();
+    if (!kilit.tryLock(25000)) return {ok: false, hata: 'mesgul'};
+    try {
+      return odevEkle_(b, simdi);
+    } finally {
+      kilit.releaseLock();
+    }
+  }
+  return {ok: false, hata: 'gecersiz', kalici: true};
+}
+
+function anahtarDogru_(k) {
+  const dogru = PropertiesService.getScriptProperties().getProperty(ANAHTAR_OZELLIGI);
+  return typeof k === 'string' && !!dogru && k.length === dogru.length && k === dogru;
+}
+
+/** Ödevler sekmesi, en yeni üstte (en çok 50), her biri için sıralamaya giren öğrenci sayısıyla. */
+function odevListesi_() {
+  const satirlar = sayfa_(ODEVLER, ODEV_BASLIK).getDataRange().getValues().slice(1);
+  const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
+  const son = sh.getLastRow();
+  const kisiler = {};
+  if (son >= 2) {
+    sh.getRange(2, 1, son - 1, 5).getValues().forEach(function (r) {
+      const k = normKod_(r[1]);
+      (kisiler[k] = kisiler[k] || {})[String(r[3]).trim() + '|' + kisiAdi_(String(r[4]).replace(/^'/, ''))] = true;
+    });
+  }
+  const liste = [];
+  for (let i = satirlar.length - 1; i >= 0 && liste.length < 50; i--) {
+    const s = satirlar[i];
+    const kod = normKod_(s[0]);
+    if (!kod) continue;
+    let bas = null, bit = null;
+    try { bas = zaman_(s[2], false); bit = zaman_(s[3], true); } catch (err) { /* tarihi bozuk satır: tarihsiz göster */ }
+    liste.push({kod: String(s[0]).trim(), test_slug: String(s[1]).trim(), baslangic: iso_(bas), bitis: iso_(bit),
+      sinif: String(s[4]).trim(), katilan: Object.keys(kisiler[kod] || {}).length});
+  }
+  return liste;
+}
+
+/** Panelden yeni ödev: benzersiz kod üretir, Ödevler'e satır ekler. bitis: "YYYY-MM-DD HH:mm" (e-tablo saat dilimi). */
+function odevEkle_(b, simdi) {
+  if (typeof b.test_slug !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(b.test_slug) || b.test_slug.length > 60) {
+    return {ok: false, hata: 'gecersiz', kalici: true};
+  }
+  if (typeof b.bitis !== 'string' || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(b.bitis)) return {ok: false, hata: 'gecersiz', kalici: true};
+  let bitis;
+  try { bitis = zaman_(b.bitis, true); } catch (err) { return {ok: false, hata: 'gecersiz', kalici: true}; }
+  if (bitis.getTime() <= simdi.getTime()) return {ok: false, hata: 'gecmis_tarih', kalici: true};
+  const sinif = typeof b.sinif === 'string' ? b.sinif.replace(/\s+/g, ' ').trim().slice(0, 20) : '';
+  const sh = sayfa_(ODEVLER, ODEV_BASLIK);
+  const var_ = {};
+  sh.getDataRange().getValues().slice(1).forEach(function (r) { var_[normKod_(r[0])] = true; });
+  let kod;
+  do { kod = kodUret_(); } while (var_[kod]);
+  const r = sh.getLastRow() + 1;
+  sh.getRange(r, 1).setNumberFormat('@');
+  sh.getRange(r, 1, 1, ODEV_BASLIK.length).setValues([[kod, b.test_slug, '', bitis, metin_(sinif), 'öğretmen paneli']]);
+  SpreadsheetApp.flush();
+  return {ok: true, kod: kod, test_slug: b.test_slug, bitis: iso_(bitis), sinif: sinif};
+}
+
+function kodUret_() {
+  const harfler = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // karışan harf/rakam yok (0/O, 1/I)
+  let k = '';
+  for (let i = 0; i < 6; i++) k += harfler.charAt(Math.floor(Math.random() * harfler.length));
+  return k;
 }
 
 /* ---------- Sıralama ----------
