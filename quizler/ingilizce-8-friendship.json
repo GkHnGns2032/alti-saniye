@@ -1,0 +1,93 @@
+{
+ "slug": "ingilizce-8-friendship",
+ "sira": 4,
+ "title": "Altı Saniye · Friendship",
+ "name": "8. Sınıf İngilizce · Unit 1 Friendship",
+ "desc": "1. ünite Friendship: davet kabul/ret, bahane, arkadaşlık sıfatları. Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 1 · Friendship",
+ "heroTop": "Friendship",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "1. ünite <b>Friendship</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [["10", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "ünite"]],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "FRIENDSHIP · 8",
+ "messages": [
+  [0.88, "Friendship ünitesinde tam puana çok yakınsın."],
+  [0.64, "Sağlam bir sonuç. Kaçırdıklarına bir göz at."],
+  [0.4, "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."],
+  [-99, "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."]
+ ],
+ "questions": [
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Ali never tells my secrets to anyone.\nHe is _____.",
+   "o": ["trustworthy", "mean", "selfish", "jealous"],
+   "a": 0,
+   "tr": "trustworthy = güvenilir. Sır tutan biri güvenilirdir."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "A true friend always _____ you.",
+   "o": ["ignores", "supports", "teases", "lies to"],
+   "a": 1,
+   "tr": "support = desteklemek. Gerçek arkadaş her zaman destek olur."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "“Would you like to come to my party?”\nWhich answer REFUSES?",
+   "o": ["Sure, why not?", "I’d love to.", "Sorry, I have other plans.", "That sounds great!"],
+   "a": 2,
+   "tr": "Kibarca reddetmek: “Sorry, I have other plans.” Diğer üçü daveti kabul ediyor."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "We often _____ out at the mall\non weekends.",
+   "o": ["get", "give", "take", "hang"],
+   "a": 3,
+   "tr": "hang out = takılmak, birlikte vakit geçirmek."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Burak shares everything with his friends.\nHe is _____.",
+   "o": ["selfish", "jealous", "generous", "rude"],
+   "a": 2,
+   "tr": "generous = cömert. Her şeyini paylaşan biri cömerttir; selfish (bencil) tam tersi."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "I can always _____ on Zeynep.\nShe never lets me down.",
+   "o": ["get", "rely", "hang", "make"],
+   "a": 1,
+   "tr": "rely on = güvenmek, bel bağlamak. “She never lets me down” = beni hiç yarı yolda bırakmaz."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "“Do you want to come to my pajama party?”\nWhich answer ACCEPTS?",
+   "o": ["Sorry, I can’t.", "Maybe next time.", "I have other plans.", "I’d love to!"],
+   "a": 3,
+   "tr": "Daveti kabul etmek: “I’d love to!” Diğer üçü daveti reddediyor."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "A: Let’s go to the cinema tonight.\nB: _____ I have an exam tomorrow.",
+   "o": ["Sorry, I can’t.", "Great idea!", "Why not?", "Sure!"],
+   "a": 0,
+   "tr": "Ardından bir bahane (yarın sınav) geldiği için cevap reddetmek olmalı: “Sorry, I can’t.”"
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "Emre and I get _____ well.\nWe are close friends.",
+   "o": ["up", "off", "over", "on"],
+   "a": 3,
+   "tr": "get on well (with) = biriyle iyi anlaşmak."
+  },
+  {
+   "c": "Unit 1 · Friendship",
+   "q": "“Sorry, I can’t come.\nI have to look after my brother.”\nThis is _____.",
+   "o": ["an invitation", "a complaint", "an excuse", "a suggestion"],
+   "a": 2,
+   "tr": "excuse = bahane, mazeret. Daveti reddederken bir sebep söylemek bahane göstermektir."
+  }
+ ]
+}
