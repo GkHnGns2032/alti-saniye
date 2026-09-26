@@ -1,0 +1,292 @@
+{
+ "slug": "ingilizce-8-adventures",
+ "sira": 9,
+ "title": "Altı Saniye · Adventures",
+ "name": "8. Sınıf İngilizce · Unit 6 Adventures",
+ "desc": "6. ünite Adventures: macera sporları, ekipman, karşılaştırma ve tercih (prefer / would rather). Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 6 · Adventures",
+ "heroTop": "Adventures",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "6. ünite <b>Adventures</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [
+  [
+   "20",
+   "soru"
+  ],
+  [
+   "4",
+   "şık"
+  ],
+  [
+   "6",
+   "saniye"
+  ],
+  [
+   "1",
+   "ünite"
+  ]
+ ],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "ADVENTURES · 8",
+ "messages": [
+  [
+   0.88,
+   "Adventures ünitesinde tam puana çok yakınsın."
+  ],
+  [
+   0.64,
+   "Sağlam bir sonuç. Kaçırdıklarına bir göz at."
+  ],
+  [
+   0.4,
+   "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."
+  ],
+  [
+   -99,
+   "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."
+  ]
+ ],
+ "questions": [
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Which activity needs a parachute?",
+   "o": [
+    "Rafting",
+    "Hiking",
+    "Canoeing",
+    "Skydiving"
+   ],
+   "a": 3,
+   "tr": "Skydiving = paraşütle serbest atlayış."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "You need an oxygen tank\nfor _____.",
+   "o": [
+    "scuba diving",
+    "hiking",
+    "cycling",
+    "camping"
+   ],
+   "a": 0,
+   "tr": "scuba diving = tüplü dalış. Su altında nefes almak için oksijen tüpü gerekir."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Rock climbing is _____ than cycling.\nIt’s very risky.",
+   "o": [
+    "safer",
+    "more dangerous",
+    "easier",
+    "more boring"
+   ],
+   "a": 1,
+   "tr": "risky = riskli. Karşılaştırma: more dangerous than (-den daha tehlikeli)."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "I prefer swimming _____ running.",
+   "o": [
+    "than",
+    "from",
+    "with",
+    "to"
+   ],
+   "a": 3,
+   "tr": "prefer A to B = A'yı B'ye tercih etmek. prefer ile “to” kullanılır."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "I’d rather go camping\n_____ stay at home.",
+   "o": [
+    "to",
+    "from",
+    "than",
+    "for"
+   ],
+   "a": 2,
+   "tr": "would rather A than B = B yerine A'yı yapmayı tercih ederim. rather ile “than” kullanılır."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Always wear a _____ on a bike.\nIt protects your head.",
+   "o": [
+    "helmet",
+    "scarf",
+    "glove",
+    "parachute"
+   ],
+   "a": 0,
+   "tr": "helmet = kask. Başı korur."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "You should wear a life _____\nwhen you go rafting.",
+   "o": [
+    "belt",
+    "coat",
+    "jacket",
+    "shirt"
+   ],
+   "a": 2,
+   "tr": "life jacket = can yeleği."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "I’m afraid of heights. Bungee jumping\nis the _____ activity for me.",
+   "o": [
+    "safest",
+    "most frightening",
+    "easiest",
+    "most relaxing"
+   ],
+   "a": 1,
+   "tr": "Yükseklik korkusu olan biri için bungee jumping en korkutucu (the most frightening) etkinliktir."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Paragliding is so _____!\nMy heart beats fast.",
+   "o": [
+    "thrilling",
+    "boring",
+    "relaxing",
+    "safe"
+   ],
+   "a": 0,
+   "tr": "thrilling = heyecan verici, insanı coşturan."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Ahmet loves trying new and risky activities.\nHe is very _____.",
+   "o": [
+    "lazy",
+    "shy",
+    "adventurous",
+    "careful"
+   ],
+   "a": 2,
+   "tr": "adventurous = maceraperest."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "We go down a river in a rubber boat.\nThis is _____.",
+   "o": [
+    "skiing",
+    "surfing",
+    "rafting",
+    "hiking"
+   ],
+   "a": 2,
+   "tr": "rafting = şişme botla hızlı akan bir nehirden aşağı inmek."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Which one is a winter sport?",
+   "o": [
+    "Snowboarding",
+    "Surfing",
+    "Canoeing",
+    "Scuba diving"
+   ],
+   "a": 0,
+   "tr": "snowboarding = kar üstünde tek tahtayla kayma; kış sporudur."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "A: Would you like to try skydiving?\nB: No way! It’s too _____.",
+   "o": [
+    "safe",
+    "dangerous",
+    "cheap",
+    "easy"
+   ],
+   "a": 1,
+   "tr": "B teklifi reddediyor; sebebi çok tehlikeli (too dangerous) olması."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Hiking is _____ than bungee jumping.\nIt isn’t risky.",
+   "o": [
+    "more dangerous",
+    "more thrilling",
+    "scarier",
+    "safer"
+   ],
+   "a": 3,
+   "tr": "safe → safer than = -den daha güvenli."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "I love surfing. For me, it’s the\nmost _____ water sport.",
+   "o": [
+    "boring",
+    "terrible",
+    "exciting",
+    "awful"
+   ],
+   "a": 2,
+   "tr": "the most exciting = en heyecan verici. Sevdiği bir sporu olumlu bir sıfatla anlatıyor."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Which activity is NOT risky?",
+   "o": [
+    "Playing chess",
+    "Skydiving",
+    "Bungee jumping",
+    "Rock climbing"
+   ],
+   "a": 0,
+   "tr": "Satranç oynamak riskli değildir; diğer üçü tehlikeli macera sporlarıdır."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "I’ve never tried canoeing,\nbut I’d love to _____ it a try.",
+   "o": [
+    "make",
+    "give",
+    "take",
+    "do"
+   ],
+   "a": 1,
+   "tr": "give it a try = bir denemek."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "A: Do you prefer canoeing or hiking?\nB: _____ I love walking in nature.",
+   "o": [
+    "Yes, I do.",
+    "No, I don’t.",
+    "Canoeing is great.",
+    "Hiking, of course."
+   ],
+   "a": 3,
+   "tr": "Doğada yürümeyi sevdiğini söylüyor, yani yürüyüşü (hiking) tercih ediyor. “Yes/No” bu soruya cevap olmaz."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "You need a strong _____\nfor rock climbing.",
+   "o": [
+    "surfboard",
+    "sail",
+    "parachute",
+    "rope"
+   ],
+   "a": 3,
+   "tr": "rope = halat. Kaya tırmanışında güvenlik için kullanılır."
+  },
+  {
+   "c": "Unit 6 · Adventures",
+   "q": "Kerem is afraid of water.\nHe never goes _____.",
+   "o": [
+    "hiking",
+    "scuba diving",
+    "rock climbing",
+    "camping"
+   ],
+   "a": 1,
+   "tr": "Sudan korkan biri tüplü dalışa (scuba diving) gitmez."
+  }
+ ]
+}
