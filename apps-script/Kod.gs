@@ -156,7 +156,7 @@ function panelIslem_(b, simdi) {
   if (b.islem === 'siralama') {
     const s = siralamaHazirla_(b.kod);
     return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
-      satirlar: s.satirlar.map(function (o) { return {ad: o.ad, puan: o.puan, durum: o.durum}; })};
+      satirlar: s.satirlar.map(function (o) { return {ad: o.ad, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; })};
   }
   if (b.islem === 'odev_ekle' || b.islem === 'test_ekle') {
     const kilit = LockService.getScriptLock();
@@ -363,6 +363,12 @@ function siralamalariGuncelle() {
 }
 
 /** Sıralamayı hesaplar ve "Sıralama <KOD>" sekmesine yazar. {kod, sekme, satirlar, metin} döndürür. */
+/** "90 puan · 18 doğru, 2 yanlış" (+ ", 1 boş" varsa, + " (süre dışı)"). Panel de aynı biçimi kullanır. */
+function siraOzeti_(o) {
+  return String(o.puan).replace('.', ',') + ' puan · ' + o.dogru + ' doğru, ' + o.yanlis + ' yanlış' +
+    (o.bos ? ', ' + o.bos + ' boş' : '') + (o.durum === SURE_DISI ? ' (süre dışı)' : '');
+}
+
 function siralamaHazirla_(kodGirdisi) {
   const kod = normKod_(kodGirdisi);
   const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
@@ -390,8 +396,7 @@ function siralamaHazirla_(kodGirdisi) {
   const madalya = ['🥇', '🥈', '🥉'];
   const metin = ['🏆 Ödev sıralaması · ' + test + (sinif ? ' · ' + sinif : ''), '(ilk denemeler, 100 üzerinden)', '']
     .concat(satirlar.map(function (o, i) {
-      return (madalya[i] || (i + 1) + '.') + ' ' + o.ad + ' — ' + String(o.puan).replace('.', ',') +
-        (o.durum === SURE_DISI ? ' (süre dışı)' : '');
+      return (madalya[i] || (i + 1) + '.') + ' ' + o.ad + ' — ' + siraOzeti_(o);
     }))
     .concat(['', satirlar.length + ' öğrenci katıldı.'])
     .join('\n');
