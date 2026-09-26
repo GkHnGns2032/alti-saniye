@@ -1,0 +1,161 @@
+TEST: Friendship
+
+1. I always help my friends when they have problems. I am very ____.
+   A) loyal
+   B) selfish
+   C) jealous
+   D) rude
+   Cevap: A
+   Açıklama: Arkadaşlarına yardım eden kişi sadık ve destekleyicidir.
+
+2. “Would you like to join us for the picnic?”
+   A) I disagree.
+   B) Sure, why not?
+   C) Never mind.
+   D) That’s terrible.
+   Cevap: B
+   Açıklama: Davete olumlu cevap vermek için “Sure, why not?” kullanılır.
+
+3. Emma never tells lies and keeps her friends’ secrets.
+   A) Honest
+   B) Lazy
+   C) Funny
+   D) Generous
+   Cevap: A
+   Açıklama: Yalan söylemeyen ve sır saklayan kişi dürüsttür.
+
+4. “Can you keep my secret?”
+   A) Of course.
+   B) I’m bored.
+   C) Here you are.
+   D) Good luck.
+   Cevap: A
+   Açıklama: Sırrı saklamayı kabul etmek için “Of course.” denir.
+
+5. Tom talks about his friends behind their backs.
+   A) Reliable
+   B) Selfish
+   C) Gossiping
+   D) Helpful
+   Cevap: C
+   Açıklama: Arkadaşlarının arkasından konuşmak dedikodu yapmaktır.
+
+6. Which one shows a good friendship?
+   A) Breaking promises
+   B) Telling lies
+   C) Keeping secrets
+   D) Ignoring friends
+   Cevap: C
+   Açıklama: Sırları saklamak iyi arkadaşlığın özelliklerinden biridir.
+
+7. “I’m sorry, but I can’t come to your party.”
+   A) Accepting
+   B) Refusing
+   C) Inviting
+   D) Suggesting
+   Cevap: B
+   Açıklama: Davete katılamayacağını söylemek daveti reddetmektir.
+
+8. My best friend always tells the truth.
+   A) Trustworthy
+   B) Jealous
+   C) Stubborn
+   D) Impolite
+   Cevap: A
+   Açıklama: Her zaman doğruyu söyleyen kişi güvenilirdir.
+
+9. “What do you think about my new friend?”
+   A) He is reliable.
+   B) At the cinema.
+   C) Tomorrow morning.
+   D) With my sister.
+   Cevap: A
+   Açıklama: Soru arkadaş hakkında fikir istediği için kişilik özelliği belirtilmelidir.
+
+10. Lisa feels angry because her best friend spends time with another girl.
+    A) Helpful
+    B) Jealous
+    C) Honest
+    D) Generous
+    Cevap: B
+    Açıklama: Arkadaşını başkasıyla paylaşmak istememek kıskançlık belirtisidir.
+
+11. “Let’s watch a movie tonight.”
+    A) That sounds great!
+    B) I’m thirteen.
+    C) It’s mine.
+    D) At school.
+    Cevap: A
+    Açıklama: Bir öneriyi kabul etmek için “That sounds great!” denebilir.
+
+12. Which person can you trust?
+    A) A liar
+    B) A gossip
+    C) A loyal friend
+    D) A rude person
+    Cevap: C
+    Açıklama: Güvenilebilecek kişi sadık bir arkadaştır.
+
+13. Jack borrowed my book but never returned it.
+    A) He is generous.
+    B) He is unreliable.
+    C) He is honest.
+    D) He is cheerful.
+    Cevap: B
+    Açıklama: Emanet aldığı şeyi geri vermemek güvenilmez bir davranıştır.
+
+14. “Why don’t we have a party?”
+    A) Great idea!
+    B) I’m sorry.
+    C) Never.
+    D) No, I don’t.
+    Cevap: A
+    Açıklama: Bir öneriyi kabul etmek için “Great idea!” uygun cevaptır.
+
+15. Sarah always supports me when I feel sad.
+    A) She is supportive.
+    B) She is selfish.
+    C) She is jealous.
+    D) She is dishonest.
+    Cevap: A
+    Açıklama: Üzgün olduğunda arkadaşını destekleyen kişi destekleyicidir.
+
+16. “Would you like some cake?”
+    A) Yes, please.
+    B) I’m twelve.
+    C) At home.
+    D) It’s delicious.
+    Cevap: A
+    Açıklama: İkramı kabul etmek için “Yes, please.” kullanılır.
+
+17. Mike never shares his toys with anyone.
+    A) Generous
+    B) Selfish
+    C) Reliable
+    D) Honest
+    Cevap: B
+    Açıklama: Eşyalarını paylaşmayan kişi bencil olarak tanımlanır.
+
+18. Which action is wrong in a friendship?
+    A) Helping friends
+    B) Keeping promises
+    C) Telling secrets
+    D) Listening carefully
+    Cevap: C
+    Açıklama: Arkadaşının sırrını başkalarına anlatmak yanlış bir davranıştır.
+
+19. “I think Ali is very funny.”
+    A) I agree with you.
+    B) See you tomorrow.
+    C) Here is your bag.
+    D) I’m at home.
+    Cevap: A
+    Açıklama: Birinin fikrine katıldığımızı belirtmek için “I agree with you.” denir.
+
+20. A good friend should always ____ your feelings.
+    A) respect
+    B) break
+    C) ignore
+    D) hurt
+    Cevap: A
+    Açıklama: İyi bir arkadaş, arkadaşının duygularına her zaman saygı göstermelidir.

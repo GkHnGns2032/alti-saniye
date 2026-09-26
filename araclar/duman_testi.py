@@ -22,7 +22,9 @@ Ek olarak <slug>/index.html yönlendirmesinin doğru teste indiği denetlenir.
     sayfa yeniden açılınca gönderim, kesin ret, adres kurulmamış, ?odev yokken sıfır istek,
     text/plain gövdenin ön-kontrolsüz gidip yanıtının okunabildiği (application/json ise ön-kontrol).
 Öğretmen paneli (?panel#ANAHTAR) senaryoları: anahtarsız/yanlış anahtar, ödev listesi, ödev oluşturma
-→ WhatsApp linki → o linkin öğrenci olarak açılıp ödev formuna inmesi, sıralamanın WhatsApp'ta paylaşımı.
+→ WhatsApp linki → o linkin öğrenci olarak açılıp ödev formuna inmesi, sıralamanın WhatsApp'ta paylaşımı; ChatGPT'den
+yapıştırılan testin (araclar/ornek_chatgpt.txt, öğretmenin gerçek çıktısı) okunması, dengelenmesi,
+kaydedilmesi, o testle ödev verilip öğrencinin çözmesi; hatalı yapıştırmaların yakalanması.
 Herhangi bir konsol hatası ya da yakalanmamış JS istisnası = FAIL.
 Test ağdan bağımsızdır: yerel sunucu dışındaki istekler (Google Fonts) boş 200 yanıtla
 karşılanır; yazı tipi yedeğe düşer, davranış değişmez, CI'da ağ kesintisi testi bozmaz.
@@ -191,6 +193,7 @@ class SahteUcNokta:
             'SILINDI1': ('do-you-know-me', simdi - GUN, simdi + GUN, {'post_red': True}),
         }
         self.satirlar, self.istekler, self.yanitlar = [], [], {}
+        self.testler = {}  # öğretmenin kendi testleri: slug → {ad, sorular}
         self.post_modu = 'normal'  # 'normal' | 'sunucu_hatasi'
         self.kilit = threading.Lock()
 
@@ -201,6 +204,7 @@ class SahteUcNokta:
             self.post_modu = post_modu
             for k in [k for k in self.odevler if k.startswith('P')]:
                 del self.odevler[k]  # panelden eklenenler
+            self.testler.clear()
 
     def istek_say(self, yontem, yol='/exec'):
         return sum(1 for m, y, _, _ in self.istekler if m == yontem and y == yol)
@@ -213,8 +217,11 @@ class SahteUcNokta:
             return {'gecerli': False}
         slug, bas, bit, _ = o
         simdi = time.time()
-        return {'gecerli': True, 'test_slug': slug, 'baslangic': iso(bas), 'bitis': iso(bit),
-                'acik': bas <= simdi <= bit, 'simdi': iso(simdi)}
+        yanit = {'gecerli': True, 'test_slug': slug, 'baslangic': iso(bas), 'bitis': iso(bit),
+                 'acik': bas <= simdi <= bit, 'simdi': iso(simdi)}
+        if slug in self.testler:
+            yanit['test'] = self.testler[slug]
+        return yanit
 
     def dopost(self, govde):
         if self.post_modu == 'sunucu_hatasi':
@@ -250,7 +257,15 @@ class SahteUcNokta:
                 katilan = len({kisi(r) for r in self.satirlar if r['kod'] == kod})
                 liste.append({'kod': kod, 'test_slug': slug, 'baslangic': iso(bas), 'bitis': iso(bit),
                               'sinif': sec.get('sinif', ''), 'katilan': katilan})
-            return {'ok': True, 'odevler': liste}
+            testler = [{'slug': k, 'ad': t['ad'], 'n': len(t['sorular'])} for k, t in reversed(list(self.testler.items()))]
+            return {'ok': True, 'odevler': liste, 'testler': testler}
+        if g['islem'] == 'test_ekle':
+            sor = g.get('sorular') or []
+            if not g.get('ad') or not 5 <= len(sor) <= 40 or not all(len(q['o']) == 4 and 0 <= q['a'] <= 3 for q in sor):
+                return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
+            slug = f'ozel-test-{len(self.testler):04d}'
+            self.testler[slug] = {'ad': g['ad'], 'sorular': sor}
+            return {'ok': True, 'test_slug': slug, 'ad': g['ad'], 'n': len(sor)}
         if g['islem'] == 'odev_ekle':
             y, a, gun = map(int, g['bitis'][:10].split('-'))
             bit = calendar.timegm((y, a, gun, 23, 59, 0)) - 3 * 3600  # Kod.gs gibi e-tablo saat diliminde (İstanbul, UTC+3)
@@ -724,6 +739,108 @@ def panel_siralama(o):
         s.kapat()
 
 
+def panel_ozel_test(o):
+    """Öğretmenin gerçek ChatGPT çıktısı → panelde kontrol → dengele → kaydet → o testle ödev → öğrenci çözer."""
+    from urllib.parse import unquote, urlsplit
+    o.uc.sifirla()
+    metin = (KOK / 'araclar' / 'ornek_chatgpt.txt').read_text(encoding='utf-8')
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        page.click('#t-kart summary')
+        expect(page.locator('#t-metin')).to_be_visible()
+        page.fill('#t-metin', metin)
+        page.click('#t-kontrol')
+        expect(page.locator('#t-ozet')).to_contain_text('20 soru bulundu')
+        expect(page.locator('#t-hatalar')).to_be_hidden()
+        expect(page.locator('#t-uyarilar')).to_contain_text('3. soru: ne sorulduğu belli değil')
+        expect(page.locator('#t-onizleme > li')).to_have_count(20)
+        expect(page.locator('#t-ad')).to_have_value('Friendship')
+        harfler = [t[0] for t in page.locator('#t-onizleme .dogru').all_inner_texts()]
+        eşit(sorted({h: harfler.count(h) for h in 'ABCD'}.items()), [('A', 5), ('B', 5), ('C', 5), ('D', 5)], 'dengelenmiş cevaplar')
+        page.fill('#t-ad', 'Friendship (ChatGPT)')
+        page.click('#t-kaydet')
+        expect(page.locator('#t-tamam')).to_contain_text('kaydedildi')
+        eşit(len(o.uc.testler), 1, 'kaydedilen test')
+        slug, t = next(iter(o.uc.testler.items()))
+        eşit(page.locator('#p-test').input_value(), slug, 'seçili test')
+        expect(page.locator('#p-test optgroup[label="Kendi testlerin"] option')).to_have_count(1)
+        eşit(t['sorular'][0]['q'], 'I always help my friends when they have problems. I am very ____.', '1. soru')
+        eşit(t['sorular'][19]['q'], 'A good friend should always ____ your feelings.', '20. soru (boşluk korunmalı)')
+        dogrular = [q['o'][q['a']] for q in t['sorular']]
+        eşit((dogrular[0], dogrular[6], dogrular[19]), ('loyal', 'Refusing', 'respect'), 'dengelemeden sonra doğru cevaplar aynı')
+        eşit(t['sorular'][1]['tr'], 'Davete olumlu cevap vermek için “Sure, why not?” kullanılır.', 'açıklama')
+        # bu testle ödev → WhatsApp mesajı → öğrenci
+        page.fill('#p-gun', time.strftime('%Y-%m-%d', time.localtime(time.time() + 5 * GUN)))
+        page.click('#p-olustur')
+        expect(page.locator('#p-sonuc')).to_be_visible()
+        mesaj = unquote(page.get_attribute('#p-wa', 'href').split('text=', 1)[1])
+        for parca in ('📚 Ödev: Friendship (ChatGPT) (20 soru', f'#{slug}', '?odev=P'):
+            if parca not in mesaj:
+                raise AssertionError(f'mesajda yok: {parca!r} · {mesaj!r}')
+        o.bitir(s)
+        link = urlsplit(mesaj.rsplit('\n', 1)[1])
+        s2 = o.sayfa()
+        try:
+            p2 = s2.page
+            p2.goto(f'{o.taban}{link.path}?{link.query}#{link.fragment}')
+            expect(p2.locator('#odev-eyebrow')).to_have_text('Ödev · Friendship (ChatGPT)')
+            o.bilgi_gir(p2)
+            c = {'questions': t['sorular']}
+            p2.click('#start')
+            d, y, b = cevapla(p2, c)
+            sonuc_denetle(p2, c, d, y, b)
+            expect(p2.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
+            eşit([r['test_slug'] for r in o.uc.satirlar], [slug], 'kaydedilen sonuç')
+            eşit(len(o.uc.satirlar[0]['cevaplar'].split()), 20, 'cevaplar')
+            o.bitir(s2)
+        finally:
+            s2.kapat()
+        return f'gerçek ChatGPT çıktısı → 20 soru, 8 uyarı, A5 B5 C5 D5 → kaydedildi → ödev → öğrenci çözdü ({d}/20)'
+    finally:
+        s.kapat()
+
+
+def panel_ozel_hatalar(o):
+    """Hatalı yapıştırmalar kaydedilmeden yakalanır; kalın yazı ve diyalog satırları doğru okunur."""
+    o.uc.sifirla()
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-liste > li').first).to_be_visible()
+        page.click('#t-kart summary')
+        page.fill('#t-metin', 'Merhaba! İşte sorular hakkında bilgi.')
+        page.click('#t-kontrol')
+        expect(page.locator('#t-hatalar')).to_contain_text('Hiç soru bulunamadı')
+        expect(page.locator('#t-kaydet')).to_be_hidden()
+        sorular = '\n\n'.join(
+            f'**{i})** Question {i}: which one is _____?\n**A)** red {i}\n**B)** blue\n**C)** green\n**D)** pink\nCevap: **C**'
+            for i in range(1, 5))
+        diyalog = ('5) A: Let’s go to the park after school.\nB: _____ I’m free today.\n'
+                   'A) Sorry, I can’t.\nB) I’m afraid not.\nC) Maybe another time.\nD) That’s a good idea!\n'
+                   'Doğru cevap: D) That’s a good idea!\nAçıklama: Kabul ediyor.')
+        eksik = '6) Pick one?\nA) x\nB) y\nC) z\nCevap: A'
+        page.fill('#t-metin', 'TEST: Deneme\n' + sorular + '\n\n' + diyalog + '\n\n' + eksik)
+        page.click('#t-kontrol')
+        expect(page.locator('#t-hatalar')).to_contain_text('6. soruda 4 şık yok')
+        expect(page.locator('#t-kaydet')).to_be_hidden()
+        page.fill('#t-metin', 'TEST: Deneme\n' + sorular + '\n\n' + diyalog)
+        page.click('#t-kontrol')
+        expect(page.locator('#t-ozet')).to_contain_text('5 soru bulundu')
+        expect(page.locator('#t-onizleme > li').nth(4).locator('.tq')).to_have_text(
+            '5. A: Let’s go to the park after school.\nB: _____ I’m free today.')
+        expect(page.locator('#t-onizleme > li').nth(4).locator('.dogru')).to_contain_text('That’s a good idea!')
+        expect(page.locator('#t-onizleme > li').nth(0).locator('.dogru')).to_contain_text('green')
+        eşit(o.uc.testler, {}, 'kaydetmeden önce kayıt yok')
+        o.bitir(s)
+        return 'boş/bozuk yapıştırma yakalandı · **kalın** ve diyalog satırları doğru okundu'
+    finally:
+        s.kapat()
+
+
 def odev_cors(o):
     """Ön-kontrol kanıtı. Playwright'ta route() açıkken CORS ön-kontrolünü Playwright kendisi karşılar,
     OPTIONS sunucuya ulaşmaz; bu yüzden bu senaryo HİÇ route olmayan bir bağlamda koşar. Sayfa,
@@ -801,6 +918,8 @@ def main():
         kos('panel  anahtarsız / yanlış', panel_anahtarsiz, o)
         kos('panel  ödev oluştur → WhatsApp', panel_odev_olustur, o)
         kos('panel  sıralama → WhatsApp', panel_siralama, o)
+        kos('panel  ChatGPT testi → ödev', panel_ozel_test, o)
+        kos('panel  ChatGPT hatalı metin', panel_ozel_hatalar, o)
         browser.close()
     print(f'duman testi: {gecen} geçti · {kalan} kaldı')
     return 1 if kalan else 0

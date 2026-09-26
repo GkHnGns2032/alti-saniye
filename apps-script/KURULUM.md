@@ -211,6 +211,27 @@ Bundan sonra ana ekrandaki simgeye dokunmak yeter.
 
 **Gizlilik:** Link yalnızca öğretmene özeldir; öğrencilerle ya da gruplarla paylaşma. Başkasının eline geçerse Apps Script'te **anahtariYenile** işlevini **Çalıştır**. Eski link çalışmaz hâle gelir, günlükte yeni link yazar. Linki günlükte yeniden görmek için **ogretmenLinki**'ni çalıştırman yeterli.
 
+## 11. Kendi testini hazırla (ücretsiz ChatGPT, telefondan)
+
+Hazır testlerde olmayan bir konuyu öğretmen kendisi ekleyebilir. Hesap ya da bilgisayar gerekmez; ücretsiz ChatGPT yeterli. Panelde **Kendi testini ekle (ChatGPT)** kartını aç:
+
+1. **Kalıbı kopyala**'ya bas.
+2. ChatGPT'yi aç, kalıbı yapıştır. En sondaki **Konu:** kısmına konuyu yaz (ör. `Unit 6 Adventures`) ve gönder.
+3. ChatGPT'nin cevabını baştan sona kopyala (cevabın altındaki kopyala simgesi).
+4. Panele dön, kutuya yapıştır, **Kontrol et**'e bas.
+5. Ekranda testin adı, soru sayısı ve bütün sorular doğru şıkları işaretli olarak görünür. Sarı uyarıları oku; yanlış görünen bir soru varsa ChatGPT'den o soruyu düzeltmesini iste ve yeniden yapıştır.
+6. **Testi kaydet**'e bas. Test, **Yeni ödev** listesinde **Kendi testlerin** başlığı altında görünür; oradan her zamanki gibi ödev verilir.
+
+Sistem kendiliğinden şunları yapar:
+- Kalın yazı, numara biçimi (`1.` ya da `1)`), girinti gibi farkları tolere eder.
+- Doğru cevaplar hep aynı harfte toplanmasın diye şıkların sırasını karıştırır (A, B, C, D eşit dağılır). "All of the above" gibi sırası önemli şıklar içeren sorulara dokunmaz.
+- Eksik şıklı, cevabı olmayan ya da aynı şıkkı iki kez içeren soruları hata olarak gösterir; hata varken kaydetmez.
+- 5 ile 40 arasında soru kabul eder.
+
+Kaydedilen testler e-tablonun **Testler** sekmesinde durur (sekme ilk kayıtta kendiliğinden açılır). Bu sekmeyi elle düzenleme.
+
+**Önemli:** ChatGPT hata yapabilir. Soruları ve cevapları göndermeden önce öğretmen mutlaka okur; sistem yalnızca biçimi denetler, içeriğin doğruluğunu denetleyemez.
+
 ## Kodu güncellemek
 
 `Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Ardından **kurulum**'u bir kez **Çalıştır** (zamanlayıcı yeni kodla kurulsun). Yalnızca sıralama bölümü değiştiyse bu kadarı yeter. Aşağıdaki yeniden dağıtım yalnızca öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.

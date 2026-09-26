@@ -329,12 +329,12 @@ VAKALAR.push(
     const m = o.ctx.siralamaHazirla_('GECTI').metin;
     return m.includes('🥇 Başka Ödev — 100 (süre dışı)') && m.includes('🥈 Geç Kalan — 63,3 (süre dışı)');
   }],
-  ['sıralama: aynı numarayı yazan iki farklı kişi ayrı sıralanır (Sedef/Gökhan hatası)', () => {
+  ['sıralama: aynı numarayı yazan iki farklı kişi ayrı sıralanır', () => {
     const o = siralamaOrtami();
-    o.post(govde({numara: '12', ad_soyad: 'Sedef Kaya', dogru: 7, puan: 70, istemci_sure_ms: 50000}));
+    o.post(govde({numara: '12', ad_soyad: 'Zeynep Kaya', dogru: 7, puan: 70, istemci_sure_ms: 50000}));
     const s = o.ctx.siralamaHazirla_('ACIK1');
-    return s.satirlar.length === 5 && s.satirlar.some(x => x.ad === 'Sedef Kaya') &&
-      s.satirlar.filter(x => x.numara === '12').map(x => x.ad).join() === 'Ali Veli,Sedef Kaya';
+    return s.satirlar.length === 5 && s.satirlar.some(x => x.ad === 'Zeynep Kaya') &&
+      s.satirlar.filter(x => x.numara === '12').map(x => x.ad).join() === 'Ali Veli,Zeynep Kaya';
   }],
   ['sıralama: aynı kişi büyük/küçük harf ya da boşluk farkıyla yeniden çözerse yine ilk deneme sayılır', () => {
     const o = siralamaOrtami();
@@ -438,6 +438,58 @@ VAKALAR.push(
     const c = o.ozellikler.OGRETMEN_ANAHTARI;
     return /^[0-9a-f]{40,}$/.test(a) && a === b && c !== a && link.endsWith('index.html?panel#' + c) &&
       o.ctx.ogretmenLinki() === link;
+  }]
+);
+
+/* ---------- Öğretmenin kendi testleri ---------- */
+const soruK = (i, ek = {}) => Object.assign({q: `Question ${i} is _____?`, o: ['one ' + i, 'two', 'three', 'four'], a: i % 4, tr: 'açıklama'}, ek);
+const testK = (n = 6, ek = {}) => Object.assign({ad: 'Unit 6: Adventures!', sorular: Array.from({length: n}, (_, i) => soruK(i))}, ek);
+VAKALAR.push(
+  ['özel test: test_ekle → "ozel-" adlı kayıt, Testler sekmesine satır', () => {
+    const o = panelOrtami();
+    const r = o.panel('test_ekle', testK());
+    const v = o.sayfalar['Testler'].v;
+    const icerik = JSON.parse(v[1][4]);
+    return r.ok && /^ozel-unit-6-adventures-[a-hj-np-z2-9]{4}$/.test(r.test_slug) && r.n === 6 &&
+      v[0].join() === 'test_slug,ad,soru_sayisi,olusturma,icerik' && v[1][0] === r.test_slug &&
+      v[1][1] === 'Unit 6: Adventures!' && v[1][2] === 6 && icerik.sorular.length === 6 && icerik.sorular[1].a === 1;
+  }],
+  ['özel test: anahtarsız test_ekle → yetkisiz, kayıt yok', () => {
+    const o = panelOrtami();
+    const r = o.post(Object.assign({islem: 'test_ekle', anahtar: 'x'.repeat(64)}, testK()));
+    return r.hata === 'yetkisiz' && !o.sayfalar['Testler'];
+  }],
+  ['özel test: bozuk testler reddedilir (az soru, 3 şık, aynı şık, a=4, adsız)', () => {
+    const o = panelOrtami();
+    const bozuk = [testK(4), testK(6, {sorular: [soruK(0, {o: ['a', 'b', 'c']}), ...Array.from({length: 5}, (_, i) => soruK(i))]}),
+      testK(6, {sorular: [soruK(0, {o: ['a', 'A ', 'c', 'd']}), ...Array.from({length: 5}, (_, i) => soruK(i))]}),
+      testK(6, {sorular: [soruK(0, {a: 4}), ...Array.from({length: 5}, (_, i) => soruK(i))]}), testK(6, {ad: '  '})];
+    const r = bozuk.map(t => o.panel('test_ekle', t));
+    return r.every(x => x.ok === false && x.kalici) && r[0].hata === 'soru_sayisi' && r[1].no === 1 && r[4].hata === 'ad' &&
+      !(o.sayfalar['Testler'] && o.sayfalar['Testler'].v.length > 1);
+  }],
+  ['özel test: odevler yanıtında testler listesi (en yeni üstte)', () => {
+    const o = panelOrtami();
+    const a = o.panel('test_ekle', testK(6, {ad: 'Birinci'})), b = o.panel('test_ekle', testK(7, {ad: 'İkinci Şık'}));
+    const t = o.panel('odevler').testler;
+    return t.length === 2 && t[0].slug === b.test_slug && t[0].ad === 'İkinci Şık' && t[0].n === 7 &&
+      /^ozel-ikinci-sik-/.test(b.test_slug) && t[1].slug === a.test_slug;
+  }],
+  ['özel test: ödev bu testle verilince doGet testi de döndürür; öğrenci sonucu kaydedilir', () => {
+    const o = panelOrtami();
+    const t = o.panel('test_ekle', testK(6));
+    const od = o.panel('odev_ekle', {test_slug: t.test_slug, bitis: gelecek()});
+    const g = o.get({odev: od.kod});
+    const k = o.post(govde({kod: od.kod, test_slug: t.test_slug}));
+    const hazir = o.get({odev: 'ACIK1'});
+    return g.gecerli && g.acik && g.test_slug === t.test_slug && g.test.sorular.length === 6 && g.test.ad === 'Unit 6: Adventures!' &&
+      k.ok && k.durum === 'zamanında' && !('test' in hazir);
+  }],
+  ['özel test: silinmiş/bozuk test → doGet test alanı olmadan döner (sayfa "test bulunamadı" der)', () => {
+    const o = panelOrtami();
+    const od = o.panel('odev_ekle', {test_slug: 'ozel-olmayan-abcd', bitis: gelecek()});
+    const g = o.get({odev: od.kod});
+    return g.gecerli && g.test_slug === 'ozel-olmayan-abcd' && !('test' in g);
   }]
 );
 
