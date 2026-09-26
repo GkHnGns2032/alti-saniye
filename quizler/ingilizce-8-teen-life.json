@@ -1,0 +1,163 @@
+{
+ "slug": "ingilizce-8-teen-life",
+ "sira": 5,
+ "title": "Altı Saniye · Teen Life",
+ "name": "8. Sınıf İngilizce · Unit 2 Teen Life",
+ "desc": "2. ünite Teen Life: hobiler, sevme/sevmeme, tercih, sıklık zarfları. Sonunda LGS neti.",
+ "scoring": "lgs",
+ "eyebrow": "Unit 2 · Teen Life",
+ "heroTop": "Teen Life",
+ "heroBottom": "8. sınıf",
+ "leadHtml": "2. ünite <b>Teen Life</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [["20", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "ünite"]],
+ "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
+ "sheetTag": "TEEN LIFE · 8",
+ "messages": [
+  [0.88, "Teen Life ünitesinde tam puana çok yakınsın."],
+  [0.64, "Sağlam bir sonuç. Kaçırdıklarına bir göz at."],
+  [0.4, "İyi başlangıç. Aşağıdakileri tekrar et, net yükselir."],
+  [-99, "Aşağıdaki sorulardan başla, ikinci turda fark göreceksin."]
+ ],
+ "questions": [
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Selin _____ doing puzzles.\nIt’s her favourite hobby.",
+   "o": ["hates", "is keen on", "can’t stand", "dislikes"],
+   "a": 1,
+   "tr": "be keen on = bir şeye çok meraklı olmak, çok sevmek."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Ahmet can’t _____ loud music.\nIt gives him a headache.",
+   "o": ["stand", "enjoy", "love", "prefer"],
+   "a": 0,
+   "tr": "can’t stand = hiç dayanamamak, nefret etmek."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Zeynep goes swimming every Saturday.\nShe goes swimming _____.",
+   "o": ["once a month", "twice a day", "once a week", "every day"],
+   "a": 2,
+   "tr": "Her cumartesi = haftada bir: once a week."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "“How often do you go jogging?”",
+   "o": ["In the park.", "With my dad.", "Because it’s healthy.", "Once a week."],
+   "a": 3,
+   "tr": "How often = ne sıklıkla. Cevap bir sıklık bildirir: once a week."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "A: What do you do in your free time?\nB: _____",
+   "o": ["I usually hang out with my friends.", "At 7 o’clock.", "Twice a week.", "With my brother."],
+   "a": 0,
+   "tr": "Boş zamanda ne yaptığı soruluyor; cevap bir etkinlik olmalı: hang out with friends."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "My sister is fond of _____ photos.",
+   "o": ["take", "taking", "to take", "took"],
+   "a": 1,
+   "tr": "be fond of + fiil-ing: fond of taking photos = fotoğraf çekmeye bayılmak."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "I’d rather _____ at home\nthan go out tonight.",
+   "o": ["staying", "to stay", "stay", "stayed"],
+   "a": 2,
+   "tr": "would rather + fiilin yalın hâli: I’d rather stay."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Mert _____ playing computer games.\nHe plays them every evening.",
+   "o": ["hates", "can’t stand", "dislikes", "enjoys"],
+   "a": 3,
+   "tr": "Her akşam oynuyor, yani seviyor: enjoy + -ing."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "I prefer reading books _____ watching TV.",
+   "o": ["than", "from", "to", "with"],
+   "a": 2,
+   "tr": "prefer A to B = A’yı B’ye tercih etmek."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "I don’t _____ washing the dishes.\nIt isn’t a problem for me.",
+   "o": ["mind", "want", "keen", "fond"],
+   "a": 0,
+   "tr": "don’t mind + -ing = sorun etmemek, umursamamak."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Teenagers often _____ the net\nto chat with their friends.",
+   "o": ["play", "surf", "do", "make"],
+   "a": 1,
+   "tr": "surf the net = internette gezinmek."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "I usually go to bed at 10 p.m.\nI _____ stay up late.",
+   "o": ["always", "often", "usually", "rarely"],
+   "a": 3,
+   "tr": "rarely = nadiren. Genelde erken yattığı için geç saate nadiren kalır."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Emre is interested _____\nscience fiction films.",
+   "o": ["on", "at", "in", "with"],
+   "a": 2,
+   "tr": "be interested in = ile ilgilenmek."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Which sentence shows a PREFERENCE?",
+   "o": ["I prefer tea to coffee.", "I drink tea every day.", "Tea is hot.", "I made some tea."],
+   "a": 0,
+   "tr": "Tercih bildiren cümle: “I prefer tea to coffee.” (çayı kahveye tercih ederim)."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Which one is a HOBBY?",
+   "o": ["doing homework", "collecting stamps", "going to school", "cleaning the room"],
+   "a": 1,
+   "tr": "collecting stamps = pul biriktirmek bir hobidir; diğerleri görev/iş."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "I _____ get up early at weekends.\nI sleep until 11 o’clock.",
+   "o": ["always", "usually", "often", "never"],
+   "a": 3,
+   "tr": "never = asla. Hafta sonu 11’e kadar uyuyorsa erken hiç kalkmaz."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "My brother spends most of his time\n_____ video games.",
+   "o": ["play", "to play", "playing", "played"],
+   "a": 2,
+   "tr": "spend time + -ing: spends his time playing."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "In my _____, playing sports is better\nthan playing games on the phone.",
+   "o": ["opinion", "idea", "think", "thought"],
+   "a": 0,
+   "tr": "In my opinion = bence, bana göre."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "A: Do you like rock music?\nB: No, I _____ it. It’s too noisy.",
+   "o": ["love", "detest", "adore", "enjoy"],
+   "a": 1,
+   "tr": "detest = nefret etmek. “No” ve “too noisy” sevmediğini gösteriyor."
+  },
+  {
+   "c": "Unit 2 · Teen Life",
+   "q": "Elif loves music. She _____ listens\nto music on her way to school.",
+   "o": ["never", "rarely", "seldom", "always"],
+   "a": 3,
+   "tr": "always = her zaman. Müziği sevdiği için hep dinler."
+  }
+ ]
+}
