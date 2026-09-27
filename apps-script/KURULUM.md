@@ -269,6 +269,20 @@ Liste kaydedilince **Yeni ödev**'de şube düğmeleri çıkar; ödevi bir ya da
 
 Öğrenci, sınıf listesiyle numara ve şubeden eşlenir; adını farklı yazsa da (Ayşe / Ayse) aynı öğrenci sayılır.
 
+## 14. Sözlü notları (telefondan)
+
+Panelde **Sözlü notları** kartını aç, şubeyi ve dönemi seç (1. dönem Eylül–Ocak, 2. dönem Şubat–Ağustos, ya da bütün yıl), **Notları göster**'e bas. Kart, şubenin sınıf listesi kayıtlıysa çalışır (13. bölüm).
+
+**Not nasıl hesaplanır:** Öğrencinin o dönem şubesine verilen ödevlerdeki **ilk deneme** puanlarının ortalaması, tam sayıya yuvarlanır. Ödevin tarihi son teslim günüdür.
+- Yapmadığı ödev (süresi bitmiş) **0** sayılır. Süresi henüz sürüyorsa ortalamaya girmez.
+- Süre dışı gönderdiği ödev **tam puan** sayılır.
+- Öğrencinin adına dokun; ödevlerin tek tek puanları açılır. Yapmadı ya da süre dışı satırındaki düğmeye dokunarak kararı değiştir: yapmadı → **0** / **özürlü**; süre dışı → **tam** / **0** / **özürlü**. Özürlü ödev o öğrencinin ortalamasına girmez.
+- Üstteki ödev listesinde bir ödevin işaretini kaldırırsan o ödev hiç kimsenin notuna sayılmaz (ör. deneme amaçlı verdiğin ödev).
+
+Kararlar e-tablonun **Kararlar** sekmesine kaydedilir (sekme kendiliğinden açılır); bu sekmeyi elle düzenleme.
+
+**e-Okul'a aktarmak için:** **Notları kopyala** numara, ad ve notu satır satır panoya kopyalar; **Tabloyu indir (Excel)** her ödevin puanıyla birlikte dosya indirir.
+
 ## Kodu güncellemek
 
 `Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Ardından **kurulum**'u bir kez **Çalıştır** (zamanlayıcı yeni kodla kurulsun). Yalnızca sıralama bölümü değiştiyse bu kadarı yeter. Aşağıdaki yeniden dağıtım yalnızca öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.
