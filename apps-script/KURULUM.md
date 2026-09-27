@@ -138,7 +138,7 @@ https://gkhngns2032.github.io/alti-saniye/index.html?odev=KOD#test_slug
 
 ## 8. Sonuçları oku
 
-Her tamamlanan deneme **Sonuçlar** sekmesine bir satır olarak düşer:
+Her öğrencinin bir ödevdeki **ilk denemesi** **Sonuçlar** sekmesine bir satır olarak düşer. Öğrenci ödevi yeniden açarsa "Bu ödevi daha önce çözdün… bu denemenin sonucu kaydedilmeyecek" uyarısını görür; tekrar çözebilir ama sonuç gönderilmez (eski bir sayfadan gelse de Google tarafı ikinciyi yazmaz). Aynı numarayı yazan başka biri (başka ad) ayrı öğrenci sayılır.
 
 | sütun | anlamı |
 |---|---|
@@ -148,7 +148,7 @@ Her tamamlanan deneme **Sonuçlar** sekmesine bir satır olarak düşer:
 | dogru, yanlis, bos | Süre dolup boş kalan sorular "bos" sayılır. |
 | puan | 100 üzerinden. LGS testlerinde netten hesaplanır (3 yanlış 1 doğruyu götürür). |
 | durum | **zamanında** ya da **süre dışı**. Süre dışı sonuçlar da kaydedilir, karar senin. |
-| deneme_no | Aynı öğrencinin (aynı kod + numara) bu ödevdeki kaçıncı denemesi. İkinci deneme engellenmez. |
+| deneme_no | Bu ödevde bu numarayla kaçıncı kayıt (aynı numarayı başka ad yazarsa 2 olur). Aynı öğrencinin ikinci denemesi kaydedilmez. |
 | cevaplar | Soru sırasıyla: `1B✓ 2C✗ 3-`. Harf öğrencinin işaretlediği şık, ✓ doğru, ✗ yanlış, `-` boş. |
 | istemci_sure_ms | Testi bitirme süresi (milisaniye; 60000 = 1 dakika). Öğrencinin cihazından gelir. |
 | gonderim_id | Teknik alan. İnternet kopup sayfa aynı sonucu yeniden gönderirse ikinci satır açılmasın diye kullanılır. |
@@ -172,7 +172,7 @@ Her ödevin sıralaması, tabloda kendi sekmesinde **5 dakikada bir kendiliğind
 **Bilgisayardan:** Üst menüde **Altı Saniye > Sıralama oluştur**'u kullanabilirsin. 5 dakikayı beklemeden hemen yeniler ve metni kopyalanabilir bir pencerede gösterir. Bu menü yalnızca bilgisayarda görünür; Google özel menüleri telefonda göstermez.
 
 Sıralama kuralları:
-- Her öğrencinin **ilk denemesi** sayılır. Test bitince doğru cevaplar göründüğü için sonraki denemeler sayılmaz. Öğrenci numara ve ad soyadıyla birlikte tanınır; iki öğrenci aynı numarayı yazsa da ayrı sıralanır.
+- Her öğrencinin **ilk denemesi** sayılır. Test bitince doğru cevaplar göründüğü için sonraki denemeler kaydedilmez. Öğrenci numara ve ad soyadıyla birlikte tanınır; iki öğrenci aynı numarayı yazsa da ayrı sıralanır.
 - Puana göre yüksekten düşüğe dizilir. Puanlar eşitse testi **daha kısa sürede** bitiren öne geçer.
 - Öğrencinin tam adı yazılır.
 - Her öğrencinin yanında puanı, doğru ve yanlış sayısı yazar. Boş bıraktığı soru varsa o da yazar.
@@ -252,6 +252,22 @@ Bundan sonra **Yeni ödev** listesinde o testin yanında **✓ onaylı** yazar v
 - Önceden verilmiş ödevler, verildikleri andaki hâlleriyle kalır.
 - Doğru cevapların yeri karıştırılmaz: nasıl işaretlediysen öyle kalır.
 - En az 5 soru kalmalı. Boş şık, aynı şıkkın iki kez yazılması ya da işaretsiz doğru cevap varsa sistem kaydetmez ve hatalı soruyu kırmızıyla gösterir.
+
+## 13. Sonuçlar ve sınıf listesi (telefondan)
+
+**Sınıf listesi (her şube için bir kez):** Panelde **Sınıf listelerim** kartını aç. Şubeyi yaz (ör. `8-A`), e-Okul'dan ya da Excel'den öğrenci numarası ve adının olduğu satırları kopyalayıp yapıştır, **Kontrol et**'e bas. Satırda sıra no ve numara birlikte varsa (ör. `1 123 Ali Veli`) ikincisi numara sayılır; başlık satırı atlanır. Aynı numara iki kez varsa kaydetmez. **Listeyi kaydet** ile liste e-tablonun **Öğrenciler** sekmesine yazılır (sekme kendiliğinden açılır). Aynı şubeyi yeniden kaydedersen eski listesinin yerine geçer; diğer şubelere dokunmaz.
+
+Liste kaydedilince **Yeni ödev**'de şube düğmeleri çıkar; ödevi bir ya da birkaç şubeye verebilirsin (`8-A, 8-B`).
+
+**Sonuçlar:** **Ödevlerim**'de ödevin altındaki **Sonuçları göster**'e bas.
+- Üstte: kaç öğrencinin çözdüğü (listedekilerden), ortalama, yapmayan sayısı. Birden çok şube varsa şube seçilir.
+- **Sıralama:** ilk denemelere göre; **Sıralamayı WhatsApp'ta paylaş** seçili şubenin sıralamasını gönderir.
+- **Öğrenciler:** sınıf listesindeki herkes numara sırasıyla; yapmayanlar **Yapmadı** diye görünür. Bir öğrenciye dokununca her soruda ne işaretlediği (✓ doğru, ✗ yanlış ve doğrusu, boş), süresi ve teslim zamanı açılır. Listede olmayan bir numarayla çözen varsa en altta "sınıf listesinde bu numara yok" diye görünür (numarasını yanlış yazmış olabilir).
+- **Sorular:** en çok yanlış yapılan soru en üstte; her soruda kaç doğru/yanlış/boş olduğu ve en çok seçilen yanlış şık. Derste tekrar edilecek konuyu gösterir.
+- **Yapmayanlara hatırlat:** ödev açıkken, yapmayanların adlarıyla ödev linkini WhatsApp'a hazırlar.
+- **Tabloyu indir (Excel):** seçili şubenin sonuçlarını (her soru ayrı sütunda) dosya olarak indirir; Excel'de ya da Google E-Tablolar'da açılır.
+
+Öğrenci, sınıf listesiyle numara ve şubeden eşlenir; adını farklı yazsa da (Ayşe / Ayse) aynı öğrenci sayılır.
 
 ## Kodu güncellemek
 

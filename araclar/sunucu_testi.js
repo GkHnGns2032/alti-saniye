@@ -38,6 +38,11 @@ class Sayfa {
         s.v[r - 1 + i][c - 1 + j] = x;
       })),
       setNumberFormat: f => { s.bicim[r + ':' + c] = f; },
+      clearContent() { // gerçek e-tablo gibi: sondaki boş satırlar getLastRow'a sayılmaz
+        for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) if (s.v[r - 1 + i]) s.v[r - 1 + i][c - 1 + j] = '';
+        while (s.v.length && s.v[s.v.length - 1].every(x => x === '' || x === undefined)) s.v.pop();
+        return this;
+      },
       merge() { s.birlesik.push([r, c, nr, nc]); return this; },
       setWrap() { return this; },
       setVerticalAlignment() { return this; }
@@ -176,15 +181,31 @@ const VAKALAR = [
   ['sınıf/şube yazımları 8-A biçimine çevrilir; geçersiz ya da eksikse boş kalır ama sonuç kaybolmaz', () => {
     const o = standart();
     const giris = ['8-A', '8a', ' 8 b ', '8/c', '7.D', '12-i', '8-ş', '13-A', '0-A', '8-AB', 'A-8', '', null, 8, undefined];
-    const r = giris.map(x => o.post(govde(x === undefined ? {} : {sinif_sube: x})));
+    const r = giris.map((x, i) => o.post(govde(Object.assign({numara: String(100 + i)}, x === undefined ? {} : {sinif_sube: x}))));
     const s = o.sonuclar().map(x => x[14]);
     return r.every(x => x.ok) && s.join('|') === '8-A|8-A|8-B|8-C|7-D|12-İ|8-Ş||||||||';
   }],
-  ['POST aynı kod+numara ikinci kez → engellenmez, deneme 2', () => {
+  ['yalnız ilk deneme kaydedilir: aynı kişi (ad büyük/küçük harf, boşluk farkıyla) ikinci kez → kaydedilmedi, tek satır', () => {
+    const o = standart();
+    const a = o.post(govde());
+    const r = o.post(govde({kod: 'acik1', ad_soyad: 'DENEME   öğrenci', puan: 99}));
+    return a.ok && !a.kaydedilmedi && r.ok && r.kaydedilmedi === true && r.deneme_no === 2 && o.sonuclar().length === 1 &&
+      o.sonuclar()[0][8] === 25.3;
+  }],
+  ['aynı numarayı yazan başka biri (başka ad) kaydedilir, deneme 2', () => {
     const o = standart();
     o.post(govde());
-    const r = o.post(govde({kod: 'acik1'}));
-    return r.ok && r.deneme_no === 2 && o.sonuclar().length === 2 && o.sonuclar()[1][10] === 2;
+    const r = o.post(govde({ad_soyad: 'Başka Öğrenci'}));
+    return r.ok && !r.kaydedilmedi && r.deneme_no === 2 && o.sonuclar().length === 2 && o.sonuclar()[1][10] === 2;
+  }],
+  ['doGet numara + ad ile sorulunca daha önce çözdüyse onceki: true', () => {
+    const o = standart();
+    const once = o.get({odev: 'ACIK1', numara: '0123', ad: 'Deneme Öğrenci'});
+    o.post(govde());
+    const sonra = o.get({odev: 'acik1', numara: '0123', ad: 'deneme  ÖĞRENCİ'});
+    const baskasi = o.get({odev: 'ACIK1', numara: '0124', ad: 'Deneme Öğrenci'});
+    const sorusuz = o.get({odev: 'ACIK1'});
+    return once.onceki === false && sonra.onceki === true && baskasi.onceki === false && !('onceki' in sorusuz);
   }],
   ['POST başka numara → deneme 1', () => {
     const o = standart();
@@ -544,6 +565,74 @@ VAKALAR.push(
     const od = o.panel('odev_ekle', {test_slug: 'ozel-olmayan-abcd', bitis: gelecek()});
     const g = o.get({odev: od.kod});
     return g.gecerli && g.test_slug === 'ozel-olmayan-abcd' && !('test' in g);
+  }]
+);
+
+/* ---------- Sınıf listesi ve ödev sonuçları ---------- */
+const ogr = (numara, ad) => ({numara, ad});
+VAKALAR.push(
+  ['sınıf listesi: şube şube kaydedilir, yeniden kaydedince yalnız o şube değişir; sıralı, numara metin', () => {
+    const o = panelOrtami();
+    const a = o.panel('liste_kaydet', {sinif_sube: '8a', ogrenciler: [ogr('12', 'Ali Veli'), ogr('3', 'Ayşe  Yılmaz'), ogr('7', '=Kötü')]});
+    const b = o.panel('liste_kaydet', {sinif_sube: '8-B', ogrenciler: [ogr('5', 'Can Demir')]});
+    const c = o.panel('liste_kaydet', {sinif_sube: '8 A', ogrenciler: [ogr('12', 'Ali Veli'), ogr('4', 'Ece Kaya')]});
+    const v = o.sayfalar['Öğrenciler'].v;
+    const ozet = o.panel('odevler').siniflar;
+    return a.ok && a.n === 3 && a.sinif === '8-A' && b.ok && c.ok && c.n === 2 &&
+      v[0].join() === 'sinif_sube,numara,ad_soyad' && v.length === 4 &&
+      v.slice(1).map(r => r.join('/')).join('|') === '8-A/4/Ece Kaya|8-A/12/Ali Veli|8-B/5/Can Demir' &&
+      o.sayfalar['Öğrenciler'].bicim['2:2'] === '@' &&
+      JSON.stringify(ozet) === '[{"sinif":"8-A","n":2},{"sinif":"8-B","n":1}]' &&
+      JSON.stringify(c.siniflar) === JSON.stringify(ozet);
+  }],
+  ['sınıf listesi: bozuk şube, aynı numara, harfli numara, kısa ad, 80+ öğrenci ve anahtarsız istek reddedilir', () => {
+    const o = panelOrtami();
+    const iyi = o.panel('liste_kaydet', {sinif_sube: '8-A', ogrenciler: [ogr('1', 'Ali Veli')]});
+    const r = [
+      o.panel('liste_kaydet', {sinif_sube: 'sekiz', ogrenciler: [ogr('1', 'Ali Veli')]}),
+      o.panel('liste_kaydet', {sinif_sube: '8-A', ogrenciler: [ogr('1', 'Ali Veli'), ogr('1', 'Can Demir')]}),
+      o.panel('liste_kaydet', {sinif_sube: '8-A', ogrenciler: [ogr('1a', 'Ali Veli')]}),
+      o.panel('liste_kaydet', {sinif_sube: '8-A', ogrenciler: [ogr('2', 'A')]}),
+      o.panel('liste_kaydet', {sinif_sube: '8-A', ogrenciler: Array.from({length: 81}, (_, i) => ogr(String(i + 1), 'Ad Soyad'))}),
+      o.post({islem: 'liste_kaydet', anahtar: 'x'.repeat(64), sinif_sube: '8-A', ogrenciler: []})
+    ];
+    return iyi.ok && r.slice(0, 5).every(x => x.ok === false && x.kalici) && r[1].no === 2 && r[5].hata === 'yetkisiz' &&
+      o.sayfalar['Öğrenciler'].v.length === 2 && o.sayfalar['Öğrenciler'].v[1][2] === 'Ali Veli';
+  }],
+  ['ödev şubeleri: "8a, 8 b; 8-A" → "8-A, 8-B"; şube olmayan metin eskisi gibi kalır', () => {
+    const o = panelOrtami();
+    const a = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8a, 8 b; 8-A'});
+    const b = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: 'Hazırlık grubu'});
+    return a.ok && a.sinif === '8-A, 8-B' && b.ok && b.sinif === 'Hazırlık grubu';
+  }],
+  ['sonuçlar: ilk denemeler cevaplarıyla (ikinci deneme hiç yazılmaz); ödevin şubelerinin listesi gelir', () => {
+    const o = panelOrtami();
+    o.panel('liste_kaydet', {sinif_sube: '8-A', ogrenciler: [ogr('11', 'Ayşe Yılmaz'), ogr('20', 'Gelmeyen Öğrenci')]});
+    o.panel('liste_kaydet', {sinif_sube: '8-B', ogrenciler: [ogr('13', 'Can Demir')]});
+    const r = o.panel('sonuclar', {kod: 'acik1'});
+    const ayse = r.sonuclar.find(x => x.numara === '11'), can = r.sonuclar.find(x => x.numara === '13');
+    return r.ok && r.odev.kod === 'ACIK1' && r.odev.test_slug === 'ingilizce-8' && r.odev.sinif === '8-A' && !!r.odev.bitis &&
+      r.sonuclar.length === 4 && ayse.puan === 80 && ayse.sonraki === 0 && ayse.cevaplar === '1B✓ 2C✗ 3-' &&
+      can.sinif === '8-B' && can.sonraki === 0 && typeof can.sure === 'number' && !!can.zaman &&
+      JSON.stringify(r.subeler) === '["8-A"]' && r.liste.map(x => x.numara).join() === '11,20' && !('test' in r);
+  }],
+  ['sonuçlar: şubesiz ödevde çözenlerin şubeleri; bilinmeyen kod ve anahtarsız istek reddedilir', () => {
+    const o = panelOrtami();
+    o.panel('liste_kaydet', {sinif_sube: '8-B', ogrenciler: [ogr('13', 'Can Demir'), ogr('30', 'Yapmayan Biri')]});
+    const od = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek()});
+    o.post(govde({kod: od.kod, numara: '13', ad_soyad: 'Can Demir', sinif_sube: '8-B'}));
+    const r = o.panel('sonuclar', {kod: od.kod});
+    const yok = o.panel('sonuclar', {kod: 'YOKKOD'});
+    const izinsiz = o.post({islem: 'sonuclar', anahtar: 'x'.repeat(64), kod: 'ACIK1'});
+    return r.ok && JSON.stringify(r.subeler) === '["8-B"]' && r.liste.length === 2 && r.sonuclar.length === 1 &&
+      yok.ok === false && yok.hata === 'yok' && izinsiz.hata === 'yetkisiz' && !izinsiz.sonuclar;
+  }],
+  ['sonuçlar: öğretmenin kendi testiyle verilen ödevde test içeriği de gelir', () => {
+    const o = panelOrtami();
+    const t = o.panel('test_ekle', testK(6));
+    const od = o.panel('odev_ekle', {test_slug: t.test_slug, bitis: gelecek(), sinif: '8-A'});
+    const r = o.panel('sonuclar', {kod: od.kod});
+    return r.ok && r.test && r.test.sorular.length === 6 && r.sonuclar.length === 0;
   }]
 );
 

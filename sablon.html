@@ -284,7 +284,29 @@ a.btn.ghost{text-decoration:none}
 .pitem .chip{justify-self:start}
 .pitem .chip.kapali{background:var(--line);color:var(--muted)}
 .prank{margin:0;padding:0 0 0 4px;list-style:none;display:grid;gap:4px;font-size:15px}
-.p-sira-kutu{display:grid;gap:10px}
+.p-sonuc-kutu{display:grid;gap:10px}
+.s-sube{min-height:44px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);color:var(--ink);font:600 15px var(--f-body)}
+.s-sekmeler{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:12px;background:var(--paper)}
+.s-sekme{min-height:40px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:700 14px var(--f-body)}
+.s-sekme[aria-selected="true"]{background:var(--sheet);color:var(--ink);box-shadow:var(--shadow)}
+.s-ogr,.s-sorular,.s-cevaplar{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.s-kisi{border:1.5px solid var(--line);border-radius:10px;background:var(--sheet)}
+.s-kisi-bas{width:100%;display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border:0;background:none;color:var(--ink);font:600 15px var(--f-body);text-align:left}
+.s-kisi-bas .s-not{white-space:nowrap;font-weight:700}
+.s-kisi.yapmadi .s-not{color:var(--miss-text)}
+.s-detay{display:grid;gap:8px;padding:0 12px 12px}
+.s-cevaplar li{display:grid;gap:2px;padding:6px 8px;border-radius:8px;background:var(--paper);font-size:13.5px}
+.s-cevaplar li.dogru span:last-child{color:var(--lit-text);font-weight:700}
+.s-cevaplar li.yanlis span:last-child{color:var(--miss-text);font-weight:700}
+.s-cevaplar li.bos span:last-child{color:var(--muted);font-weight:700}
+.s-q{color:var(--ink)}
+.s-sorular li{display:grid;gap:3px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px}
+.s-dogru{color:var(--lit-text)}
+.s-yanlis{color:var(--miss-text)}
+.p-subeler{display:flex;flex-wrap:wrap;gap:6px}
+.cip{min-height:36px;padding:4px 12px;border:1.5px solid var(--line);border-radius:999px;background:var(--sheet);color:var(--ink);font:700 14px var(--f-body)}
+.cip[aria-pressed="true"]{background:var(--form);border-color:var(--form);color:#fff}
+.l-onizleme{margin:0;padding-left:22px;display:grid;gap:2px;font-size:14px;max-height:240px;overflow:auto}
 .pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
 .linkbtn{border:0;background:none;padding:6px 0;font-weight:700;font-size:15px;color:var(--form)}
 .pcard-govde{display:grid;gap:14px}
@@ -295,7 +317,7 @@ details.pcard[open]>summary::after{content:"−"}
 .adimlar{margin:0;padding:0;list-style:none;display:grid;gap:10px}
 .adimlar li{display:grid;gap:6px;font-size:15px}
 .adimlar b{font-size:15px}
-#t-metin{width:100%;min-height:160px;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--sheet);font:14px/1.4 var(--f-mono);color:var(--ink)}
+#t-metin,#l-metin{width:100%;min-height:160px;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--sheet);font:14px/1.4 var(--f-mono);color:var(--ink)}
 .t-liste{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}
 .t-liste.hata{color:var(--miss-text);font-weight:700}
 .t-liste.uyari{color:var(--muted)}
@@ -384,7 +406,8 @@ details.pcard[open]>summary::after{content:"−"}
      <h2>Yeni ödev</h2>
      <label class="inp" for="p-test"><span>Test</span><select id="p-test"></select></label>
      <label class="inp" for="p-gun"><span>Son teslim günü (o gün 23:59'a kadar açık)</span><input type="date" id="p-gun"></label>
-     <label class="inp" for="p-sinif"><span>Sınıf (isteğe bağlı)</span><input id="p-sinif" maxlength="20" placeholder="8-A" autocomplete="off"></label>
+     <label class="inp" for="p-sinif"><span>Şube (isteğe bağlı, birden çok olabilir)</span><input id="p-sinif" maxlength="60" placeholder="8-A, 8-B" autocomplete="off"></label>
+     <div class="p-subeler" id="p-subeler" hidden></div>
      <p class="who-err" id="p-err" role="alert"></p>
      <button class="btn wide" id="p-olustur" type="button">Ödevi oluştur</button>
      <div class="pcard" id="p-sonuc" hidden>
@@ -430,6 +453,25 @@ details.pcard[open]>summary::after{content:"−"}
      <p class="pnote" id="t-tamam" hidden></p>
      </div>
     </details>
+    <details class="pcard" id="l-kart">
+     <summary><h2>Sınıf listelerim</h2></summary>
+     <div class="pcard-govde">
+      <p class="pnote" id="l-ozet">Henüz sınıf listesi yok.</p>
+      <p class="pnote">Şubeyi yaz. e-Okul'dan ya da Excel'den öğrenci numarası ve adının olduğu satırları kopyalayıp aşağıya yapıştır. Her satırda bir öğrenci olsun (ör. <b>123 Ali Veli</b>). Liste yalnız senin e-tablonda durur.</p>
+      <label class="inp" for="l-sinif"><span>Şube</span><input id="l-sinif" maxlength="8" placeholder="8-A" autocomplete="off" autocapitalize="characters"></label>
+      <textarea id="l-metin" placeholder="123 Ali Veli&#10;124 Ayşe Yılmaz" autocomplete="off" spellcheck="false"></textarea>
+      <button class="btn wide" id="l-kontrol" type="button">Kontrol et</button>
+      <div id="l-sonuc" class="pcard-govde" hidden>
+       <p class="pnote" id="l-bilgi"></p>
+       <ul class="t-liste hata" id="l-hatalar" hidden></ul>
+       <ul class="t-liste uyari" id="l-uyarilar" hidden></ul>
+       <ol class="l-onizleme" id="l-onizleme"></ol>
+       <p class="who-err" id="l-err" role="alert"></p>
+       <button class="btn wa wide" id="l-kaydet" type="button">Listeyi kaydet</button>
+      </div>
+      <p class="pnote" id="l-tamam" hidden></p>
+     </div>
+    </details>
     <div class="pbar"><h2>Ödevlerim</h2><button class="linkbtn" id="p-yenile" type="button">Yenile ↻</button></div>
     <p class="pnote" id="p-liste-not">Yükleniyor…</p>
     <ol class="plist" id="p-liste"></ol>
@@ -443,6 +485,7 @@ details.pcard[open]>summary::after{content:"−"}
     <h1 id="intro-title"><b id="hero-top"></b><span id="hero-bottom"></span></h1>
    </div>
    <p class="lead" id="lead"></p>
+   <div class="note" id="tekrar-not" hidden role="status"><strong>Bu ödevi daha önce çözdün</strong><p>İlk sonucun öğretmenine kaydedildi. Tekrar çözebilirsin ama bu denemenin sonucu kaydedilmeyecek.</p></div>
    <div class="facts" id="facts" aria-label="Test bilgileri"></div>
    <fieldset class="field">
     <legend>Nasıl oynanacak</legend>
@@ -879,7 +922,16 @@ function sinifSube(v){
 }
 function odevGeri(){ clearTimers(); clearInterval(ticker); phase = 'intro'; setPaused(false); unlockScreen(); order = []; shown = {}; show('odev'); }
 $('odev-retry').addEventListener('click', () => { if (ODEV) odevAc(); });
-$('who').addEventListener('submit', e => {
+/* Yalnız ilk deneme kaydedilir. Öğrenci bilgisini yazınca önce bu cihaza, sonra sunucuya sorulur:
+   daha önce çözdüyse uyarı gösterilir ve bu denemenin sonucu gönderilmez (sunucu da ikincisini yazmaz). */
+const kisiAnahtari = (kod, no, ad) => [String(kod).toUpperCase(), noNorm(no), ad.toLocaleLowerCase('tr').replace(/\s+/g, ' ').trim()].join('|');
+function cozuldu(no, ad){ const l = store.get('cozulen'); return Array.isArray(l) && l.includes(kisiAnahtari(ODEV.kod, no, ad)); }
+function cozulduYaz(no, ad){ const l = store.get('cozulen'), k = kisiAnahtari(ODEV.kod, no, ad); const y = (Array.isArray(l) ? l : []).filter(x => x !== k); y.push(k); store.set('cozulen', y.slice(-200)); }
+async function oncekiSor(no, ad){
+ try { const u = new URL(AYAR.gonderim); u.searchParams.set('odev', ODEV.kod); u.searchParams.set('numara', no); u.searchParams.set('ad', ad); const b = await (await fetch(u)).json(); return !!(b && b.onceki); }
+ catch { return false; } // bağlantı yoksa sunucu yine ikinci denemeyi yazmaz
+}
+$('who').addEventListener('submit', async e => {
  e.preventDefault();
  if (!ODEV) return;
  const no = $('who-no').value.trim(), ad = $('who-name').value.replace(/\s+/g, ' ').trim(), sinif = sinifSube($('who-sinif').value);
@@ -893,6 +945,11 @@ $('who').addEventListener('submit', e => {
  if (hata) { $(hata[0]).focus(); return; }
  $('who-sinif').value = sinif;
  ODEV.ogrenci = {numara: no, ad, sinif}; store.set('ogrenci', ODEV.ogrenci);
+ const go = $('who-go'), yazi = go.innerHTML;
+ go.disabled = true; go.textContent = 'Kontrol ediliyor…';
+ ODEV.onceki = cozuldu(no, ad) || await oncekiSor(no, ad);
+ go.disabled = false; go.innerHTML = yazi;
+ $('tekrar-not').hidden = !ODEV.onceki;
  dilli($('eyebrow'), {tr: 'Ödev'}, {tr: ad});
  home();
 });
@@ -925,6 +982,15 @@ async function kuyruguGonder(){
 }
 function odevGonder(dogru, yanlis, bos, net){
  if (!ODEV.ogrenci) return;
+ if (ODEV.onceki) { // ikinci ve sonraki denemeler: alıştırma, gönderilmez
+  ODEV.son = null;
+  $('send').hidden = false; $('send').className = 'send'; $('send-ico').className = 'bub'; $('send-ico').textContent = 'i';
+  $('send-retry').hidden = true;
+  $('send-title').textContent = 'Alıştırma · sonuç kaydedilmedi';
+  $('send-text').textContent = 'Bu ödevin ilk sonucun zaten kayıtlı. Tekrar denemeler öğretmene gönderilmez.';
+  return;
+ }
+ ODEV.onceki = true; cozulduYaz(ODEV.ogrenci.numara, ODEV.ogrenci.ad); $('tekrar-not').hidden = false;
  const n = Q.length, cevap = Q.map((q, i) => { const m = marks[i], c = m && m.c >= 0 ? m.c : -1; return (i + 1) + (c < 0 ? '-' : L[c] + (c === q.a ? '✓' : '✗')); });
  ODEV.son = {kod: ODEV.kod, test_slug: QUIZ.slug, numara: ODEV.ogrenci.numara, ad_soyad: ODEV.ogrenci.ad, sinif_sube: ODEV.ogrenci.sinif, dogru, yanlis, bos,
   puan: Math.round(1000 * Math.max(0, lgs ? net : dogru) / n) / 10, cevaplar: cevap.join(' '),
@@ -939,12 +1005,13 @@ async function sonGonder(){
  if (p === ODEV.son && r.sonuc !== 'ucusta') gonderimKutusu(r.sonuc, r.j);
 }
 function gonderimKutusu(durum, j){
- const p = ODEV.son, ok = durum === 'ok', bekle = durum === 'bekle', kim = 'No ' + p.numara + (p.sinif_sube ? ' · ' + p.sinif_sube : '') + ' · ' + p.ad_soyad;
- $('send').hidden = false; $('send').className = 'send' + (ok ? ' ok' : bekle ? '' : ' no');
- $('send-ico').className = 'bub' + (ok ? ' lit' : bekle ? '' : ' miss'); $('send-ico').textContent = ok ? '✓' : bekle ? '…' : '!';
+ const p = ODEV.son, kay = durum === 'ok' && !!(j && j.kaydedilmedi), ok = durum === 'ok' && !kay, bekle = durum === 'bekle', kim = 'No ' + p.numara + (p.sinif_sube ? ' · ' + p.sinif_sube : '') + ' · ' + p.ad_soyad;
+ $('send').hidden = false; $('send').className = 'send' + (ok ? ' ok' : bekle || kay ? '' : ' no');
+ $('send-ico').className = 'bub' + (ok ? ' lit' : bekle || kay ? '' : ' miss'); $('send-ico').textContent = ok ? '✓' : bekle ? '…' : kay ? 'i' : '!';
  $('send-retry').hidden = durum !== 'gecici'; $('send-retry').disabled = false;
  const [baslik, metin] = bekle ? ['Öğretmene gönderiliyor…', kim]
-  : ok ? ['Öğretmene gönderildi ✓', kim + ' · ' + j.deneme_no + '. deneme' + (j.durum === 'süre dışı' ? ' · süre dolduktan sonra ulaştığı için “süre dışı” kaydedildi' : '')]
+  : kay ? ['Kaydedilmedi', 'Bu ödevin ilk sonucun zaten kayıtlı. Tekrar denemeler öğretmene gönderilmez.']
+  : ok ? ['Öğretmene gönderildi ✓', kim + (j.durum === 'süre dışı' ? ' · süre dolduktan sonra ulaştığı için “süre dışı” kaydedildi' : '') + ' · Tekrar çözebilirsin ama yeni sonuçlar kaydedilmez.']
   : durum === 'kalici' ? ['Gönderilemedi', j && j.hata === 'bilinmeyen_kod' ? 'Bu ödev öğretmenin listesinde artık yok. Sonucunu öğretmenine kendin göster.' : 'Öğretmenin sistemi bu sonucu kabul etmedi. Öğretmenine haber ver.']
   : ['Gönderilemedi — tekrar dene', 'Sonucun bu cihazda saklandı. Sayfayı yeniden açtığında da kendiliğinden gönderilmeye çalışılır.'];
  $('send-title').textContent = baslik; $('send-text').textContent = metin;
@@ -1001,6 +1068,7 @@ async function panelListe(){
  let j;
  try { j = await panelIstek('odevler'); } catch (e) { if (e.message !== 'yetkisiz') $('p-liste-not').textContent = 'Bağlantı kurulamadı. “Yenile”ye bas.'; return; }
  OZEL = {}; ((j && j.testler) || []).forEach(t => { OZEL[t.slug] = {ad: t.ad, n: t.n, kaynak: t.kaynak || ''}; });
+ SINIFLAR = (j && j.siniflar) || []; sinifOzeti();
  testSecenekleri();
  const ol = $('p-liste'); ol.replaceChildren();
  const liste = (j && j.odevler) || [];
@@ -1011,7 +1079,7 @@ async function panelListe(){
   const li = document.createElement('li'); li.className = 'pitem'; li.id = 'p-odev-' + o.kod;
   li.innerHTML = '<span class="chip"></span><strong></strong><small class="p-bilgi"></small><small class="p-katilan"></small>' +
    '<a class="btn ghost wide p-tekrar" target="_blank" rel="noopener">Ödev linkini tekrar gönder</a>' +
-   '<button class="btn wide p-sira" type="button">Sıralamayı göster</button><div class="p-sira-kutu" hidden></div>';
+   '<button class="btn wide p-sonuc" type="button">Sonuçları göster</button><div class="p-sonuc-kutu" hidden></div>';
   li.querySelector('.chip').textContent = acik ? 'Açık' : 'Süresi doldu';
   if (!acik) li.querySelector('.chip').classList.add('kapali');
   li.querySelector('strong').textContent = z ? z.ad : o.test_slug;
@@ -1019,7 +1087,7 @@ async function panelListe(){
   li.querySelector('.p-katilan').textContent = '👥 ' + o.katilan + ' öğrenci çözdü';
   li.querySelector('.p-tekrar').href = waLink(odevMesaji(o.kod, o.test_slug, o.bitis));
   if (!acik) li.querySelector('.p-tekrar').hidden = true;
-  li.querySelector('.p-sira').addEventListener('click', () => panelSiralama(o.kod, li));
+  li.querySelector('.p-sonuc').addEventListener('click', () => panelSonuc(o, li));
   ol.append(li);
  });
 }
@@ -1028,19 +1096,142 @@ function siraOzeti(r){
  const d = r.dogru == null ? '' : ' puan · ' + r.dogru + ' doğru, ' + r.yanlis + ' yanlış' + (r.bos ? ', ' + r.bos + ' boş' : '');
  return String(r.puan).replace('.', ',') + d + (r.durum === 'süre dışı' ? ' (süre dışı)' : '');
 }
-async function panelSiralama(kod, li){
- const kutu = li.querySelector('.p-sira-kutu'), b = li.querySelector('.p-sira');
+/* ---------- Sonuçlar (her ödevin altında) ----------
+   Sunucu ilk denemeleri (numara + ad) ve ödevin şubelerinin sınıf listesini verir. Sayfa öğrenciyi
+   listeyle numara ve şubeden eşler: listedeki her öğrencinin en erken sonucu sayılır, sonrakiler
+   yalnız "sonra … kez daha çözdü" diye görünür. Listede olmayan sonuç "listede yok" olarak kalır. */
+const noNorm = n => String(n).replace(/^0+(?=\d)/, '');
+function sonucSatirlari(j){
+ const kullanildi = new Set(), satirlar = [];
+ (j.liste || []).forEach(o => {
+  const esler = j.sonuclar.filter(x => !kullanildi.has(x) && noNorm(x.numara) === noNorm(o.numara) && (!x.sinif || x.sinif === o.sinif));
+  esler.forEach(x => kullanildi.add(x));
+  const r = esler[0] || null;
+  satirlar.push({numara: o.numara, ad: o.ad, sinif: o.sinif, r, sonraki: esler.reduce((t, x, i) => t + x.sonraki + (i ? 1 : 0), 0), listede: true});
+ });
+ j.sonuclar.filter(x => !kullanildi.has(x)).forEach(x => satirlar.push({numara: x.numara, ad: x.ad, sinif: x.sinif, r: x, sonraki: x.sonraki, listede: false}));
+ return satirlar;
+}
+const cevapCoz = s => { const m = {}; String(s || '').split(/\s+/).forEach(t => { const x = t.match(/^(\d+)([A-D-])([✓✗]?)$/); if (x) m[+x[1] - 1] = x[2] === '-' ? -1 : 'ABCD'.indexOf(x[2]); }); return m; };
+const sureYaz = ms => ms == null || !isFinite(ms) ? '' : Math.floor(ms / 60000) + ':' + pad(Math.round(ms / 1000) % 60);
+function siraliSonuclar(satirlar){
+ return satirlar.filter(s => s.r).sort((a, b) => b.r.puan - a.r.puan || (a.r.sure ?? 1e12) - (b.r.sure ?? 1e12));
+}
+function siralamaMetni(ad, sube, sirali){ // Kod.gs siralamaHazirla_ ile aynı biçim
+ return ['🏆 Ödev sıralaması · ' + ad + (sube ? ' · ' + sube : ''), '(ilk denemeler, 100 üzerinden)', '']
+  .concat(sirali.map((s, i) => (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + s.ad + (s.sinif ? ' (' + s.sinif + ')' : '') + ' — ' + siraOzeti(s.r)))
+  .concat(['', sirali.length + ' öğrenci katıldı.']).join('\n');
+}
+function csvIndir(dosya, satirlar){
+ // formül sanılmasın diye =, +, @ ve "-x" ile başlayan hücreye ' eklenir ("-" tek başına boş cevaptır)
+ const hucre = h => { h = String(h ?? ''); if (/^[=+@\t\r]|^-./.test(h)) h = "'" + h; return /[;"\n]/.test(h) ? '"' + h.replace(/"/g, '""') + '"' : h; };
+ const blob = new Blob(['﻿' + satirlar.map(r => r.map(hucre).join(';')).join('\r\n')], {type: 'text/csv;charset=utf-8'});
+ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = dosya;
+ document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+const el = (tag, cls, metin) => { const e = document.createElement(tag); if (cls) e.className = cls; if (metin != null) e.textContent = metin; return e; };
+async function panelSonuc(o, li){
+ const kutu = li.querySelector('.p-sonuc-kutu'), b = li.querySelector('.p-sonuc');
  b.disabled = true; b.textContent = 'Hazırlanıyor…';
  let j;
- try { j = await panelIstek('siralama', {kod}); } catch (e) { b.disabled = false; b.textContent = 'Sıralamayı göster'; if (e.message !== 'yetkisiz') alert('Bağlantı kurulamadı, tekrar dene.'); return; }
- b.disabled = false; b.textContent = 'Sıralamayı göster';
- kutu.hidden = false; kutu.replaceChildren();
- if (!j || !j.katilan) { const p = document.createElement('p'); p.className = 'pnote'; p.textContent = 'Henüz kimse çözmedi.'; kutu.append(p); return; }
- b.hidden = true;
- const ol = document.createElement('ol'); ol.className = 'prank';
- j.satirlar.forEach((r, i) => { const x = document.createElement('li'); x.textContent = (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + r.ad + (r.sinif ? ' (' + r.sinif + ')' : '') + ' — ' + siraOzeti(r); ol.append(x); });
- const a = document.createElement('a'); a.className = 'btn wa p-sira-wa'; a.target = '_blank'; a.rel = 'noopener'; a.href = waLink(j.metin); a.textContent = 'Sıralamayı WhatsApp\'ta paylaş';
- kutu.append(ol, a);
+ try { j = await panelIstek('sonuclar', {kod: o.kod}); } catch (e) { b.disabled = false; b.textContent = 'Sonuçları göster'; if (e.message !== 'yetkisiz') alert('Bağlantı kurulamadı, tekrar dene.'); return; }
+ b.disabled = false; b.textContent = 'Sonuçları göster';
+ if (!j || !j.ok) { kutu.hidden = false; kutu.replaceChildren(el('p', 'pnote', 'Sonuçlar alınamadı. “Yenile”ye bas.')); return; }
+ const z = QUIZZES.find(q => q.slug === j.odev.test_slug) || (j.test && ozelQuiz(j.odev.test_slug, j.test));
+ const ad = z ? z.name : j.odev.test_slug, sorular = z ? z.questions : [];
+ const satirlar = sonucSatirlari(j), durum = {sube: '', sekme: 'sira'};
+ const subeler = [...new Set(j.subeler.concat(satirlar.map(s => s.sinif).filter(Boolean)))].sort((a, b) => parseInt(a) - parseInt(b) || a.localeCompare(b, 'tr'));
+ b.hidden = true; kutu.hidden = false; kutu.replaceChildren();
+ const secim = el('select', 's-sube'); secim.setAttribute('aria-label', 'Şube');
+ secim.append(new Option('Bütün şubeler', ''), ...subeler.map(x => new Option(x, x)));
+ const ozet = el('p', 'pnote s-ozet'), sekmeler = el('div', 's-sekmeler'), icerik = el('div', 's-icerik');
+ sekmeler.setAttribute('role', 'tablist');
+ [['sira', 'Sıralama'], ['ogr', 'Öğrenciler'], ['soru', 'Sorular']].forEach(([k, t]) => {
+  const s = el('button', 's-sekme', t); s.type = 'button'; s.dataset.k = k; s.setAttribute('role', 'tab');
+  s.addEventListener('click', () => { durum.sekme = k; ciz(); }); sekmeler.append(s);
+ });
+ const wa = el('a', 'btn wa s-wa', 'Sıralamayı WhatsApp\'ta paylaş'); wa.target = '_blank'; wa.rel = 'noopener';
+ const hatirlat = el('a', 'btn ghost wide s-hatirlat'); hatirlat.target = '_blank'; hatirlat.rel = 'noopener';
+ const indir = el('button', 'btn ghost wide s-indir', 'Tabloyu indir (Excel)'); indir.type = 'button';
+ if (subeler.length > 1) kutu.append(secim);
+ kutu.append(ozet, sekmeler, icerik, wa, hatirlat, indir);
+ secim.addEventListener('change', () => { durum.sube = secim.value; ciz(); });
+ const gorunen = () => satirlar.filter(s => !durum.sube || s.sinif === durum.sube);
+ indir.addEventListener('click', () => {
+  const bas = ['Numara', 'Ad Soyad', 'Şube', 'Durum', 'Puan', 'Doğru', 'Yanlış', 'Boş', 'Süre', 'Teslim'].concat(sorular.map((_, i) => 'S' + (i + 1)));
+  const veri = gorunen().map(s => {
+   const c = s.r ? cevapCoz(s.r.cevaplar) : {};
+   return [s.numara, s.ad, s.sinif, s.r ? (s.r.durum === 'süre dışı' ? 'süre dışı' : 'çözdü') + (s.listede ? '' : ' (listede yok)') : 'yapmadı',
+    s.r ? String(s.r.puan).replace('.', ',') : '', s.r ? s.r.dogru : '', s.r ? s.r.yanlis : '', s.r ? s.r.bos : '', s.r ? sureYaz(s.r.sure) : '',
+    s.r && s.r.zaman ? new Date(s.r.zaman).toLocaleString('tr-TR') : ''].concat(sorular.map((q, i) => !s.r || !s.r.cevaplar ? '' : c[i] == null || c[i] < 0 ? '-' : 'ABCD'[c[i]] + (c[i] === q.a ? ' ✓' : ' ✗')));
+  });
+  csvIndir('sonuclar-' + j.odev.kod + (durum.sube ? '-' + durum.sube : '') + '.csv', [bas].concat(veri));
+ });
+ function ciz(){
+  const g = gorunen(), cozen = g.filter(s => s.r), yapmayan = g.filter(s => !s.r), sirali = siraliSonuclar(g);
+  const listeVar = g.some(s => s.listede);
+  const ort = cozen.length ? Math.round(10 * cozen.reduce((t, s) => t + s.r.puan, 0) / cozen.length) / 10 : null;
+  ozet.textContent = (listeVar ? cozen.filter(s => s.listede).length + ' / ' + g.filter(s => s.listede).length + ' öğrenci çözdü' : cozen.length + ' öğrenci çözdü') +
+   (ort != null ? ' · ortalama ' + String(ort).replace('.', ',') : '') + (listeVar && yapmayan.length ? ' · ' + yapmayan.length + ' öğrenci yapmadı' : '');
+  sekmeler.querySelectorAll('.s-sekme').forEach(s => s.setAttribute('aria-selected', String(s.dataset.k === durum.sekme)));
+  icerik.replaceChildren();
+  if (durum.sekme === 'sira') {
+   if (!sirali.length) icerik.append(el('p', 'pnote', 'Henüz kimse çözmedi.'));
+   else { const ol = el('ol', 'prank s-sira'); sirali.forEach((s, i) => ol.append(el('li', null, (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + s.ad + (s.sinif ? ' (' + s.sinif + ')' : '') + ' — ' + siraOzeti(s.r)))); icerik.append(ol); }
+  } else if (durum.sekme === 'ogr') {
+   if (!g.length) icerik.append(el('p', 'pnote', 'Henüz kimse çözmedi. Sınıf listesi eklersen yapmayanlar da burada görünür.'));
+   const ol = el('ol', 's-ogr');
+   g.slice().sort((a, b) => (a.listede === b.listede ? 0 : a.listede ? -1 : 1) || (a.sinif || '').localeCompare(b.sinif || '', 'tr') || noNorm(a.numara) - noNorm(b.numara)).forEach(s => {
+    const x = el('li', 's-kisi' + (s.r ? '' : ' yapmadi'));
+    const dugme = el('button', 's-kisi-bas'); dugme.type = 'button';
+    dugme.append(el('span', 's-ad', s.numara + ' · ' + s.ad + (s.sinif && !durum.sube ? ' (' + s.sinif + ')' : '')),
+     el('span', 's-not', !s.r ? 'Yapmadı' : String(s.r.puan).replace('.', ',') + (s.r.durum === 'süre dışı' ? ' · süre dışı' : '')));
+    x.append(dugme);
+    if (s.r) {
+     const d = el('div', 's-detay'); d.hidden = true;
+     d.append(el('p', 'pnote', s.r.dogru + ' doğru, ' + s.r.yanlis + ' yanlış' + (s.r.bos ? ', ' + s.r.bos + ' boş' : '') +
+      (s.r.sure != null ? ' · süre ' + sureYaz(s.r.sure) : '') + (s.r.zaman ? ' · ' + gunSaat(Date.parse(s.r.zaman)) : '') +
+      (s.sonraki ? ' · sonra ' + s.sonraki + ' kez daha çözdü (sayılmaz)' : '') + (s.listede ? '' : ' · sınıf listesinde bu numara yok')));
+     const c = cevapCoz(s.r.cevaplar), ol2 = el('ol', 's-cevaplar');
+     sorular.forEach((q, i) => {
+      const k = c[i], sat = el('li', k == null || k < 0 ? 'bos' : k === q.a ? 'dogru' : 'yanlis');
+      sat.append(el('span', 's-q', (i + 1) + '. ' + q.q.replace(/\n/g, ' ')),
+       el('span', null, k == null || k < 0 ? 'Boş · doğru: ' + 'ABCD'[q.a] + ') ' + q.o[q.a] : k === q.a ? '✓ ' + 'ABCD'[k] + ') ' + q.o[k] : '✗ ' + 'ABCD'[k] + ') ' + q.o[k] + ' · doğru: ' + 'ABCD'[q.a] + ') ' + q.o[q.a]));
+      ol2.append(sat);
+     });
+     d.append(ol2); x.append(d);
+     dugme.addEventListener('click', () => { d.hidden = !d.hidden; dugme.setAttribute('aria-expanded', String(!d.hidden)); });
+     dugme.setAttribute('aria-expanded', 'false');
+    }
+    ol.append(x);
+   });
+   icerik.append(ol);
+  } else {
+   if (!cozen.length || !sorular.length) icerik.append(el('p', 'pnote', cozen.length ? 'Bu testin soruları bu sayfada bulunamadı.' : 'Henüz kimse çözmedi.'));
+   else {
+    const ist = sorular.map((q, i) => { const say = [0, 0, 0, 0], t = {d: 0, y: 0, b: 0}; cozen.forEach(s => { const k = cevapCoz(s.r.cevaplar)[i]; if (k == null || k < 0) t.b++; else { say[k]++; k === q.a ? t.d++ : t.y++; } }); return {i, q, say, ...t}; });
+    const ol = el('ol', 's-sorular');
+    ist.sort((a, b) => a.d / cozen.length - b.d / cozen.length || b.y - a.y || a.i - b.i).forEach(s => {
+     const x = el('li', null), yuzde = Math.round(100 * s.d / cozen.length);
+     const enCok = s.say.map((n, k) => [n, k]).filter(([, k]) => k !== s.q.a).sort((a, b) => b[0] - a[0])[0];
+     x.append(el('strong', null, '%' + yuzde + ' doğru · ' + s.d + ' D · ' + s.y + ' Y · ' + s.b + ' B'),
+      el('span', 's-q', (s.i + 1) + '. ' + s.q.q.replace(/\n/g, ' ')),
+      el('span', 's-dogru', 'Doğru: ' + 'ABCD'[s.q.a] + ') ' + s.q.o[s.q.a]));
+     if (enCok && enCok[0]) x.append(el('span', 's-yanlis', 'En çok seçilen yanlış: ' + 'ABCD'[enCok[1]] + ') ' + s.q.o[enCok[1]] + ' (' + enCok[0] + ' kişi)'));
+     ol.append(x);
+    });
+    icerik.append(ol);
+   }
+  }
+  wa.hidden = !sirali.length || durum.sekme !== 'sira'; wa.href = waLink(siralamaMetni(ad, durum.sube, sirali));
+  const acik = !j.odev.bitis || Date.parse(j.odev.bitis) >= Date.now(), eksik = yapmayan.filter(s => s.listede);
+  hatirlat.hidden = !acik || !eksik.length;
+  hatirlat.textContent = 'Yapmayanlara hatırlat (' + eksik.length + ' öğrenci)';
+  hatirlat.href = waLink('⏰ Hatırlatma: ' + ad + ' ödevini henüz yapmayanlar' + (durum.sube ? ' (' + durum.sube + ')' : '') + ':\n' +
+   eksik.map(s => '• ' + s.ad).join('\n') + '\n\n' + odevMesaji(j.odev.kod, j.odev.test_slug, j.odev.bitis));
+  indir.hidden = !g.length;
+ }
+ ciz();
 }
 $('p-olustur').addEventListener('click', async () => {
  if (!PANEL) return;
@@ -1063,7 +1254,72 @@ $('p-yenile').addEventListener('click', () => { if (PANEL && PANEL_ANAHTAR) pane
    ChatGPT'nin çıktısı serbest metindir: numara "1." / "1)" / "Soru 1:", şık "A)" / "A." / "(A)",
    "Cevap: B", "Açıklama: …", araya girinti ve **kalın** işaretleri girebilir. Diyalog satırları
    ("A: Let's go…") şık sayılmaz. Doğru cevapların yeri kaydetmeden önce dengelenir (her harf eşit). */
-let OZEL = {}, TASLAK = null;
+let OZEL = {}, TASLAK = null, SINIFLAR = [], LISTE = null;
+/* ---------- Sınıf listesi ----------
+   Öğretmen şube şube yapıştırır. Satırda iki sayı varsa (sıra no + numara) ikincisi numaradır. */
+function listeCoz(metin){
+ const ogrenciler = [], hatalar = [], uyarilar = [], gorulen = {};
+ String(metin).replace(/\r/g, '').split('\n').forEach((satir, i) => {
+  const t = satir.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean); if (!t.length) return;
+  const sayi = k => /^\d{1,12}[.)]?$/.test(k), sayilar = t.filter(sayi).map(k => k.replace(/[.)]$/, ''));
+  const ad = t.filter(k => !sayi(k)).join(' ');
+  if (!sayilar.length) { uyarilar.push((i + 1) + '. satır atlandı (numara yok): ' + t.join(' ').slice(0, 40)); return; }
+  const numara = sayilar.length > 1 && sayi(t[0]) && sayi(t[1]) ? sayilar[1] : sayilar[0];
+  if (ad.length < 2) { hatalar.push((i + 1) + '. satırda ad yok: ' + t.join(' ').slice(0, 40)); return; }
+  if (gorulen[noNorm(numara)]) { hatalar.push(numara + ' numarası iki kez var (' + gorulen[noNorm(numara)] + ' ve ' + ad + ').'); return; }
+  gorulen[noNorm(numara)] = ad; ogrenciler.push({numara, ad});
+ });
+ if (!ogrenciler.length && !hatalar.length) hatalar.push('Hiç öğrenci bulunamadı. Her satırda numara ve ad olmalı.');
+ if (ogrenciler.length > 80) hatalar.push('Bir şubede en çok 80 öğrenci olabilir (' + ogrenciler.length + ' bulundu).');
+ return {ogrenciler, hatalar, uyarilar};
+}
+// 8-A'nın, 8-B'nin, 8-O'nun, 8-Ü'nün: harfin okunuşuna göre (a, be, ce … ka … o, ö, u, ü)
+const tamlama = sube => { const h = sube.slice(-1); return 'AIK'.includes(h) ? 'nın' : 'OU'.includes(h) ? 'nun' : 'ÖÜ'.includes(h) ? 'nün' : 'nin'; };
+function sinifOzeti(){
+ $('l-ozet').textContent = SINIFLAR.length ? 'Kayıtlı listeler: ' + SINIFLAR.map(x => x.sinif + ' (' + x.n + ')').join(', ') : 'Henüz sınıf listesi yok.';
+ subeCipleri();
+}
+function subeCipleri(){
+ const secili = $('p-sinif').value.split(/[,;]/).map(sinifSube).filter(Boolean);
+ $('p-subeler').replaceChildren(...SINIFLAR.map(x => {
+  const c = el('button', 'cip', x.sinif); c.type = 'button'; c.setAttribute('aria-pressed', String(secili.includes(x.sinif)));
+  c.addEventListener('click', () => {
+   const simdi = $('p-sinif').value.split(/[,;]/).map(sinifSube).filter(Boolean);
+   $('p-sinif').value = (simdi.includes(x.sinif) ? simdi.filter(y => y !== x.sinif) : simdi.concat(x.sinif)).join(', ');
+   subeCipleri();
+  });
+  return c;
+ }));
+ $('p-subeler').hidden = !SINIFLAR.length;
+}
+$('p-sinif').addEventListener('input', subeCipleri);
+$('l-kontrol').addEventListener('click', () => {
+ if (!PANEL) return;
+ const sube = sinifSube($('l-sinif').value), t = listeCoz($('l-metin').value);
+ if (!sube) t.hatalar.unshift('Şubeyi 8-A gibi yaz.');
+ else $('l-sinif').value = sube;
+ $('l-sonuc').hidden = false; $('l-tamam').hidden = true; $('l-err').textContent = '';
+ liste($('l-hatalar'), t.hatalar); liste($('l-uyarilar'), t.uyarilar);
+ const eski = SINIFLAR.find(x => x.sinif === sube);
+ $('l-bilgi').textContent = t.hatalar.length ? '✗ Düzeltmen gereken ' + t.hatalar.length + ' sorun var.'
+  : '✓ ' + sube + ' için ' + t.ogrenciler.length + ' öğrenci bulundu. Adları ve numaraları kontrol et.' + (eski ? ' ' + sube + '\'' + tamlama(sube) + ' kayıtlı listesi (' + eski.n + ' öğrenci) bununla değiştirilecek.' : '');
+ $('l-onizleme').replaceChildren(...t.ogrenciler.map(o => el('li', null, o.numara + ' · ' + o.ad)));
+ $('l-kaydet').hidden = !!t.hatalar.length;
+ LISTE = t.hatalar.length ? null : {sube, ogrenciler: t.ogrenciler};
+});
+$('l-kaydet').addEventListener('click', async () => {
+ if (!PANEL || !LISTE) return;
+ const b = $('l-kaydet'); b.disabled = true; b.textContent = 'Kaydediliyor…'; $('l-err').textContent = '';
+ let j;
+ try { j = await panelIstek('liste_kaydet', {sinif_sube: LISTE.sube, ogrenciler: LISTE.ogrenciler}); }
+ catch (e) { b.disabled = false; b.textContent = 'Listeyi kaydet'; if (e.message !== 'yetkisiz') $('l-err').textContent = 'Bağlantı kurulamadı, tekrar dene.'; return; }
+ b.disabled = false; b.textContent = 'Listeyi kaydet';
+ if (!j || !j.ok) { $('l-err').textContent = 'Kaydedilemedi' + (j && j.no ? ' (' + j.no + '. öğrenci)' : '') + '. Tekrar kontrol et.'; return; }
+ SINIFLAR = j.siniflar || SINIFLAR; sinifOzeti();
+ $('l-sonuc').hidden = true; $('l-metin').value = ''; $('l-sinif').value = ''; LISTE = null;
+ $('l-tamam').textContent = '✓ ' + j.sinif + ' listesi kaydedildi (' + j.n + ' öğrenci). Ödev verirken şubeyi seçebilir, sonuçlarda yapmayanları görebilirsin.';
+ $('l-tamam').hidden = false;
+});
 const KALIP = `Sen bir 8. sınıf İngilizce öğretmenisin. LGS tarzında, çoktan seçmeli bir test hazırla.
 
 Kurallar:
