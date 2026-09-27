@@ -217,6 +217,7 @@ class SahteUcNokta:
         self.satirlar, self.istekler, self.yanitlar = [], [], {}
         self.testler = {}  # öğretmenin kendi testleri: slug → {ad, sorular}
         self.ogrenciler = []  # sınıf listesi: [{sinif, numara, ad}]
+        self.kararlar = {}  # (kod, numara | '*') → karar
         self.post_modu = 'normal'  # 'normal' | 'sunucu_hatasi'
         self.kilit = threading.Lock()
 
@@ -229,6 +230,7 @@ class SahteUcNokta:
                 del self.odevler[k]  # panelden eklenenler
             self.testler.clear()
             self.ogrenciler.clear()
+            self.kararlar.clear()
 
     def istek_say(self, yontem, yol='/exec'):
         return sum(1 for m, y, _, _ in self.istekler if m == yontem and y == yol)
@@ -311,6 +313,37 @@ class SahteUcNokta:
             for x in self.ogrenciler:
                 say[x['sinif']] = say.get(x['sinif'], 0) + 1
             return {'ok': True, 'sinif': sube, 'n': len(ogr), 'siniflar': [{'sinif': k, 'n': say[k]} for k in sorted(say)]}
+        if g['islem'] == 'karar':
+            kod, numara, karar = str(g.get('kod', '')).upper(), str(g.get('numara', '')), g.get('karar', '')
+            if kod not in self.odevler or karar not in ('', 'ozurlu', 'sifir', 'tam', 'haric') or \
+                    (karar and (numara == '*') != (karar == 'haric')):
+                return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
+            if karar:
+                self.kararlar[(kod, numara)] = karar
+            else:
+                self.kararlar.pop((kod, numara), None)
+            return {'ok': True, 'kod': kod, 'numara': numara, 'karar': karar}
+        if g['islem'] == 'notlar':  # Kod.gs notCizelgesi_
+            sube = sinif_sube(g.get('sinif_sube'))
+            liste = [x for x in self.ogrenciler if x['sinif'] == sube]
+            nolar = {x['numara'].lstrip('0') for x in liste}
+            sonuclar, gorulen, cozulen = [], set(), set()
+            for r in self.satirlar:
+                k = (r['kod'].upper(), r['numara'], r['ad_soyad'].lower())
+                if r['numara'].lstrip('0') not in nolar or k in gorulen or (sinif_sube(r.get('sinif_sube')) not in ('', sube)):
+                    continue
+                gorulen.add(k)
+                cozulen.add(k[0])
+                sonuclar.append({'kod': k[0], 'numara': r['numara'], 'puan': r['puan'], 'durum': r['durum'], 'zaman': iso(time.time())})
+            odevler = []
+            for kod, (slug, bas, bit, sec) in self.odevler.items():
+                subeler = [x for x in (sinif_sube(t) for t in re.split('[,;]', sec.get('sinif', ''))) if x]
+                if (sube in subeler) if subeler else (kod in cozulen):
+                    odevler.append({'kod': kod, 'test_slug': slug, 'bitis': iso(bit), 'sinif': sec.get('sinif', '')})
+            ilgili = {o['kod'] for o in odevler}
+            return {'ok': True, 'sube': sube, 'ogrenciler': liste, 'odevler': odevler,
+                    'sonuclar': [x for x in sonuclar if x['kod'] in ilgili],
+                    'kararlar': [{'kod': k, 'numara': n, 'karar': v} for (k, n), v in self.kararlar.items() if k in ilgili]}
         if g['islem'] == 'sonuclar':
             kod = str(g.get('kod', '')).upper()
             if kod not in self.odevler:
@@ -935,6 +968,86 @@ def panel_siralama(o):
         s.kapat()
 
 
+def panel_sozlu(o):
+    """Sözlü notları: varsayılanlar (yapmadı 0, süre dışı tam, süresi süren sayılmaz), kararlar (özürlü, 0 say),
+    ödevi nota saymama, yeniden yüklemede kararların kalıcılığı, başka şubenin ödevinin karışmaması, CSV."""
+    o.uc.sifirla()
+    simdi = time.time()
+    o.uc.ogrenciler[:] = [{'sinif': '8-A', 'numara': '5', 'ad': 'Ayşe Kaya'}, {'sinif': '8-A', 'numara': '6', 'ad': 'Ali Can'},
+                          {'sinif': '8-A', 'numara': '7', 'ad': 'Gelmeyen Öğrenci'}, {'sinif': '8-B', 'numara': '8', 'ad': 'Can Demir'}]
+    # P ile başlayan kodlar sifirla() ile silinir
+    o.uc.odevler['P9001'] = ('do-you-know-me', simdi - 2 * GUN, simdi - 3600, {'sinif': '8-A'})
+    o.uc.odevler['P9002'] = ('ingilizce-8-friendship', simdi - 2 * GUN, simdi - 7200, {'sinif': '8-A'})
+    o.uc.odevler['P9003'] = ('do-you-know-me', simdi - GUN, simdi + GUN, {'sinif': '8-A'})  # süresi sürüyor
+    o.uc.odevler['P9004'] = ('do-you-know-me', simdi - 2 * GUN, simdi - 3600, {'sinif': '8-B'})  # başka şube
+    def ekle(kod, no, ad, puan, durum):
+        o.uc.satirlar.append({'kod': kod, 'test_slug': o.uc.odevler[kod][0], 'numara': no, 'ad_soyad': ad, 'puan': puan,
+                              'dogru': 0, 'yanlis': 0, 'bos': 0, 'sinif_sube': '8-A', 'istemci_sure_ms': 1000,
+                              'gonderim_id': f'{kod}-{no}', 'durum': durum, 'deneme_no': 1})
+    ekle('P9001', '5', 'Ayşe Kaya', 80, 'zamanında')
+    ekle('P9001', '6', 'Ali Can', 60, 'zamanında')
+    ekle('P9002', '5', 'Ayşe Kaya', 90, 'süre dışı')
+    ekle('P9003', '6', 'Ali Can', 100, 'zamanında')
+    ekle('P9004', '8', 'Can Demir', 10, 'zamanında')
+    s = o.sayfa()
+    page = s.page
+    notlar = page.locator('#n-ogr .n-not')
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        page.click('#n-kart summary')
+        expect(page.locator('#n-form')).to_be_visible()
+        page.select_option('#n-sube', '8-A')
+        page.select_option('#n-donem', '')
+        page.click('#n-goster')
+        # varsayılan: Ayşe (90 süre dışı tam + 80) → 85 · Ali (yapmadı 0 + 60 + 100) → 53 · Gelmeyen (0 + 0) → 0; süresi süren yapılmayan sayılmaz
+        expect(page.locator('#n-ozet')).to_have_text('8-A · 3 öğrenci · 3 ödev nota sayılıyor · şube ortalaması 46')
+        expect(notlar).to_have_text(['85', '53', '0'])
+        expect(page.locator('#n-odevler .n-odev')).to_have_count(3)
+        # Ali: yapmadığı ödev → özürlü
+        ali = page.locator('#n-ogr .n-kisi').nth(1)
+        ali.locator('.n-bas').click()
+        karar = ali.locator('.n-karar')
+        expect(karar).to_have_text(['Yapmadı · 0 sayılıyor'])
+        karar.first.click()
+        expect(karar).to_have_text(['Yapmadı · özürlü (sayılmıyor)'])
+        expect(notlar).to_have_text(['85', '80', '0'])
+        expect(ali.locator('.n-detay li').last).to_contain_text('100')
+        # Ayşe: süre dışı → 0 → özürlü
+        ayse = page.locator('#n-ogr .n-kisi').first
+        ayse.locator('.n-bas').click()
+        ayse.locator('.n-karar').first.click()
+        expect(ayse.locator('.n-karar').first).to_have_text('90 · süre dışı · 0 sayılıyor')
+        expect(notlar.first).to_have_text('40')
+        ayse.locator('.n-karar').first.click()
+        expect(notlar.first).to_have_text('80')
+        expect(page.locator('#n-ogr .n-kisi').nth(2).locator('.n-detay')).to_be_hidden()
+        # ödevi nota sayma
+        page.locator('#n-odevler .n-odev input').nth(1).uncheck()  # tarih sırası: Friendship (P9002), P9001, P9003
+        expect(page.locator('#n-ozet')).to_contain_text('2 ödev nota sayılıyor')
+        expect(notlar).to_have_text(['—', '100', '0'])
+        eşit(o.uc.kararlar, {('P9002', '6'): 'ozurlu', ('P9002', '5'): 'ozurlu', ('P9001', '*'): 'haric'}, 'kaydedilen kararlar')
+        # CSV
+        with page.expect_download() as d:
+            page.click('#n-indir')
+        csv = pathlib.Path(d.value.path()).read_text(encoding='utf-8-sig').splitlines()
+        eşit(csv[0].split(';')[:4], ['Numara', 'Ad Soyad', 'Sözlü notu', 'Sayılan ödev'], 'CSV başlık')
+        eşit(csv[2].split(';')[:4], ['6', 'Ali Can', '100', '1'], 'CSV Ali')
+        eşit(csv[1].split(';')[2:5], ['', '0', 'özürlü'], 'CSV Ayşe')
+        # yeniden yükle: kararlar kalıcı
+        page.reload()
+        page.click('#n-kart summary')
+        page.select_option('#n-sube', '8-A')
+        page.select_option('#n-donem', '')
+        page.click('#n-goster')
+        expect(notlar).to_have_text(['—', '100', '0'])
+        expect(page.locator('#n-odevler .n-odev input').nth(1)).not_to_be_checked()
+        o.bitir(s)
+        return 'varsayılanlar (yapmadı 0, süre dışı tam, süren sayılmaz) → 85/53/0 · özürlü, 0 say, ödevi sayma · kalıcı · başka şube karışmadı · CSV'
+    finally:
+        s.kapat()
+
+
 def panel_sinif_listesi(o):
     """Sınıf listesi yapıştırılır (başlık ve sıra no'lu satırlar), aynı numara hatası yakalanır, kaydedilir;
     Yeni ödev'de şube çipi çıkar ve ödeve şube yazılır; yeniden kaydedince eski listenin yerine geçeceği söylenir."""
@@ -945,6 +1058,9 @@ def panel_sinif_listesi(o):
         page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
         expect(page.locator('#p-odev-ACIK1')).to_be_visible()
         expect(page.locator('#p-subeler')).to_be_hidden()
+        page.click('#n-kart summary')
+        expect(page.locator('#n-bos')).to_be_visible()
+        expect(page.locator('#n-form')).to_be_hidden()
         page.click('#l-kart summary')
         page.fill('#l-sinif', '8a')
         page.fill('#l-metin', 'S.No\tÖğrenci No\tAdı\tSoyadı\n1\t123\tAli\tVeli\n2.\t124\tAyşe\tYılmaz\n125 Can Demir\n\n3 124 Tekrar Numara')
@@ -962,6 +1078,8 @@ def panel_sinif_listesi(o):
         eşit([(x['sinif'], x['numara'], x['ad']) for x in o.uc.ogrenciler],
              [('8-A', '123', 'Ali Veli'), ('8-A', '124', 'Ayşe Yılmaz'), ('8-A', '125', 'Can Demir')], 'kaydedilen liste')
         expect(page.locator('#l-ozet')).to_have_text('Kayıtlı listeler: 8-A (3)')
+        expect(page.locator('#n-bos')).to_be_hidden()
+        expect(page.locator('#n-sube option')).to_have_text(['8-A (3 öğrenci)'])
         # Yeni ödev: şube çipi
         cip = page.locator('#p-subeler .cip')
         expect(cip).to_have_text(['8-A'])
@@ -1270,6 +1388,7 @@ def main():
         kos('panel  ChatGPT hatalı metin', panel_ozel_hatalar, o)
         kos('panel  hazır testi kontrol et', panel_hazir_kontrol, o)
         kos('panel  sınıf listesi', panel_sinif_listesi, o)
+        kos('panel  sözlü notları', panel_sozlu, o)
         browser.close()
     print(f'duman testi: {gecen} geçti · {kalan} kaldı')
     return 1 if kalan else 0

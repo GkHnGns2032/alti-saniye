@@ -636,6 +636,62 @@ VAKALAR.push(
   }]
 );
 
+/* ---------- Sözlü notları ---------- */
+VAKALAR.push(
+  ['karar: yazılır, aynı öğrencide güncellenir (tek satır), "" ile varsayılana döner; bütün ödev "haric"', () => {
+    const o = panelOrtami();
+    const a = o.panel('karar', {kod: 'acik1', numara: '12', karar: 'ozurlu'});
+    const b = o.panel('karar', {kod: 'ACIK1', numara: '12', karar: 'sifir'});
+    const c = o.panel('karar', {kod: 'ACIK1', numara: '*', karar: 'haric'});
+    const v1 = o.sayfalar['Kararlar'].v.map(r => r.slice(0, 3).join('/'));
+    const d = o.panel('karar', {kod: 'ACIK1', numara: '12', karar: ''});
+    const e = o.panel('karar', {kod: 'ACIK1', numara: '55', karar: ''}); // olmayan kararı silmek: satır açılmaz
+    const v2 = o.sayfalar['Kararlar'].v;
+    return a.ok && b.ok && c.ok && d.ok && e.ok && v1.join('|') === 'kod/numara/karar|ACIK1/12/sifir|ACIK1/*/haric' &&
+      v2.length === 3 && v2[1][2] === '' && o.sayfalar['Kararlar'].bicim['2:1'] === '@';
+  }],
+  ['karar: bilinmeyen ödev, bozuk numara, bilinmeyen karar, "*" ile öğrenci kararı, öğrenciye "haric" ve anahtarsız istek reddedilir', () => {
+    const o = panelOrtami();
+    const r = [
+      o.panel('karar', {kod: 'YOK', numara: '12', karar: 'ozurlu'}),
+      o.panel('karar', {kod: 'ACIK1', numara: '1a', karar: 'ozurlu'}),
+      o.panel('karar', {kod: 'ACIK1', numara: '12', karar: 'yarim'}),
+      o.panel('karar', {kod: 'ACIK1', numara: '*', karar: 'ozurlu'}),
+      o.panel('karar', {kod: 'ACIK1', numara: '12', karar: 'haric'}),
+      o.post({islem: 'karar', anahtar: 'x'.repeat(64), kod: 'ACIK1', numara: '12', karar: 'ozurlu'})
+    ];
+    return r.slice(0, 5).every(x => x.ok === false && x.kalici) && r[5].hata === 'yetkisiz' &&
+      !(o.sayfalar['Kararlar'] && o.sayfalar['Kararlar'].v.length > 1);
+  }],
+  ['not çizelgesi: şubenin öğrencileri, o şubenin ödevleri, listedeki öğrencilerin ilk denemeleri ve ilgili kararlar', () => {
+    const o = panelOrtami();
+    o.panel('liste_kaydet', {sinif_sube: '8-A', ogrenciler: [ogr('11', 'Ayşe Yılmaz'), ogr('012', 'Ali Veli'), ogr('20', 'Gelmeyen Öğrenci')]});
+    o.panel('liste_kaydet', {sinif_sube: '8-B', ogrenciler: [ogr('13', 'Can Demir')]});
+    const ikiSube = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8-A, 8-B'});
+    const sadeceB = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8-B'});
+    const subesiz = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek()});
+    o.post(govde({kod: subesiz.kod, numara: '11', ad_soyad: 'Ayşe Yılmaz', puan: 55}));
+    o.panel('karar', {kod: 'ACIK1', numara: '20', karar: 'ozurlu'});
+    o.panel('karar', {kod: sadeceB.kod, numara: '13', karar: 'sifir'});
+    const r = o.panel('notlar', {sinif_sube: '8a'});
+    const kodlar = r.odevler.map(x => x.kod);
+    const ayse = r.sonuclar.filter(x => x.numara === '11').map(x => x.kod + ':' + x.puan).sort().join();
+    return r.ok && r.sube === '8-A' && r.ogrenciler.map(x => x.numara).join() === '11,012,20' &&
+      kodlar.includes('ACIK1') && kodlar.includes(ikiSube.kod) && kodlar.includes(subesiz.kod) &&
+      !kodlar.includes(sadeceB.kod) && !kodlar.includes('GECTI') &&
+      ayse === ['ACIK1:80', subesiz.kod + ':55'].sort().join() &&
+      r.sonuclar.some(x => x.numara === '12' && x.kod === 'ACIK1' && x.puan === 90) &&
+      !r.sonuclar.some(x => x.numara === '13' || x.numara === '14') &&
+      JSON.stringify(r.kararlar) === '[{"kod":"ACIK1","numara":"20","karar":"ozurlu"}]';
+  }],
+  ['not çizelgesi: bozuk şube ve anahtarsız istek reddedilir', () => {
+    const o = panelOrtami();
+    const a = o.panel('notlar', {sinif_sube: 'sekiz'});
+    const b = o.post({islem: 'notlar', anahtar: 'x'.repeat(64), sinif_sube: '8-A'});
+    return a.ok === false && a.hata === 'sinif' && b.hata === 'yetkisiz' && !b.ogrenciler;
+  }]
+);
+
 let gecen = 0, kalan = 0;
 for (const [ad, fn] of VAKALAR) {
   let ok, neden = '';

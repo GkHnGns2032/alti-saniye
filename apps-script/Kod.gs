@@ -57,6 +57,11 @@ const TEST_BASLIK = ['test_slug', 'ad', 'soru_sayisi', 'olusturma', 'icerik'];
 // Sınıf listesi: öğretmen panele yapıştırır; ödevi yapmayanları görmek ve sonucu numarayla eşlemek için.
 const OGRENCILER = 'Öğrenciler';
 const OGRENCI_BASLIK = ['sinif_sube', 'numara', 'ad_soyad'];
+// Sözlü notu kararları: yapılmayan ödev varsayılan 0, süre dışı varsayılan tam puan; öğretmen tek tek değiştirir.
+// numara "*" → bütün ödev nota sayılmaz (haric). karar: ozurlu | sifir | tam | haric
+const KARARLAR = 'Kararlar';
+const KARAR_BASLIK = ['kod', 'numara', 'karar', 'zaman'];
+const KARAR_TURLERI = ['ozurlu', 'sifir', 'tam', 'haric'];
 
 /* ---------- Web uygulaması giriş noktaları ---------- */
 
@@ -161,6 +166,7 @@ function panelIslem_(b, simdi) {
   if (!anahtarDogru_(b.anahtar)) return {ok: false, hata: 'yetkisiz', kalici: true};
   if (b.islem === 'odevler') return {ok: true, odevler: odevListesi_(), testler: testListesi_(), siniflar: sinifOzeti_()};
   if (b.islem === 'sonuclar') return odevSonuclari_(b.kod);
+  if (b.islem === 'notlar') return notCizelgesi_(b.sinif_sube);
   if (b.islem === 'test_getir') {
     const t = typeof b.slug === 'string' && b.slug.indexOf('ozel-') === 0 ? ozelTest_(b.slug) : null;
     return t ? {ok: true, test: t} : {ok: false, hata: 'yok', kalici: true};
@@ -170,11 +176,12 @@ function panelIslem_(b, simdi) {
     return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
       satirlar: s.satirlar.map(function (o) { return {ad: o.ad, sinif: o.sinif, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; })};
   }
-  if (b.islem === 'odev_ekle' || b.islem === 'test_ekle' || b.islem === 'liste_kaydet') {
+  if (b.islem === 'odev_ekle' || b.islem === 'test_ekle' || b.islem === 'liste_kaydet' || b.islem === 'karar') {
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return {ok: false, hata: 'mesgul'};
     try {
-      return b.islem === 'odev_ekle' ? odevEkle_(b, simdi) : b.islem === 'test_ekle' ? testEkle_(b, simdi) : listeKaydet_(b);
+      return b.islem === 'odev_ekle' ? odevEkle_(b, simdi) : b.islem === 'test_ekle' ? testEkle_(b, simdi) :
+        b.islem === 'karar' ? kararYaz_(b, simdi) : listeKaydet_(b);
     } finally {
       kilit.releaseLock();
     }
@@ -282,6 +289,72 @@ function odevSonuclari_(kodGirdisi) {
   const liste = ogrenciListesi_().filter(function (o) { return ilgili.indexOf(o.sinif) >= 0; });
   const test = odev.test_slug.indexOf('ozel-') === 0 ? ozelTest_(odev.test_slug) : null;
   return {ok: true, odev: odev, sonuclar: sira, liste: liste, subeler: ilgili.sort(subeSirala_), test: test || undefined};
+}
+
+/* ---------- Sözlü notları ---------- */
+
+/** Öğretmenin kararı: {kod, numara ("*" = bütün ödev), karar}. karar "" → karar silinir (varsayılana döner). */
+function kararYaz_(b, simdi) {
+  const kod = normKod_(b.kod), numara = String(b.numara == null ? '' : b.numara).trim(), karar = b.karar == null ? '' : b.karar;
+  if (!odevBul_(kod)) return {ok: false, hata: 'yok', kalici: true};
+  if (!(numara === '*' || /^\d{1,12}$/.test(numara))) return {ok: false, hata: 'gecersiz', kalici: true};
+  if (karar !== '' && KARAR_TURLERI.indexOf(karar) < 0) return {ok: false, hata: 'gecersiz', kalici: true};
+  if (karar !== '' && (numara === '*') !== (karar === 'haric')) return {ok: false, hata: 'gecersiz', kalici: true}; // haric yalnız bütün ödeve
+  const sh = sayfa_(KARARLAR, KARAR_BASLIK);
+  const son = sh.getLastRow();
+  const v = son >= 2 ? sh.getRange(2, 1, son - 1, KARAR_BASLIK.length).getValues() : [];
+  let r = -1;
+  for (let i = 0; i < v.length; i++) if (normKod_(v[i][0]) === kod && String(v[i][1]).trim() === numara) { r = i + 2; break; }
+  if (r < 0) {
+    if (karar === '') return {ok: true, kod: kod, numara: numara, karar: ''};
+    r = son + 1;
+    sh.getRange(r, 1, 1, 2).setNumberFormat('@');
+  }
+  sh.getRange(r, 1, 1, KARAR_BASLIK.length).setValues([[kod, numara, karar, karar === '' ? '' : simdi]]);
+  SpreadsheetApp.flush();
+  return {ok: true, kod: kod, numara: numara, karar: karar};
+}
+
+/** Bir şubenin not çizelgesi için ham veri: öğrenciler, o şubeyi ilgilendiren ödevler, ilk denemeler, kararlar.
+ *  Ödev şubeye verilmişse (sinif alanında şube) ya da şubesiz ödevi bu şubeden biri çözmüşse ilgilidir.
+ *  Notu sayfa hesaplar (varsayılanlar ve kararlar sayfada da aynı kurallarla uygulanır). */
+function notCizelgesi_(subeGirdisi) {
+  const sube = sinifSube_(subeGirdisi);
+  if (!sube) return {ok: false, hata: 'sinif', kalici: true};
+  const liste = ogrenciListesi_().filter(function (o) { return o.sinif === sube; });
+  const noNorm = function (n) { return String(n).trim().replace(/^0+(?=\d)/, ''); };
+  const listede = {};
+  liste.forEach(function (o) { listede[noNorm(o.numara)] = true; });
+  const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
+  const son = sh.getLastRow();
+  const veri = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
+  const ilk = {}, sonuclar = [], cozulen = {};
+  veri.forEach(function (r) {
+    const kod = normKod_(r[1]), numara = String(r[3]).trim(), sinif = sinifSube_(r[14]);
+    if (!kod || !listede[noNorm(numara)] || (sinif && sinif !== sube)) return;
+    const anahtar = kod + '|' + numara + '|' + kisiAdi_(String(r[4]).replace(/^'/, ''));
+    if (ilk[anahtar]) return;
+    ilk[anahtar] = true; cozulen[kod] = true;
+    sonuclar.push({kod: kod, numara: numara, puan: Number(r[8]) || 0, durum: String(r[9]), zaman: iso_(r[0] instanceof Date ? r[0] : null)});
+  });
+  const odevler = [];
+  sayfa_(ODEVLER, ODEV_BASLIK).getDataRange().getValues().slice(1).forEach(function (r) {
+    const kod = normKod_(r[0]);
+    if (!kod) return;
+    const subeler = subeListesi_(r[4]);
+    if (subeler.length ? subeler.indexOf(sube) < 0 : !cozulen[kod]) return;
+    let bit = null;
+    try { bit = zaman_(r[3], true); } catch (err) { /* tarihsiz */ }
+    odevler.push({kod: kod, test_slug: String(r[1]).trim(), bitis: iso_(bit), sinif: String(r[4]).trim()});
+  });
+  const ilgili = {};
+  odevler.forEach(function (o) { ilgili[o.kod] = true; });
+  const ksh = tablo_().getSheetByName(KARARLAR);
+  const kararlar = !ksh || ksh.getLastRow() < 2 ? [] : ksh.getRange(2, 1, ksh.getLastRow() - 1, KARAR_BASLIK.length).getValues()
+    .map(function (r) { return {kod: normKod_(r[0]), numara: String(r[1]).trim(), karar: String(r[2]).trim()}; })
+    .filter(function (k) { return ilgili[k.kod] && KARAR_TURLERI.indexOf(k.karar) >= 0; });
+  return {ok: true, sube: sube, ogrenciler: liste, odevler: odevler,
+    sonuclar: sonuclar.filter(function (x) { return ilgili[x.kod]; }), kararlar: kararlar};
 }
 
 /* ---------- Öğretmenin kendi testleri ----------

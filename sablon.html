@@ -285,7 +285,7 @@ a.btn.ghost{text-decoration:none}
 .pitem .chip.kapali{background:var(--line);color:var(--muted)}
 .prank{margin:0;padding:0 0 0 4px;list-style:none;display:grid;gap:4px;font-size:15px}
 .p-sonuc-kutu{display:grid;gap:10px}
-.s-sube{min-height:44px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);color:var(--ink);font:600 15px var(--f-body)}
+.s-sube,.n-secim select{min-height:44px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);color:var(--ink);font:600 15px var(--f-body)}
 .s-sekmeler{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:12px;background:var(--paper)}
 .s-sekme{min-height:40px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:700 14px var(--f-body)}
 .s-sekme[aria-selected="true"]{background:var(--sheet);color:var(--ink);box-shadow:var(--shadow)}
@@ -306,6 +306,21 @@ a.btn.ghost{text-decoration:none}
 .p-subeler{display:flex;flex-wrap:wrap;gap:6px}
 .cip{min-height:36px;padding:4px 12px;border:1.5px solid var(--line);border-radius:999px;background:var(--sheet);color:var(--ink);font:700 14px var(--f-body)}
 .cip[aria-pressed="true"]{background:var(--form);border-color:var(--form);color:#fff}
+.n-secim{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.n-secim select{width:100%}
+.n-odevler{display:grid;gap:6px}
+.n-odev{display:flex;gap:10px;align-items:center;font-size:14px}
+.n-odev input{width:20px;height:20px;accent-color:var(--form);flex-shrink:0}
+.n-ogr{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.n-kisi{border:1.5px solid var(--line);border-radius:10px;background:var(--sheet)}
+.n-bas{width:100%;display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border:0;background:none;color:var(--ink);font:600 15px var(--f-body);text-align:left}
+.n-not{font:900 22px var(--f-display);color:var(--form);min-width:2.2em;text-align:right}
+.n-detay{margin:0;padding:0 12px 12px;list-style:none;display:grid;gap:4px}
+.n-detay li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;background:var(--paper);font-size:13.5px}
+.n-detay li.sifir{color:var(--miss-text)}
+.n-detay li.sayilmaz{color:var(--muted)}
+.n-odev-ad{font-weight:700}
+.n-karar{border:1.5px solid currentColor;border-radius:999px;background:var(--sheet);color:inherit;font:700 12.5px var(--f-body);padding:4px 10px;text-align:right}
 .l-onizleme{margin:0;padding-left:22px;display:grid;gap:2px;font-size:14px;max-height:240px;overflow:auto}
 .pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
 .linkbtn{border:0;background:none;padding:6px 0;font-weight:700;font-size:15px;color:var(--form)}
@@ -470,6 +485,28 @@ details.pcard[open]>summary::after{content:"−"}
        <button class="btn wa wide" id="l-kaydet" type="button">Listeyi kaydet</button>
       </div>
       <p class="pnote" id="l-tamam" hidden></p>
+     </div>
+    </details>
+    <details class="pcard" id="n-kart">
+     <summary><h2>Sözlü notları</h2></summary>
+     <div class="pcard-govde">
+      <p class="pnote">Sözlü notu, öğrencinin o dönem şubesine verilen ödevlerdeki <b>ilk deneme</b> puanlarının ortalamasıdır. Yapmadığı ödev <b>0</b>, süre dışı gönderdiği ödev <b>tam puan</b> sayılır. Öğrencinin adına, sonra ödev satırındaki düğmeye dokunarak değiştirebilirsin (<b>özürlü</b> = ortalamaya girmez).</p>
+      <p class="pnote" id="n-bos">Önce <b>Sınıf listelerim</b>'den şube listesi ekle.</p>
+      <div id="n-form" class="pcard-govde" hidden>
+       <div class="n-secim">
+        <label class="inp" for="n-sube"><span>Şube</span><select id="n-sube"></select></label>
+        <label class="inp" for="n-donem"><span>Dönem</span><select id="n-donem"><option value="1">1. dönem</option><option value="2">2. dönem</option><option value="">Bütün yıl</option></select></label>
+       </div>
+       <button class="btn wide" id="n-goster" type="button">Notları göster</button>
+      </div>
+      <p class="who-err" id="n-not" role="alert" hidden></p>
+      <div id="n-sonuc" class="pcard-govde" hidden>
+       <p class="pnote" id="n-ozet"></p>
+       <div class="n-odevler" id="n-odevler"></div>
+       <ol class="n-ogr" id="n-ogr"></ol>
+       <button class="btn ghost wide" id="n-kopyala" type="button">Notları kopyala</button>
+       <button class="btn ghost wide" id="n-indir" type="button">Tabloyu indir (Excel)</button>
+      </div>
      </div>
     </details>
     <div class="pbar"><h2>Ödevlerim</h2><button class="linkbtn" id="p-yenile" type="button">Yenile ↻</button></div>
@@ -1068,7 +1105,7 @@ async function panelListe(){
  let j;
  try { j = await panelIstek('odevler'); } catch (e) { if (e.message !== 'yetkisiz') $('p-liste-not').textContent = 'Bağlantı kurulamadı. “Yenile”ye bas.'; return; }
  OZEL = {}; ((j && j.testler) || []).forEach(t => { OZEL[t.slug] = {ad: t.ad, n: t.n, kaynak: t.kaynak || ''}; });
- SINIFLAR = (j && j.siniflar) || []; sinifOzeti();
+ SINIFLAR = (j && j.siniflar) || []; sinifOzeti(); notSecenekleri();
  testSecenekleri();
  const ol = $('p-liste'); ol.replaceChildren();
  const liste = (j && j.odevler) || [];
@@ -1315,7 +1352,7 @@ $('l-kaydet').addEventListener('click', async () => {
  catch (e) { b.disabled = false; b.textContent = 'Listeyi kaydet'; if (e.message !== 'yetkisiz') $('l-err').textContent = 'Bağlantı kurulamadı, tekrar dene.'; return; }
  b.disabled = false; b.textContent = 'Listeyi kaydet';
  if (!j || !j.ok) { $('l-err').textContent = 'Kaydedilemedi' + (j && j.no ? ' (' + j.no + '. öğrenci)' : '') + '. Tekrar kontrol et.'; return; }
- SINIFLAR = j.siniflar || SINIFLAR; sinifOzeti();
+ SINIFLAR = j.siniflar || SINIFLAR; sinifOzeti(); notSecenekleri();
  $('l-sonuc').hidden = true; $('l-metin').value = ''; $('l-sinif').value = ''; LISTE = null;
  $('l-tamam').textContent = '✓ ' + j.sinif + ' listesi kaydedildi (' + j.n + ' öğrenci). Ödev verirken şubeyi seçebilir, sonuçlarda yapmayanları görebilirsin.';
  $('l-tamam').hidden = false;
@@ -1515,6 +1552,124 @@ $('k-kaydet').addEventListener('click', async () => {
  $('k-tamam').textContent = '✓ “' + j.ad + '” onaylandı (' + j.n + ' soru). “Yeni ödev”de “✓ onaylı” olarak seçili; ödevler bu hâliyle gider. Önceki ödevler değişmez.';
  $('k-tamam').hidden = false; KONTROL = null;
  $('k-tamam').scrollIntoView({behavior: 'smooth', block: 'center'});
+});
+/* ---------- Sözlü notları ----------
+   Not = şubeye o dönem verilen ödevlerdeki ilk deneme puanlarının ortalaması (yuvarlanır).
+   Varsayılanlar: yapmadığı (süresi bitmiş) ödev 0, süre dışı gönderdiği ödev tam puan. Öğretmen ödev
+   satırına dokunarak değiştirir: yapmadı → 0 / özürlü; süre dışı → tam / 0 / özürlü. Özürlü ve süresi
+   sürüp henüz yapılmamış ödev ortalamaya girmez. Bütün ödev "nota sayma" ile çıkarılabilir. */
+let NOTLAR = null;
+const KARAR_AD = {tam: 'tam puan sayılıyor', sifir: '0 sayılıyor', ozurlu: 'özürlü (sayılmıyor)'};
+function donemAraligi(d){ // okul yılı 1 Eylül'de başlar; 1. dönem Eylül-Ocak, 2. dönem Şubat-Ağustos
+ const n = new Date(), y = n.getMonth() >= 8 ? n.getFullYear() : n.getFullYear() - 1;
+ const eyl = new Date(y, 8, 1).getTime(), sub = new Date(y + 1, 1, 1).getTime(), son = new Date(y + 1, 8, 1).getTime();
+ return d === '1' ? [eyl, sub] : d === '2' ? [sub, son] : [eyl, son];
+}
+function notHucre(v, o, s){ // → {puan|null (sayılmaz), yazi, karar (şu anki), secenekler (dokununca sırayla)}
+ const k = v.kararlar[o.kod + '|' + noNorm(s.numara)], r = v.sonuc[o.kod + '|' + noNorm(s.numara)];
+ const bitti = !o.bitis || Date.parse(o.bitis) < Date.now();
+ if (r && r.durum !== 'süre dışı') return {puan: r.puan, yazi: fmtPuan(r.puan)};
+ if (r) { const kr = k || 'tam'; return {puan: kr === 'tam' ? r.puan : kr === 'sifir' ? 0 : null, yazi: fmtPuan(r.puan) + ' · süre dışı · ' + KARAR_AD[kr], karar: kr, secenekler: ['tam', 'sifir', 'ozurlu'], varsayilan: 'tam'}; }
+ if (!bitti) return {puan: null, yazi: 'Süresi sürüyor (henüz sayılmıyor)'};
+ const kr = k === 'ozurlu' ? 'ozurlu' : 'sifir';
+ return {puan: kr === 'sifir' ? 0 : null, yazi: 'Yapmadı · ' + KARAR_AD[kr], karar: kr, secenekler: ['sifir', 'ozurlu'], varsayilan: 'sifir'};
+}
+const fmtPuan = p => String(Math.round(p * 10) / 10).replace('.', ',');
+const kisaAd = slug => { const z = testBilgi(slug); return z ? z.ad.replace(/^.*· /, '') : slug; };
+function notHesapla(v){
+ const [bas, son] = donemAraligi($('n-donem').value);
+ const odevler = v.odevler.filter(o => !o.bitis || (Date.parse(o.bitis) >= bas && Date.parse(o.bitis) < son))
+  .sort((a, b) => (Date.parse(a.bitis) || 0) - (Date.parse(b.bitis) || 0));
+ const sayilan = odevler.filter(o => !v.haric.has(o.kod));
+ return {odevler, sayilan, ogrenciler: v.ogrenciler.map(s => {
+  const hucre = sayilan.map(o => notHucre(v, o, s)), p = hucre.filter(h => h.puan != null);
+  return {s, hucre, not: p.length ? Math.round(p.reduce((t, h) => t + h.puan, 0) / p.length) : null, sayi: p.length};
+ })};
+}
+function notCiz(){
+ const v = NOTLAR; if (!v) return;
+ const h = notHesapla(v), notlu = h.ogrenciler.filter(x => x.not != null);
+ $('n-ozet').textContent = v.sube + ' · ' + h.ogrenciler.length + ' öğrenci · ' + h.sayilan.length + ' ödev nota sayılıyor' +
+  (notlu.length ? ' · şube ortalaması ' + Math.round(notlu.reduce((t, x) => t + x.not, 0) / notlu.length) : '');
+ const od = $('n-odevler'); od.replaceChildren();
+ if (!h.odevler.length) od.append(el('p', 'pnote', 'Bu dönemde ' + v.sube + ' şubesine verilmiş ödev yok.'));
+ h.odevler.forEach(o => {
+  const lab = el('label', 'n-odev'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !v.haric.has(o.kod);
+  const cozen = v.ogrenciler.filter(s => v.sonuc[o.kod + '|' + noNorm(s.numara)]).length;
+  lab.append(cb, el('span', null, kisaAd(o.test_slug) + (o.bitis ? ' · ' + new Date(o.bitis).toLocaleDateString('tr-TR', {day: 'numeric', month: 'short'}) : '') + ' · ' + cozen + '/' + v.ogrenciler.length + ' çözdü'));
+  cb.addEventListener('change', () => kararKaydet(o.kod, '*', cb.checked ? '' : 'haric', () => { cb.checked ? v.haric.delete(o.kod) : v.haric.add(o.kod); }));
+  od.append(lab);
+ });
+ const ol = $('n-ogr'); ol.replaceChildren();
+ h.ogrenciler.forEach(x => {
+  const li = el('li', 'n-kisi'), bas = el('button', 'n-bas'); bas.type = 'button';
+  bas.append(el('span', null, x.s.numara + ' · ' + x.s.ad), el('b', 'n-not', x.not == null ? '—' : String(x.not)));
+  const d = el('ul', 'n-detay'); d.hidden = !v.acik.has(x.s.numara);
+  h.sayilan.forEach((o, i) => {
+   const c = x.hucre[i], sat = el('li', c.puan == null ? 'sayilmaz' : c.puan === 0 ? 'sifir' : '');
+   sat.append(el('span', 'n-odev-ad', kisaAd(o.test_slug)));
+   if (c.secenekler) {
+    const b = el('button', 'n-karar', c.yazi); b.type = 'button';
+    b.addEventListener('click', () => {
+     const yeni = c.secenekler[(c.secenekler.indexOf(c.karar) + 1) % c.secenekler.length];
+     kararKaydet(o.kod, x.s.numara, yeni === c.varsayilan ? '' : yeni, () => { const k = o.kod + '|' + noNorm(x.s.numara); yeni === c.varsayilan ? delete v.kararlar[k] : v.kararlar[k] = yeni; });
+    });
+    sat.append(b);
+   } else sat.append(el('span', null, c.yazi));
+   d.append(sat);
+  });
+  if (!h.sayilan.length) d.append(el('li', 'sayilmaz', 'Nota sayılan ödev yok.'));
+  bas.addEventListener('click', () => { d.hidden = !d.hidden; d.hidden ? v.acik.delete(x.s.numara) : v.acik.add(x.s.numara); });
+  li.append(bas, d); ol.append(li);
+ });
+ $('n-sonuc').hidden = false;
+}
+async function kararKaydet(kod, numara, karar, uygula){
+ const v = NOTLAR; if (!v) return;
+ uygula(); notCiz(); // hemen göster; sunucu reddederse geri al
+ let j;
+ try { j = await panelIstek('karar', {kod, numara, karar}); } catch (e) { j = null; }
+ if (!j || !j.ok) { $('n-not').textContent = 'Karar kaydedilemedi, notlar yeniden yüklendi. Tekrar dene.'; $('n-not').hidden = false; notYukle(); }
+}
+async function notYukle(){
+ const sube = $('n-sube').value, b = $('n-goster');
+ if (!sube) return;
+ b.disabled = true; b.textContent = 'Hazırlanıyor…';
+ let j;
+ try { j = await panelIstek('notlar', {sinif_sube: sube}); } catch (e) { j = null; }
+ b.disabled = false; b.textContent = 'Notları göster';
+ if (!j || !j.ok) { $('n-not').textContent = 'Notlar alınamadı, tekrar dene.'; $('n-not').hidden = false; return; }
+ const sonuc = {};
+ j.sonuclar.forEach(r => { const k = r.kod + '|' + noNorm(r.numara); if (!sonuc[k]) sonuc[k] = r; }); // en erken (ilk deneme)
+ const kararlar = {}, haric = new Set();
+ j.kararlar.forEach(k => { if (k.numara === '*') { if (k.karar === 'haric') haric.add(k.kod); } else kararlar[k.kod + '|' + noNorm(k.numara)] = k.karar; });
+ NOTLAR = {sube: j.sube, ogrenciler: j.ogrenciler, odevler: j.odevler, sonuc, kararlar, haric, acik: NOTLAR && NOTLAR.sube === j.sube ? NOTLAR.acik : new Set()};
+ notCiz();
+}
+function notSecenekleri(){
+ const sec = $('n-sube').value;
+ $('n-sube').replaceChildren(...SINIFLAR.map(x => new Option(x.sinif + ' (' + x.n + ' öğrenci)', x.sinif)));
+ if (SINIFLAR.some(x => x.sinif === sec)) $('n-sube').value = sec;
+ $('n-bos').hidden = !!SINIFLAR.length; $('n-form').hidden = !SINIFLAR.length;
+}
+$('n-donem').value = new Date().getMonth() >= 1 && new Date().getMonth() <= 7 ? '2' : '1';
+$('n-goster').addEventListener('click', () => { if (PANEL) { $('n-not').hidden = true; notYukle(); } });
+$('n-sube').addEventListener('change', () => { $('n-sonuc').hidden = true; NOTLAR = null; });
+$('n-donem').addEventListener('change', notCiz);
+$('n-kopyala').addEventListener('click', async () => {
+ if (!NOTLAR) return;
+ const metin = notHesapla(NOTLAR).ogrenciler.map(x => x.s.numara + '\t' + x.s.ad + '\t' + (x.not == null ? '' : x.not)).join('\n');
+ try { await navigator.clipboard.writeText(metin); }
+ catch { const t = document.createElement('textarea'); t.value = metin; document.body.append(t); t.select(); try { document.execCommand('copy'); } catch {} t.remove(); }
+ $('n-kopyala').textContent = 'Kopyalandı ✓ (numara · ad · not)';
+ setTimeout(() => { $('n-kopyala').textContent = 'Notları kopyala'; }, 2500);
+});
+$('n-indir').addEventListener('click', () => {
+ if (!NOTLAR) return;
+ const h = notHesapla(NOTLAR);
+ const bas = ['Numara', 'Ad Soyad', 'Sözlü notu', 'Sayılan ödev'].concat(h.sayilan.map(o => kisaAd(o.test_slug) + (o.bitis ? ' (' + new Date(o.bitis).toLocaleDateString('tr-TR') + ')' : '')));
+ csvIndir('sozlu-notlari-' + NOTLAR.sube + '.csv', [bas].concat(h.ogrenciler.map(x => [x.s.numara, x.s.ad, x.not == null ? '' : x.not, x.sayi]
+  .concat(x.hucre.map(c => c.puan == null ? (c.karar === 'ozurlu' ? 'özürlü' : 'sayılmıyor') : fmtPuan(c.puan) + (c.karar && c.puan === 0 ? ' (yapmadı)' : ''))))));
 });
 $('t-kalip').addEventListener('click', async () => {
  const b = $('t-kalip');
