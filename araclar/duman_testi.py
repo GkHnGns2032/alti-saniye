@@ -188,6 +188,14 @@ def iso(t):
     return time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime(t))
 
 
+def sinif_sube(v):
+    """Kod.gs sinifSube_: "8a", "8 A", "8/a" → "8-A"; geçersizse ''."""
+    m = re.match(r'^(\d{1,2})\s*[-/.\s]?\s*([A-Za-zÇĞİÖŞÜçğıöşü])$', str(v or '').strip())
+    if not m or not 1 <= int(m[1]) <= 12:
+        return ''
+    return f"{int(m[1])}-{m[2].replace('i', 'İ').replace('ı', 'I').upper()}"
+
+
 class SahteUcNokta:
     """apps-script/Kod.gs sözleşmesini taklit eden yerel Apps Script uç noktası (Google'a istek yok).
 
@@ -208,6 +216,7 @@ class SahteUcNokta:
         }
         self.satirlar, self.istekler, self.yanitlar = [], [], {}
         self.testler = {}  # öğretmenin kendi testleri: slug → {ad, sorular}
+        self.ogrenciler = []  # sınıf listesi: [{sinif, numara, ad}]
         self.post_modu = 'normal'  # 'normal' | 'sunucu_hatasi'
         self.kilit = threading.Lock()
 
@@ -219,6 +228,7 @@ class SahteUcNokta:
             for k in [k for k in self.odevler if k.startswith('P')]:
                 del self.odevler[k]  # panelden eklenenler
             self.testler.clear()
+            self.ogrenciler.clear()
 
     def istek_say(self, yontem, yol='/exec'):
         return sum(1 for m, y, _, _ in self.istekler if m == yontem and y == yol)
@@ -235,6 +245,10 @@ class SahteUcNokta:
                  'acik': bas <= simdi <= bit, 'simdi': iso(simdi)}
         if slug in self.testler:
             yanit['test'] = self.testler[slug]
+        if 'numara' in q and 'ad' in q:  # Kod.gs oncekiVar_: aynı ödevde aynı numara + ad
+            ad = ' '.join(q['ad'][0].lower().split())
+            yanit['onceki'] = any(r['kod'].upper() == q['odev'][0].strip().upper() and r['numara'] == q['numara'][0]
+                                  and ' '.join(r['ad_soyad'].lower().split()) == ad for r in self.satirlar)
         return yanit
 
     def dopost(self, govde):
@@ -257,6 +271,9 @@ class SahteUcNokta:
         simdi = time.time()
         durum = 'zamanında' if o[1] <= simdi <= o[2] and not o[3].get('post_sure_disi') else 'süre dışı'
         deneme = 1 + sum(1 for r in self.satirlar if r['kod'] == g['kod'] and r['numara'] == g['numara'])
+        if any(r['kod'] == g['kod'] and r['numara'] == g['numara'] and r['ad_soyad'].lower().split() == g['ad_soyad'].lower().split()
+               for r in self.satirlar):  # Kod.gs: yalnız ilk deneme kaydedilir
+            return {'ok': True, 'kaydedilmedi': True, 'durum': durum, 'deneme_no': deneme}
         self.satirlar.append(dict(g, durum=durum, deneme_no=deneme))
         return {'ok': True, 'durum': durum, 'deneme_no': deneme, 'sunucu_zamani': iso(simdi)}
 
@@ -278,7 +295,47 @@ class SahteUcNokta:
                         continue
                     gorulen.add(t['kaynak'])
                 testler.append({'slug': k, 'ad': t['ad'], 'n': len(t['sorular']), 'kaynak': t.get('kaynak', '')})
-            return {'ok': True, 'odevler': liste, 'testler': testler}
+            say = {}
+            for x in self.ogrenciler:
+                say[x['sinif']] = say.get(x['sinif'], 0) + 1
+            return {'ok': True, 'odevler': liste, 'testler': testler,
+                    'siniflar': [{'sinif': k, 'n': say[k]} for k in sorted(say)]}
+        if g['islem'] == 'liste_kaydet':
+            sube = sinif_sube(g.get('sinif_sube'))
+            ogr = g.get('ogrenciler') or []
+            if not sube or not ogr or len({x['numara'] for x in ogr}) != len(ogr):
+                return {'ok': False, 'hata': 'liste', 'kalici': True}
+            self.ogrenciler[:] = [x for x in self.ogrenciler if x['sinif'] != sube] + \
+                [{'sinif': sube, 'numara': x['numara'], 'ad': x['ad']} for x in ogr]
+            say = {}
+            for x in self.ogrenciler:
+                say[x['sinif']] = say.get(x['sinif'], 0) + 1
+            return {'ok': True, 'sinif': sube, 'n': len(ogr), 'siniflar': [{'sinif': k, 'n': say[k]} for k in sorted(say)]}
+        if g['islem'] == 'sonuclar':
+            kod = str(g.get('kod', '')).upper()
+            if kod not in self.odevler:
+                return {'ok': False, 'hata': 'yok', 'kalici': True}
+            slug, _, bit, sec = self.odevler[kod]
+            ilk, sira = {}, []
+            for r in self.satirlar:  # Kod.gs odevSonuclari_ gibi: ilk deneme (numara + ad), sonrakiler sayılır
+                if r['kod'].upper() != kod:
+                    continue
+                if kisi(r) in ilk:
+                    ilk[kisi(r)]['sonraki'] += 1
+                    continue
+                ilk[kisi(r)] = {'numara': r['numara'], 'ad': r['ad_soyad'], 'sinif': sinif_sube(r.get('sinif_sube')),
+                                'dogru': r.get('dogru'), 'yanlis': r.get('yanlis'), 'bos': r.get('bos'), 'puan': r['puan'],
+                                'durum': r['durum'], 'cevaplar': r.get('cevaplar', ''), 'sure': r.get('istemci_sure_ms'),
+                                'zaman': iso(time.time()), 'sonraki': 0}
+                sira.append(ilk[kisi(r)])
+            subeler = [x for x in (sinif_sube(t) for t in re.split('[,;]', sec.get('sinif', ''))) if x]
+            if not subeler:
+                subeler = sorted({x['sinif'] for x in sira if x['sinif']})
+            yanit = {'ok': True, 'odev': {'kod': kod, 'test_slug': slug, 'sinif': sec.get('sinif', ''), 'bitis': iso(bit)},
+                     'sonuclar': sira, 'subeler': subeler, 'liste': [x for x in self.ogrenciler if x['sinif'] in subeler]}
+            if slug in self.testler:
+                yanit['test'] = self.testler[slug]
+            return yanit
         if g['islem'] == 'test_ekle':
             sor = g.get('sorular') or []
             if not g.get('ad') or not 5 <= len(sor) <= 40 or not all(len(q['o']) == 4 and 0 <= q['a'] <= 3 for q in sor):
@@ -501,7 +558,7 @@ def odev_acik(o):
         sonuc_denetle(page, c, d, y, b)
         expect(page.locator('#send')).to_have_class('send ok')
         expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
-        expect(page.locator('#send-text')).to_contain_text('No 0123 · 8-A · Deneme Öğrenci · 1. deneme')
+        expect(page.locator('#send-text')).to_have_text('No 0123 · 8-A · Deneme Öğrenci · Tekrar çözebilirsin ama yeni sonuçlar kaydedilmez.')
         expect(page.locator('#to-tests')).to_be_hidden()
         eşit(len(o.uc.satirlar), 1, 'kaydedilen satır')
         r = o.uc.satirlar[0]
@@ -514,11 +571,14 @@ def odev_acik(o):
         if not tur.startswith('text/plain'):
             raise AssertionError(f'POST gövdesi text/plain değil: {tur}')
         eşit(o.kuyruk(page), [], 'kuyruk')
-        # ikinci deneme engellenmez, deneme_no artar
+        # ikinci deneme çözülebilir ama gönderilmez (yalnız ilk deneme kaydedilir)
+        post_once = o.uc.istek_say('POST')
         page.click('#again')
         d2, y2, b2 = cevapla(page, c)
-        expect(page.locator('#send-text')).to_contain_text('2. deneme')
-        eşit([x['deneme_no'] for x in o.uc.satirlar], [1, 2], 'deneme_no')
+        expect(page.locator('#send-title')).to_have_text('Alıştırma · sonuç kaydedilmedi')
+        expect(page.locator('#send-retry')).to_be_hidden()
+        eşit(o.uc.istek_say('POST'), post_once, 'ikinci denemede POST yok')
+        eşit(len(o.uc.satirlar), 1, 'yalnız ilk deneme kayıtlı')
         # bilgiler hatırlanır ve değiştirilebilir
         page.reload()
         expect(page.locator('#who')).to_be_visible()
@@ -527,10 +587,22 @@ def odev_acik(o):
         expect(page.locator('#who-sinif')).to_have_value('8-A')
         page.click('#who-go')
         expect(page.locator('#intro')).to_be_visible()
+        expect(page.locator('#tekrar-not')).to_be_visible()  # bu cihaz biliyor
+        # başka cihaz gibi (yerel kayıt yok): sunucu söyler
+        page.evaluate("localStorage.removeItem('alti-saniye:cozulen')")
+        page.reload()
+        page.click('#who-go')
+        expect(page.locator('#intro')).to_be_visible()
+        expect(page.locator('#tekrar-not')).to_be_visible()
+        # başka öğrenci: uyarı yok
+        page.click('#back')
+        page.fill('#who-no', '0999')
+        page.click('#who-go')
+        expect(page.locator('#tekrar-not')).to_be_hidden()
         page.click('#back')
         expect(page.locator('#who')).to_be_visible()
         o.bitir(s)
-        return f'form (numara+ad+sınıf/şube) → 12 sn, durdurma yok → {len(c["questions"])} soru → gönderildi ✓ · 2. deneme · bilgiler hatırlandı'
+        return f'form (numara+ad+sınıf/şube) → 12 sn, durdurma yok → {len(c["questions"])} soru → gönderildi ✓ · 2. deneme gönderilmedi, uyarı (cihaz + sunucu) · bilgiler hatırlandı'
     finally:
         s.kapat()
 
@@ -775,28 +847,139 @@ def panel_odev_olustur(o):
 
 
 def panel_siralama(o):
+    """Sonuçlar: şube filtresi, sıralama + WhatsApp, öğrenci ayrıntısı (cevaplar, sonraki denemeler, listede yok),
+    yapmayanlar + hatırlatma, soru analizi, Excel (CSV) indirme."""
+    from urllib.parse import unquote
     o.uc.sifirla()
-    # Ali Can'ın gönderiminde doğru/yanlış/boş var; Ayşe'ninkinde yok (eski sunucu yanıtı gibi: yalnız puan)
-    for no, ad, puan, ek in (('5', 'Ayşe Kaya', 70, {}), ('6', 'Ali Can', 90, {'dogru': 9, 'yanlis': 0, 'bos': 1, 'sinif_sube': '8-A'}),
-                             ('5', 'Ayşe Kaya', 100, {})):
+    c = o.quiz['do-you-know-me']
+    q = c['questions']
+    ali_cevap = f"1{'ABCD'[q[0]['a']]}✓ 2{'ABCD'[(q[1]['a'] + 1) % 4]}✗ 3-"
+    o.uc.ogrenciler[:] = [{'sinif': '8-A', 'numara': '5', 'ad': 'Ayşe Kaya'}, {'sinif': '8-A', 'numara': '6', 'ad': 'Ali Can'},
+                          {'sinif': '8-A', 'numara': '7', 'ad': 'Gelmeyen Öğrenci'}, {'sinif': '8-B', 'numara': '8', 'ad': 'Can Demir'}]
+    # Ayşe'nin gönderiminde doğru/yanlış/boş ve sınıf yok (eski sayfa gibi): yalnız puan yazılır, listeden 8-A olur
+    for no, ad, puan, ek in (('5', 'Ayşe Kaya', 70, {}),
+                             ('6', 'Ali Can', 90, {'dogru': 9, 'yanlis': 0, 'bos': 1, 'sinif_sube': '8-A', 'cevaplar': ali_cevap}),
+                             ('9', 'Yabancı Kişi', 80, {'dogru': 8, 'yanlis': 2, 'bos': 0, 'sinif_sube': '8-A'}),
+                             ('8', 'Can Demir', 60, {'dogru': 6, 'yanlis': 4, 'bos': 0, 'sinif_sube': '8-B'})):
         o.uc.dopost(json.dumps({'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': no, 'ad_soyad': ad,
-                                'puan': puan, 'istemci_sure_ms': 1000, 'gonderim_id': f'g-{no}-{puan}', **ek}))
+                                'puan': puan, 'istemci_sure_ms': 61000, 'gonderim_id': f'g-{no}-{puan}', **ek}))
+    # kural gelmeden önce kaydedilmiş ikinci deneme (eski tablo): sayılmaz, yalnız "sonra 1 kez daha" görünür
+    o.uc.satirlar.append({'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': '6', 'ad_soyad': 'Ali Can', 'puan': 100,
+                          'dogru': 10, 'yanlis': 0, 'bos': 0, 'sinif_sube': '8-A', 'istemci_sure_ms': 50000,
+                          'gonderim_id': 'eski-2-deneme', 'durum': 'zamanında', 'deneme_no': 2})
     s = o.sayfa()
     page = s.page
     try:
         page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
         kart = page.locator('#p-odev-ACIK1')
-        expect(kart.locator('.p-katilan')).to_have_text('👥 2 öğrenci çözdü')
-        kart.locator('.p-sira').click()
-        expect(kart.locator('.prank li')).to_have_count(2)
-        expect(kart.locator('.prank li').first).to_have_text('🥇 Ali Can (8-A) — 90 puan · 9 doğru, 0 yanlış, 1 boş')
-        expect(kart.locator('.prank li').nth(1)).to_have_text('🥈 Ayşe Kaya — 70')
-        href = kart.locator('.p-sira-wa').get_attribute('href')
-        from urllib.parse import unquote
-        if not href.startswith('https://wa.me/?text=') or 'Ali Can — 90' not in unquote(href):
+        expect(kart.locator('.p-katilan')).to_have_text('👥 4 öğrenci çözdü')
+        kart.locator('.p-sonuc').click()
+        expect(kart.locator('.s-ozet')).to_have_text('3 / 4 öğrenci çözdü · ortalama 75 · 1 öğrenci yapmadı')
+        # sıralama (varsayılan sekme)
+        sira = kart.locator('.s-sira li')
+        expect(sira).to_have_count(4)
+        expect(sira.first).to_have_text('🥇 Ali Can (8-A) — 90 puan · 9 doğru, 0 yanlış, 1 boş')
+        expect(sira.nth(2)).to_have_text('🥉 Ayşe Kaya (8-A) — 70')
+        href = unquote(kart.locator('.s-wa').get_attribute('href'))
+        if not href.startswith('https://wa.me/?text=') or 'Ali Can (8-A) — 90 puan' not in href or '4 öğrenci katıldı.' not in href:
             raise AssertionError(f'sıralama WhatsApp linki hatalı: {href}')
+        # hatırlatma: yalnız listede olup yapmayan
+        expect(kart.locator('.s-hatirlat')).to_have_text('Yapmayanlara hatırlat (1 öğrenci)')
+        h = unquote(kart.locator('.s-hatirlat').get_attribute('href'))
+        if '• Gelmeyen Öğrenci' not in h or '?odev=ACIK1' not in h or 'Ayşe' in h:
+            raise AssertionError(f'hatırlatma mesajı hatalı: {h}')
+        # öğrenciler
+        kart.locator('.s-sekme[data-k="ogr"]').click()
+        kisiler = kart.locator('.s-kisi')
+        expect(kisiler).to_have_count(5)
+        expect(kisiler.locator('.s-ad')).to_have_text(['5 · Ayşe Kaya (8-A)', '6 · Ali Can (8-A)', '7 · Gelmeyen Öğrenci (8-A)',
+                                                        '8 · Can Demir (8-B)', '9 · Yabancı Kişi (8-A)'])
+        expect(kart.locator('.s-kisi.yapmadi .s-not')).to_have_text('Yapmadı')
+        ali = kisiler.nth(1)
+        ali.locator('.s-kisi-bas').click()
+        expect(ali.locator('.s-detay')).to_be_visible()
+        expect(ali.locator('.s-detay .pnote')).to_contain_text('sonra 1 kez daha çözdü (sayılmaz)')
+        expect(ali.locator('.s-cevaplar li')).to_have_count(len(q))
+        eşit([ali.locator('.s-cevaplar li').nth(k).get_attribute('class') for k in range(3)], ['dogru', 'yanlis', 'bos'], 'cevap renkleri')
+        kisiler.nth(4).locator('.s-kisi-bas').click()
+        expect(kisiler.nth(4).locator('.s-detay .pnote')).to_contain_text('sınıf listesinde bu numara yok')
+        # sorular
+        kart.locator('.s-sekme[data-k="soru"]').click()
+        sor = kart.locator('.s-sorular li')
+        expect(sor).to_have_count(len(q))
+        expect(sor.last.locator('strong')).to_have_text('%25 doğru · 1 D · 0 Y · 3 B')
+        expect(kart.locator('.s-sorular li', has_text=q[1]['q'].replace('\n', ' ')).locator('.s-yanlis')).to_contain_text('(1 kişi)')
+        # indir (bütün şubeler)
+        with page.expect_download() as d:
+            kart.locator('.s-indir').click()
+        csv = pathlib.Path(d.value.path()).read_text(encoding='utf-8-sig').splitlines()
+        eşit(csv[0].split(';')[:4], ['Numara', 'Ad Soyad', 'Şube', 'Durum'], 'CSV başlık')
+        eşit(len(csv), 6, 'CSV satır')
+        if not any(r.startswith('5;Ayşe Kaya;8-A;çözdü;70;;;;1:01;') and r.endswith(';' * len(q)) for r in csv):
+            raise AssertionError(f'CSV cevapsız eski kayıt boş olmalı: {csv}')
+        if not any(r.startswith('7;Gelmeyen Öğrenci;8-A;yapmadı') for r in csv):
+            raise AssertionError(f'CSV yapmayan satırı yok: {csv}')
+        if not any(r.startswith('6;Ali Can;8-A;çözdü;90;9;0;1;1:01') and r.endswith(';' + 'ABCD'[q[0]['a']] + ' ✓;' + 'ABCD'[(q[1]['a'] + 1) % 4] + ' ✗' + ';-' * (len(q) - 2)) for r in csv):
+            raise AssertionError(f'CSV Ali satırı hatalı: {csv}')
+        # şube filtresi
+        kart.locator('.s-sube').select_option('8-B')
+        expect(kart.locator('.s-ozet')).to_have_text('1 / 1 öğrenci çözdü · ortalama 60')
+        kart.locator('.s-sekme[data-k="sira"]').click()
+        expect(kart.locator('.s-sira li')).to_have_count(1)
+        expect(kart.locator('.s-hatirlat')).to_be_hidden()
+        if '· 8-B' not in unquote(kart.locator('.s-wa').get_attribute('href')).split('\n')[0]:
+            raise AssertionError('şube sıralaması başlığında şube yok')
         o.bitir(s)
-        return 'katılan 2 · sıralama listesi (puan + doğru/yanlış/boş) · "WhatsApp\'ta paylaş" linki'
+        return 'şube filtresi · sıralama + WhatsApp · öğrenci ayrıntısı (cevaplar, sonraki deneme, listede yok) · yapmayan + hatırlatma · soru analizi · CSV'
+    finally:
+        s.kapat()
+
+
+def panel_sinif_listesi(o):
+    """Sınıf listesi yapıştırılır (başlık ve sıra no'lu satırlar), aynı numara hatası yakalanır, kaydedilir;
+    Yeni ödev'de şube çipi çıkar ve ödeve şube yazılır; yeniden kaydedince eski listenin yerine geçeceği söylenir."""
+    o.uc.sifirla()
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        expect(page.locator('#p-subeler')).to_be_hidden()
+        page.click('#l-kart summary')
+        page.fill('#l-sinif', '8a')
+        page.fill('#l-metin', 'S.No\tÖğrenci No\tAdı\tSoyadı\n1\t123\tAli\tVeli\n2.\t124\tAyşe\tYılmaz\n125 Can Demir\n\n3 124 Tekrar Numara')
+        page.click('#l-kontrol')
+        expect(page.locator('#l-hatalar')).to_contain_text('124 numarası iki kez var')
+        expect(page.locator('#l-kaydet')).to_be_hidden()
+        page.fill('#l-metin', 'S.No\tÖğrenci No\tAdı\tSoyadı\n1\t123\tAli\tVeli\n2.\t124\tAyşe\tYılmaz\n125 Can Demir')
+        page.click('#l-kontrol')
+        expect(page.locator('#l-sinif')).to_have_value('8-A')
+        expect(page.locator('#l-bilgi')).to_have_text('✓ 8-A için 3 öğrenci bulundu. Adları ve numaraları kontrol et.')
+        expect(page.locator('#l-uyarilar')).to_contain_text('1. satır atlandı')
+        expect(page.locator('#l-onizleme li')).to_have_text(['123 · Ali Veli', '124 · Ayşe Yılmaz', '125 · Can Demir'])
+        page.click('#l-kaydet')
+        expect(page.locator('#l-tamam')).to_contain_text('8-A listesi kaydedildi (3 öğrenci)')
+        eşit([(x['sinif'], x['numara'], x['ad']) for x in o.uc.ogrenciler],
+             [('8-A', '123', 'Ali Veli'), ('8-A', '124', 'Ayşe Yılmaz'), ('8-A', '125', 'Can Demir')], 'kaydedilen liste')
+        expect(page.locator('#l-ozet')).to_have_text('Kayıtlı listeler: 8-A (3)')
+        # Yeni ödev: şube çipi
+        cip = page.locator('#p-subeler .cip')
+        expect(cip).to_have_text(['8-A'])
+        cip.first.click()
+        expect(page.locator('#p-sinif')).to_have_value('8-A')
+        expect(cip.first).to_have_attribute('aria-pressed', 'true')
+        page.fill('#p-gun', time.strftime('%Y-%m-%d', time.localtime(time.time() + 5 * GUN)))
+        page.click('#p-olustur')
+        expect(page.locator('#p-sonuc')).to_be_visible()
+        yeni = [v for k, v in o.uc.odevler.items() if k.startswith('P')]
+        eşit([v[3]['sinif'] for v in yeni], ['8-A'], 'ödevin şubesi')
+        # aynı şubeyi yeniden kaydetmek eskisinin yerine geçer
+        page.fill('#l-sinif', '8-A')
+        page.fill('#l-metin', '123 Ali Veli\n126 Deniz Ak')
+        page.click('#l-kontrol')
+        expect(page.locator('#l-bilgi')).to_contain_text("8-A'nın kayıtlı listesi (3 öğrenci) bununla değiştirilecek")
+        o.bitir(s)
+        return 'başlık/sıra no/sekme ayrımlı satırlar okundu · aynı numara yakalandı · kaydedildi · şube çipi → ödev 8-A'
     finally:
         s.kapat()
 
@@ -1028,7 +1211,7 @@ def odev_cors(o):
         expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
         eşit(o.uc.istek_say('POST'), 1, 'POST')
         eşit(o.uc.istek_say('OPTIONS'), 0, 'text/plain ile OPTIONS')
-        eşit(o.uc.istek_say('GET', '/echo'), 2, '302 sonrası okunan yanıt (GET + POST)')
+        eşit(o.uc.istek_say('GET', '/echo'), 3, '302 sonrası okunan yanıt (ödev GET + önceki deneme GET + POST)')
         if hatalar or dis:
             raise AssertionError('; '.join(hatalar + [f'dış istek: {u}' for u in dis]))
         js = """async () => { try { const r = await fetch(%r, {method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1082,10 +1265,11 @@ def main():
         kos('ödev   CORS: text/plain', odev_cors, o)
         kos('panel  anahtarsız / yanlış', panel_anahtarsiz, o)
         kos('panel  ödev oluştur → WhatsApp', panel_odev_olustur, o)
-        kos('panel  sıralama → WhatsApp', panel_siralama, o)
+        kos('panel  sonuçlar', panel_siralama, o)
         kos('panel  ChatGPT testi → ödev', panel_ozel_test, o)
         kos('panel  ChatGPT hatalı metin', panel_ozel_hatalar, o)
         kos('panel  hazır testi kontrol et', panel_hazir_kontrol, o)
+        kos('panel  sınıf listesi', panel_sinif_listesi, o)
         browser.close()
     print(f'duman testi: {gecen} geçti · {kalan} kaldı')
     return 1 if kalan else 0
