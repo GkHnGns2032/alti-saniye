@@ -5,7 +5,7 @@
  "eyebrow": "LGS hazırlık",
  "heroTop": "İngilizce",
  "heroBottom": "8. sınıf",
- "leadHtml": "Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "leadHtml": "Her soruda <b>12 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
  "facts": [
   [
    "25",
@@ -16,7 +16,7 @@
    "şık"
   ],
   [
-   "6",
+   "12",
    "saniye"
   ],
   [

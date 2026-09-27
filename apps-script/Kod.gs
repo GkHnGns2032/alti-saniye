@@ -7,7 +7,7 @@
  * E-tablo sekmeleri (ilk satır başlık):
  *   Ödevler   kod · test_slug · baslangic · bitis · sinif · not
  *   Sonuçlar  sunucu_zamani · kod · test_slug · numara · ad_soyad · dogru · yanlis · bos · puan ·
- *             durum · deneme_no · cevaplar · istemci_sure_ms · gonderim_id
+ *             durum · deneme_no · cevaplar · istemci_sure_ms · gonderim_id · sinif_sube
  *
  * GET  ?odev=KOD  → {gecerli, test_slug, baslangic, bitis, acik, simdi}
  *                   (bilinmeyen kod: {gecerli:false}; parametresiz: sağlık yanıtı)
@@ -44,7 +44,8 @@ const ODEVLER = 'Ödevler';
 const SONUCLAR = 'Sonuçlar';
 const ODEV_BASLIK = ['kod', 'test_slug', 'baslangic', 'bitis', 'sinif', 'not'];
 const SONUC_BASLIK = ['sunucu_zamani', 'kod', 'test_slug', 'numara', 'ad_soyad', 'dogru', 'yanlis', 'bos',
-  'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms', 'gonderim_id'];
+  'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms', 'gonderim_id', 'sinif_sube'];
+// sinif_sube sonradan eklendi; eski tablolarda sayfa_() başlığını en sağa kendisi yazar, eski satırlarda boş kalır.
 const ZAMANINDA = 'zamanında';
 const SURE_DISI = 'süre dışı';
 const GUN_MS = 24 * 60 * 60 * 1000;
@@ -161,7 +162,7 @@ function panelIslem_(b, simdi) {
   if (b.islem === 'siralama') {
     const s = siralamaHazirla_(b.kod);
     return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
-      satirlar: s.satirlar.map(function (o) { return {ad: o.ad, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; })};
+      satirlar: s.satirlar.map(function (o) { return {ad: o.ad, sinif: o.sinif, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; })};
   }
   if (b.islem === 'odev_ekle' || b.islem === 'test_ekle') {
     const kilit = LockService.getScriptLock();
@@ -339,7 +340,7 @@ function kodUret_() {
 
 const SIRALAMA = 'Sıralama';
 const YENI_GUN = 7; // zamanlayıcı yalnız son 7 günde sonucu gelen ödevleri yeniler
-const SIRALAMA_BASLIK = ['sira', 'ad_soyad', 'numara', 'puan', 'dogru', 'yanlis', 'bos', 'sure', 'durum'];
+const SIRALAMA_BASLIK = ['sira', 'ad_soyad', 'sinif_sube', 'numara', 'puan', 'dogru', 'yanlis', 'bos', 'sure', 'durum'];
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Altı Saniye').addItem('Sıralama oluştur', 'siralamaMenusu').addToUi();
@@ -407,7 +408,7 @@ function siralamaHazirla_(kodGirdisi) {
     const numara = String(r[3]).trim();
     const o = {sira_no: i, test_slug: String(r[2]), numara: numara, ad: String(r[4]).replace(/^'/, '').trim(),
       dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0, bos: Number(r[7]) || 0, puan: Number(r[8]) || 0,
-      durum: String(r[9]), sure: r[12] === '' || r[12] == null ? Infinity : Number(r[12])};
+      durum: String(r[9]), sure: r[12] === '' || r[12] == null ? Infinity : Number(r[12]), sinif: sinifSube_(r[14])};
     const anahtar = numara + '|' + kisiAdi_(o.ad);
     if (!ilk[anahtar]) ilk[anahtar] = o; // satırlar gönderim sırasıyla eklenir: ilk görülen ilk denemedir
   });
@@ -423,7 +424,7 @@ function siralamaHazirla_(kodGirdisi) {
   const madalya = ['🥇', '🥈', '🥉'];
   const metin = ['🏆 Ödev sıralaması · ' + test + (sinif ? ' · ' + sinif : ''), '(ilk denemeler, 100 üzerinden)', '']
     .concat(satirlar.map(function (o, i) {
-      return (madalya[i] || (i + 1) + '.') + ' ' + o.ad + ' — ' + siraOzeti_(o);
+      return (madalya[i] || (i + 1) + '.') + ' ' + o.ad + (o.sinif ? ' (' + o.sinif + ')' : '') + ' — ' + siraOzeti_(o);
     }))
     .concat(['', satirlar.length + ' öğrenci katıldı.'])
     .join('\n');
@@ -435,7 +436,7 @@ function siralamaHazirla_(kodGirdisi) {
     ' (5 dakikada bir kendiliğinden yenilenir)';
   const tablo = [SIRALAMA_BASLIK];
   satirlar.forEach(function (o, i) {
-    tablo.push([i + 1, metin_(o.ad), o.numara, o.puan, o.dogru, o.yanlis, o.bos, sure_(o.sure), o.durum]);
+    tablo.push([i + 1, metin_(o.ad), o.sinif, o.numara, o.puan, o.dogru, o.yanlis, o.bos, sure_(o.sure), o.durum]);
   });
   const genislik = SIRALAMA_BASLIK.length;
   let hedef = tablo_().getSheetByName(sekme);
@@ -492,12 +493,19 @@ function sonucYaz_(odev, g, simdi) {
   }
   const durum = pencereIcinde_(odev, simdi) ? ZAMANINDA : SURE_DISI;
   const satir = [simdi, odev.kod, odev.test_slug, g.numara, metin_(g.ad_soyad), g.dogru, g.yanlis, g.bos,
-    g.puan, durum, deneme + 1, metin_(g.cevaplar), g.istemci_sure_ms, g.gonderim_id];
+    g.puan, durum, deneme + 1, metin_(g.cevaplar), g.istemci_sure_ms, g.gonderim_id, g.sinif_sube];
   const r = son + 1;
   sh.getRange(r, 4).setNumberFormat('@'); // numara metin kalsın (baştaki sıfırlar silinmesin)
+  sh.getRange(r, 15).setNumberFormat('@'); // sınıf/şube metin kalsın (e-tablo tarihe çevirmesin)
   sh.getRange(r, 1, 1, satir.length).setValues([satir]);
   SpreadsheetApp.flush();
   return {ok: true, durum: durum, deneme_no: deneme + 1, sunucu_zamani: simdi.toISOString()};
+}
+
+/** "8a", "8 A", "8/a", "8.A", "8-A" → "8-A"; geçersizse ''. (Sayfadaki sinifSube ile aynı kural.) */
+function sinifSube_(v) {
+  const m = String(v == null ? '' : v).trim().toLocaleUpperCase('tr').match(/^(\d{1,2})\s*[-\/.\s]?\s*([A-ZÇĞİÖŞÜ])$/);
+  return m && +m[1] >= 1 && +m[1] <= 12 ? +m[1] + '-' + m[2] : '';
 }
 
 /** Tarayıcıdan gelen gövdeyi denetler; {hata} ya da temizlenmiş alanları döndürür. */
@@ -517,7 +525,8 @@ function gonderimDenetle_(b) {
   if (b.istemci_sure_ms != null && !tam(b.istemci_sure_ms, 864e5)) return {hata: 'gecersiz'};
   if (typeof b.gonderim_id !== 'string' || !/^[A-Za-z0-9-]{8,64}$/.test(b.gonderim_id)) return {hata: 'gecersiz'};
   return {
-    kod: kod, test_slug: b.test_slug, numara: numara, ad_soyad: ad,
+    // sınıf/şube sayfada zorunlu; eski sayfadan (önbellek) gelen sonuç kaybolmasın diye burada boş kabul edilir
+    kod: kod, test_slug: b.test_slug, numara: numara, ad_soyad: ad, sinif_sube: sinifSube_(b.sinif_sube),
     dogru: b.dogru, yanlis: b.yanlis, bos: b.bos, puan: b.puan, cevaplar: b.cevaplar,
     istemci_sure_ms: b.istemci_sure_ms == null ? '' : b.istemci_sure_ms, gonderim_id: b.gonderim_id
   };
@@ -595,8 +604,10 @@ function sayfa_(ad, baslik) {
   if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, baslik.length).setValues([baslik]);
     sh.setFrozenRows(1);
-  } else if (String(sh.getRange(1, baslik.length).getValue()).trim() === '') {
-    sh.getRange(1, baslik.length).setValue(baslik[baslik.length - 1]); // eski tabloda son sütun (gonderim_id)
+  } else {
+    // eski tabloda sonradan eklenen sütunların başlığı (gonderim_id, sinif_sube) boşsa yazılır
+    const ilk = sh.getRange(1, 1, 1, baslik.length).getValues()[0];
+    ilk.forEach(function (v, i) { if (String(v).trim() === '') sh.getRange(1, i + 1).setValue(baslik[i]); });
   }
   return sh;
 }

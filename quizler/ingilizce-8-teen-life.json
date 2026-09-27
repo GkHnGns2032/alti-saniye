@@ -8,8 +8,8 @@
  "eyebrow": "Unit 2 · Teen Life",
  "heroTop": "Teen Life",
  "heroBottom": "8. sınıf",
- "leadHtml": "2. ünite <b>Teen Life</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
- "facts": [["20", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "ünite"]],
+ "leadHtml": "2. ünite <b>Teen Life</b>. Her soruda <b>12 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [["20", "soru"], ["4", "şık"], ["12", "saniye"], ["1", "ünite"]],
  "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
  "sheetTag": "TEEN LIFE · 8",
  "messages": [

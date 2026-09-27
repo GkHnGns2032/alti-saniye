@@ -163,15 +163,22 @@ const VAKALAR = [
     const r = standart().get({odev: 'BOZUK'});
     return r.gecerli === false && r.hata === 'tarih';
   }],
-  ['POST açık pencere → zamanında, deneme 1, 14 sütun, numara metin', () => {
+  ['POST açık pencere → zamanında, deneme 1, 15 sütun, numara ve sınıf/şube metin', () => {
     const o = standart();
-    const r = o.post(govde());
+    const r = o.post(govde({sinif_sube: '8a'}));
     const s = o.sonuclar();
     const sh = o.sayfalar['Sonuçlar'];
-    return r.ok && r.durum === 'zamanında' && r.deneme_no === 1 && s.length === 1 && s[0].length === 14 &&
-      s[0][1] === 'ACIK1' && s[0][3] === '0123' && s[0][9] === 'zamanında' && s[0][10] === 1 &&
-      sh.v[0].join() === 'sunucu_zamani,kod,test_slug,numara,ad_soyad,dogru,yanlis,bos,puan,durum,deneme_no,cevaplar,istemci_sure_ms,gonderim_id' &&
-      sh.bicim['2:4'] === '@';
+    return r.ok && r.durum === 'zamanında' && r.deneme_no === 1 && s.length === 1 && s[0].length === 15 &&
+      s[0][1] === 'ACIK1' && s[0][3] === '0123' && s[0][9] === 'zamanında' && s[0][10] === 1 && s[0][14] === '8-A' &&
+      sh.v[0].join() === 'sunucu_zamani,kod,test_slug,numara,ad_soyad,dogru,yanlis,bos,puan,durum,deneme_no,cevaplar,istemci_sure_ms,gonderim_id,sinif_sube' &&
+      sh.bicim['2:4'] === '@' && sh.bicim['2:15'] === '@';
+  }],
+  ['sınıf/şube yazımları 8-A biçimine çevrilir; geçersiz ya da eksikse boş kalır ama sonuç kaybolmaz', () => {
+    const o = standart();
+    const giris = ['8-A', '8a', ' 8 b ', '8/c', '7.D', '12-i', '8-ş', '13-A', '0-A', '8-AB', 'A-8', '', null, 8, undefined];
+    const r = giris.map(x => o.post(govde(x === undefined ? {} : {sinif_sube: x})));
+    const s = o.sonuclar().map(x => x[14]);
+    return r.every(x => x.ok) && s.join('|') === '8-A|8-A|8-B|8-C|7-D|12-İ|8-Ş||||||||';
   }],
   ['POST aynı kod+numara ikinci kez → engellenmez, deneme 2', () => {
     const o = standart();
@@ -237,14 +244,24 @@ const VAKALAR = [
     const o = ortam();
     o.ctx.kurulum();
     return o.sayfalar['Ödevler'].v[0].join() === 'kod,test_slug,baslangic,bitis,sinif,not' &&
-      o.sayfalar['Sonuçlar'].v[0].length === 14;
+      o.sayfalar['Sonuçlar'].v[0].length === 15;
   }],
   ['eski Sonuçlar sekmesine (13 sütun) gonderim_id başlığı eklenir', () => {
     const o = standart();
     const sh = o.ctx.SpreadsheetApp.getActiveSpreadsheet().insertSheet('Sonuçlar');
     sh.v = [['sunucu_zamani', 'kod', 'test_slug', 'numara', 'ad_soyad', 'dogru', 'yanlis', 'bos', 'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms']];
     const r = o.post(govde());
-    return r.ok && sh.v[0][13] === 'gonderim_id' && sh.v.length === 2;
+    return r.ok && sh.v[0][13] === 'gonderim_id' && sh.v[0][14] === 'sinif_sube' && sh.v.length === 2;
+  }],
+  ['eski Sonuçlar sekmesine (14 sütun) sinif_sube başlığı eklenir; eski satırlar sıralamada sınıfsız görünür', () => {
+    const o = standart();
+    const sh = o.ctx.SpreadsheetApp.getActiveSpreadsheet().insertSheet('Sonuçlar');
+    sh.v = [['sunucu_zamani', 'kod', 'test_slug', 'numara', 'ad_soyad', 'dogru', 'yanlis', 'bos', 'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms', 'gonderim_id'],
+      [new Date(simdi - 1000), 'ACIK1', 'ingilizce-8', '5', 'Eski Satır', 8, 2, 0, 80, 'zamanında', 1, '', 60000, 'eski-satir-0001']];
+    const r = o.post(govde({numara: '6', ad_soyad: 'Yeni Satır', dogru: 9, puan: 90, sinif_sube: '8-B'}));
+    const m = o.ctx.siralamaHazirla_('ACIK1').metin;
+    return r.ok && sh.v[0][14] === 'sinif_sube' && sh.v[0][13] === 'gonderim_id' && sh.v.length === 3 &&
+      m.includes('🥇 Yeni Satır (8-B) — 90 puan') && m.includes('🥈 Eski Satır — 80 puan');
   }]
 ];
 
@@ -257,7 +274,7 @@ function siralamaOrtami(istem) {
   g('11', 'Ayşe Yılmaz', 8, 80, 90000);
   g('12', 'Ali Veli', 9, 90, 120000);
   g('11', 'Ayşe Yılmaz', 10, 100, 60000);       // 2. deneme: sayılmamalı
-  g('13', 'Can Demir', 8, 80, 70000);           // Ayşe ile eşit puan, daha hızlı → önde
+  g('13', 'Can Demir', 8, 80, 70000, {sinif_sube: '8 b'}); // Ayşe ile eşit puan, daha hızlı → önde; sınıfını yazmış
   g('14', '=Kötü Ad', 5, 50, 100000);           // formül gibi başlayan ad
   g('99', 'Başka Ödev', 10, 100, 1000, {kod: 'GECTI'}); // süre dışı, başka kod
   return o;
@@ -280,9 +297,9 @@ VAKALAR.push(
     const v = sh.v;
     return s.sekme === 'Sıralama ACIK1' && v[0][0] === s.metin && v[0][0].startsWith('🏆 ') &&
       /^↑ Üstteki metni WhatsApp'a yapıştır.*ACIK1 · ingilizce-8 · 8-A · güncellendi: \d\d\.\d\d\.\d{4} \d\d:\d\d/.test(v[1][0]) &&
-      v[2].join() === 'sira,ad_soyad,numara,puan,dogru,yanlis,bos,sure,durum' &&
-      v[3].join() === '1,Ali Veli,12,90,9,1,0,2:00,zamanında' && v[4][7] === '1:10' && v.length === 7 &&
-      v[6][1] === "'=Kötü Ad" && JSON.stringify(sh.birlesik) === '[[1,1,1,9],[2,1,1,9]]' &&
+      v[2].join() === 'sira,ad_soyad,sinif_sube,numara,puan,dogru,yanlis,bos,sure,durum' &&
+      v[3].join() === '1,Ali Veli,,12,90,9,1,0,2:00,zamanında' && v[4][2] === '8-B' && v[4][8] === '1:10' && v.length === 7 &&
+      v[6][1] === "'=Kötü Ad" && JSON.stringify(sh.birlesik) === '[[1,1,1,10],[2,1,1,10]]' &&
       sh.yukseklik[1] === 21 * s.metin.split('\n').length + 8 && !o.sayfalar['Sıralama'];
   }],
   ['sıralama: her ödevin kendi sekmesi olur, biri ötekini ezmez', () => {
@@ -320,7 +337,7 @@ VAKALAR.push(
   ['sıralama: WhatsApp metni madalyalı, tam ad, puan, doğru/yanlış sayısı, katılımcı sayısı', () => {
     const m = siralamaOrtami().ctx.siralamaHazirla_('ACIK1').metin.split('\n');
     return m[0] === '🏆 Ödev sıralaması · ingilizce-8 · 8-A' && m[3] === '🥇 Ali Veli — 90 puan · 9 doğru, 1 yanlış' &&
-      m[4] === '🥈 Can Demir — 80 puan · 8 doğru, 2 yanlış' && m[5] === '🥉 Ayşe Yılmaz — 80 puan · 8 doğru, 2 yanlış' && m[6].startsWith('4. ') &&
+      m[4] === '🥈 Can Demir (8-B) — 80 puan · 8 doğru, 2 yanlış' && m[5] === '🥉 Ayşe Yılmaz — 80 puan · 8 doğru, 2 yanlış' && m[6].startsWith('4. ') &&
       m[m.length - 1] === '4 öğrenci katıldı.';
   }],
   ['sıralama: süre dışı sonuç listede, işaretli; ondalık puan virgüllü; boş yalnız varsa yazılır', () => {
@@ -427,7 +444,7 @@ VAKALAR.push(
     const r = o.panel('siralama', {kod: 'acik1'});
     const bos = o.panel('siralama', {kod: 'GELECEK'});
     return r.ok && r.katilan === 4 && r.metin.startsWith('🏆 ') && r.metin.includes('🥇 Ali Veli — 90') &&
-      r.satirlar[0].ad === 'Ali Veli' && r.satirlar[0].dogru === 9 && r.satirlar[0].yanlis === 1 &&
+      r.satirlar[0].ad === 'Ali Veli' && r.satirlar[0].sinif === '' && r.satirlar[1].sinif === '8-B' && r.satirlar[0].dogru === 9 && r.satirlar[0].yanlis === 1 &&
       r.satirlar[0].bos === 0 && bos.ok && bos.katilan === 0 && bos.metin === '';
   }],
   ['kurulum: öğretmen anahtarı bir kez üretilir, ikinci kurulumda değişmez; anahtariYenile değiştirir', () => {

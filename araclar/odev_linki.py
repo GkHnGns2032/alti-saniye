@@ -67,8 +67,8 @@ def main(argv):
     site = site if site.endswith('/') else site + '/'
     c = qs[slug]
     link = f'{site}index.html?odev={urllib.parse.quote(kod)}#{slug}'
-    mesaj = (f'📚 Ödev: {c["name"]} ({len(c["questions"])} soru, her soruda 6 saniye)\n'
-             f'Linki aç, okul numaranı ve adını soyadını yaz, başla. Son teslim tarihi linkte yazıyor.\n{link}')
+    mesaj = (f'📚 Ödev: {c["name"]} ({len(c["questions"])} soru, her soruda 12 saniye)\n'
+             f'Linki aç, okul numaranı, adını soyadını ve sınıfını/şubeni yaz, başla. Son teslim tarihi linkte yazıyor.\n{link}')
 
     print(f'\nLink:\n  {link}\n')
     print('WhatsApp mesajı (kopyala-yapıştır):\n' + '\n'.join('  ' + x for x in mesaj.split('\n')) + '\n')
