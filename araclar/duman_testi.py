@@ -3,13 +3,13 @@
 
 Üretilmiş index.html'i yerel bir HTTP sunucusundan açar ve her test için:
   test seçimi → Başla → bütün sorular → sonuç ekranı
-akışını gerçek tarayıcıda yürütür. Motor değiştirilmez; 6 saniyelik zamanlayıcı
+akışını gerçek tarayıcıda yürütür. Motor değiştirilmez; 12 saniyelik zamanlayıcı
 Playwright'ın saat taklidiyle (page.clock) ileri sarılır, test bu yüzden saniyeler sürer.
 
 Cevap deseni (soru sırası p = 0, 1, 2, ...):
   p % 3 == 0 → doğru şıkka tıkla
   p % 3 == 1 → yanlış şıkka tıkla
-  p % 3 == 2 → hiç dokunma, 6 sn dolsun (zamanlayıcı yolu)
+  p % 3 == 2 → hiç dokunma, 12 sn dolsun (zamanlayıcı yolu)
 Sonuç ekranındaki doğru/yanlış/boş sayıları JSON'dan hesaplananla karşılaştırılır.
 Ek olarak <slug>/index.html yönlendirmesinin doğru teste indiği denetlenir.
 
@@ -47,7 +47,7 @@ import time
 import urllib.parse
 
 KOK = pathlib.Path(__file__).resolve().parent.parent
-ASK_MS = 6000
+ASK_MS = 12000
 
 try:
     from playwright.sync_api import sync_playwright, expect
@@ -295,7 +295,7 @@ class SahteUcNokta:
             metin = '🏆 Ödev sıralaması\n\n' + '\n'.join(f"{i + 1}. {r['ad_soyad']} — {r['puan']}" for i, r in enumerate(sira))
             return {'ok': True, 'kod': g['kod'], 'katilan': len(sira), 'metin': metin if sira else '',
                     # doğru/yanlış/boş yalnız gönderimde varsa: yoksa eski sunucu gibi davranır (panel yalnız puan yazar)
-                    'satirlar': [{'ad': r['ad_soyad'], 'puan': r['puan'], 'durum': r['durum'],
+                    'satirlar': [{'ad': r['ad_soyad'], 'puan': r['puan'], 'durum': r['durum'], 'sinif': r.get('sinif_sube', ''),
                                   **{k: r[k] for k in ('dogru', 'yanlis', 'bos') if k in r}} for r in sira]}
         return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
 
@@ -409,10 +409,11 @@ class Odev:
         page.goto(f'{self.taban}/index.html?odev={kod}{hash_}')
         expect(page.locator('#odev')).to_be_visible()
 
-    def bilgi_gir(self, page, no='0123', ad='Deneme Öğrenci'):
+    def bilgi_gir(self, page, no='0123', ad='Deneme Öğrenci', sinif='8-A'):
         expect(page.locator('#who')).to_be_visible()
         page.fill('#who-no', no)
         page.fill('#who-name', ad)
+        page.fill('#who-sinif', sinif)
         page.click('#who-go')
         expect(page.locator('#intro')).to_be_visible()
 
@@ -446,7 +447,7 @@ def odev_acik(o):
         expect(page.locator('#odev-eyebrow')).to_have_text('Ödev · ' + c['name'])
         expect(page.locator('#odev-lead')).to_contain_text('Son teslim')
         expect(page.locator('#pick')).to_be_hidden()
-        # iki alan da zorunlu
+        # üç alan da zorunlu: numara, ad soyad, sınıf/şube
         page.click('#who-go')
         expect(page.locator('#who-err')).to_have_text('Okul numaranı yaz.')
         page.fill('#who-no', '12a')
@@ -459,18 +460,39 @@ def odev_acik(o):
         expect(page.locator('#intro')).to_be_hidden()
         page.fill('#who-name', '  Deneme   Öğrenci ')
         page.click('#who-go')
+        expect(page.locator('#who-err')).to_have_text('Sınıfını ve şubeni yaz (ör. 8-A).')
+        expect(page.locator('#who-sinif')).to_be_focused()
+        for yanlis in ('8', 'A', '8-AB', '13-A'):
+            page.fill('#who-sinif', yanlis)
+            page.click('#who-go')
+            expect(page.locator('#who-err')).to_contain_text('8-A gibi yaz')
+            expect(page.locator('#intro')).to_be_hidden()
+        page.fill('#who-sinif', ' 8 a ')
+        page.click('#who-go')
         expect(page.locator('#intro')).to_be_visible()
+        expect(page.locator('#who-sinif')).to_have_value('8-A')
         expect(page.locator('#hero-top')).to_have_text(c['heroTop'])
         expect(page.locator('#eyebrow')).to_have_text('Ödev · Deneme Öğrenci')
         expect(page.locator('.modes')).to_be_hidden()  # Sunum (cevapları kendiliğinden yakan mod) ödevde yok
-        d, y, b = o.coz(page)
+        expect(page.locator('#lead')).to_contain_text('12 saniye')
+        page.click('#start')
+        # ödevde durdurma yok: düğme görünmez; boşluk tuşu ve sekme değiştirme süreyi durdurmaz
+        expect(page.locator('#play')).to_be_visible()
+        expect(page.locator('#digit')).to_have_text('12')
+        expect(page.locator('#pause')).to_be_hidden()
+        page.keyboard.press('Space')
+        page.evaluate("Object.defineProperty(document, 'hidden', {value: true, configurable: true}); document.dispatchEvent(new Event('visibilitychange'))")
+        eşit(page.evaluate("document.getElementById('app').classList.contains('paused')"), False, 'ödevde durdurulmamalı')
+        page.evaluate("delete document.hidden; document.dispatchEvent(new Event('visibilitychange'))")
+        d, y, b = cevapla(page, c)
+        sonuc_denetle(page, c, d, y, b)
         expect(page.locator('#send')).to_have_class('send ok')
         expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
-        expect(page.locator('#send-text')).to_contain_text('1. deneme')
+        expect(page.locator('#send-text')).to_contain_text('No 0123 · 8-A · Deneme Öğrenci · 1. deneme')
         expect(page.locator('#to-tests')).to_be_hidden()
         eşit(len(o.uc.satirlar), 1, 'kaydedilen satır')
         r = o.uc.satirlar[0]
-        for k, v in {'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': '0123', 'ad_soyad': 'Deneme Öğrenci',
+        for k, v in {'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': '0123', 'ad_soyad': 'Deneme Öğrenci', 'sinif_sube': '8-A',
                      'dogru': d, 'yanlis': y, 'bos': b, 'puan': round(100 * d / len(c['questions']), 1),
                      'durum': 'zamanında', 'deneme_no': 1}.items():
             eşit(r[k], v, k)
@@ -489,12 +511,13 @@ def odev_acik(o):
         expect(page.locator('#who')).to_be_visible()
         expect(page.locator('#who-no')).to_have_value('0123')
         expect(page.locator('#who-name')).to_have_value('Deneme Öğrenci')
+        expect(page.locator('#who-sinif')).to_have_value('8-A')
         page.click('#who-go')
         expect(page.locator('#intro')).to_be_visible()
         page.click('#back')
         expect(page.locator('#who')).to_be_visible()
         o.bitir(s)
-        return f'form → {len(c["questions"])} soru → gönderildi ✓ · 2. deneme · bilgiler hatırlandı'
+        return f'form (numara+ad+sınıf/şube) → 12 sn, durdurma yok → {len(c["questions"])} soru → gönderildi ✓ · 2. deneme · bilgiler hatırlandı'
     finally:
         s.kapat()
 
@@ -650,11 +673,20 @@ def odev_parametresiz(o):
     try:
         ayrinti = quiz_senaryosu(o.browser, o.taban, o.quiz['do-you-know-me'], sayfa=s)
         expect(s.page.locator('#send')).to_be_hidden()
+        # ödev dışında durdur düğmesi yerinde ve çalışır; süre 12 sn
+        s.page.click('#again')
+        expect(s.page.locator('#digit')).to_have_text('12')
+        expect(s.page.locator('#pause')).to_be_visible()
+        s.page.click('#pause')
+        expect(s.page.locator('#app')).to_have_class(re.compile(r'\bpaused\b'))
+        s.page.click('#pause')
+        expect(s.page.locator('#app')).not_to_have_class(re.compile(r'\bpaused\b'))
+        s.page.click('#quit')
         expect(s.page.locator('#odev')).to_be_hidden()
         anahtarlar = s.page.evaluate('Object.keys(localStorage).sort()')
         eşit([a for a in anahtarlar if 'odev' in a or 'ogrenci' in a], [], 'ödev anahtarları')
         eşit(o.uc.istekler, [], 'uç noktaya istek')
-        return ayrinti + ' · uç noktaya 0 istek'
+        return ayrinti + ' · durdur düğmesi çalışıyor · uç noktaya 0 istek'
     finally:
         s.kapat()
 
@@ -732,7 +764,7 @@ def panel_odev_olustur(o):
 def panel_siralama(o):
     o.uc.sifirla()
     # Ali Can'ın gönderiminde doğru/yanlış/boş var; Ayşe'ninkinde yok (eski sunucu yanıtı gibi: yalnız puan)
-    for no, ad, puan, ek in (('5', 'Ayşe Kaya', 70, {}), ('6', 'Ali Can', 90, {'dogru': 9, 'yanlis': 0, 'bos': 1}),
+    for no, ad, puan, ek in (('5', 'Ayşe Kaya', 70, {}), ('6', 'Ali Can', 90, {'dogru': 9, 'yanlis': 0, 'bos': 1, 'sinif_sube': '8-A'}),
                              ('5', 'Ayşe Kaya', 100, {})):
         o.uc.dopost(json.dumps({'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': no, 'ad_soyad': ad,
                                 'puan': puan, 'istemci_sure_ms': 1000, 'gonderim_id': f'g-{no}-{puan}', **ek}))
@@ -744,7 +776,7 @@ def panel_siralama(o):
         expect(kart.locator('.p-katilan')).to_have_text('👥 2 öğrenci çözdü')
         kart.locator('.p-sira').click()
         expect(kart.locator('.prank li')).to_have_count(2)
-        expect(kart.locator('.prank li').first).to_have_text('🥇 Ali Can — 90 puan · 9 doğru, 0 yanlış, 1 boş')
+        expect(kart.locator('.prank li').first).to_have_text('🥇 Ali Can (8-A) — 90 puan · 9 doğru, 0 yanlış, 1 boş')
         expect(kart.locator('.prank li').nth(1)).to_have_text('🥈 Ayşe Kaya — 70')
         href = kart.locator('.p-sira-wa').get_attribute('href')
         from urllib.parse import unquote

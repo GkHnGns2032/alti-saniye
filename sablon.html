@@ -103,7 +103,8 @@ button{cursor:pointer;touch-action:manipulation}
 .ring .track{fill:none;stroke:var(--line);stroke-width:7}
 .ring .bar{fill:none;stroke:var(--form);stroke-width:7;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:0}
 .ring .digit{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-weight:900;font-size:calc(var(--r,64px) * .5);line-height:1;font-variant-numeric:tabular-nums}
-.ring.run .bar{animation:drain var(--dur,6s) linear forwards}
+.ring .digit.iki{font-size:calc(var(--r,64px) * .4);letter-spacing:-.03em}
+.ring.run .bar{animation:drain var(--dur,12s) linear forwards}
 .ring.hurry .digit{color:var(--form)}
 .ring.done .bar{animation:none;opacity:0}
 .app.paused .ring.run .bar,.app.paused .gap-fill.run{animation-play-state:paused}
@@ -114,7 +115,7 @@ button{cursor:pointer;touch-action:manipulation}
 .intro-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .hero{display:flex;align-items:center;gap:18px}
 .hero .ring{--r:112px}
-.hero .ring.idle .bar{animation:drain 6s linear infinite}
+.hero .ring.idle .bar{animation:drain 12s linear infinite}
 .hero h1{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(54px,15vw,104px);line-height:.86;letter-spacing:-.01em;text-transform:uppercase;text-wrap:balance}
 .hero h1 span{display:block;color:var(--form)}
 .lead{margin:0;font-size:18px;color:var(--muted);max-width:52ch}
@@ -235,6 +236,7 @@ button{cursor:pointer;touch-action:manipulation}
 
 /* ---------- Ödev modu (yalnız ?odev=KOD ile açılınca görünür) ---------- */
 .odev{justify-content:center;gap:22px;padding-block:8px 4px;max-width:640px;width:100%;align-self:center}
+.app.odev-mode #pause{display:none}
 .app.odev-mode .intro-top .eyebrow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .note{display:grid;gap:6px;padding:14px 16px;border:1.5px solid var(--line);border-radius:14px;background:var(--sheet);box-shadow:var(--shadow)}
 .note strong{font-size:19px;line-height:1.2}
@@ -354,18 +356,19 @@ details.pcard[open]>summary::after{content:"−"}
   <section class="pick" id="pick" hidden aria-labelledby="pick-title">
    <div class="intro-top"><span class="eyebrow">Test seç</span><button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
    <div class="hero"><div class="ring idle" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit">6</span></div><h1 id="pick-title">Altı<span>saniye</span></h1></div>
-   <p class="lead">Bir test seç. Her soruda <b>6 saniye</b> var, süre dolunca doğru şık yanar.</p>
+   <p class="lead">Bir test seç. Her soruda <b>12 saniye</b> var, süre dolunca doğru şık yanar.</p>
    <ol class="tests" id="tests" aria-label="Testler"></ol>
   </section>
 
   <section class="odev" id="odev" hidden aria-labelledby="odev-title">
    <div class="intro-top"><span class="eyebrow" id="odev-eyebrow">Ödev</span><button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
-   <div class="hero"><div class="ring idle" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit">6</span></div><h1 id="odev-title"><b id="odev-top">Altı</b><span id="odev-bottom">saniye</span></h1></div>
+   <div class="hero"><div class="ring idle" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit iki">12</span></div><h1 id="odev-title"><b id="odev-top">Altı</b><span id="odev-bottom">saniye</span></h1></div>
    <p class="lead" id="odev-lead"></p>
    <div class="note" id="odev-note" role="status" aria-live="polite"><strong id="odev-note-title">Ödev bilgisi alınıyor…</strong><p id="odev-note-text"></p><button class="btn ghost" id="odev-retry" type="button" hidden>Tekrar dene</button></div>
    <form class="who" id="who" hidden novalidate>
     <label class="inp" for="who-no"><span>Okul numarası</span><input id="who-no" name="numara" inputmode="numeric" autocomplete="off" maxlength="12" required></label>
     <label class="inp" for="who-name"><span>Ad Soyad</span><input id="who-name" name="ad" autocomplete="name" maxlength="80" required></label>
+    <label class="inp" for="who-sinif"><span>Sınıf / şube</span><input id="who-sinif" name="sinif" autocomplete="off" autocapitalize="characters" maxlength="8" placeholder="8-A" required></label>
     <p class="who-err" id="who-err" role="alert"></p>
     <div class="start-row"><button class="btn" id="who-go" type="submit">Devam <span aria-hidden="true">→</span></button></div>
    </form>
@@ -436,7 +439,7 @@ details.pcard[open]>summary::after{content:"−"}
   <section class="intro" id="intro" aria-labelledby="intro-title">
    <div class="intro-top"><button class="icon-btn" id="back" type="button" aria-label="Testlere dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="eyebrow" id="eyebrow"></span><button class="icon-btn fs-btn" type="button" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
    <div class="hero">
-    <div class="ring idle" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit">6</span></div>
+    <div class="ring idle" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit iki">12</span></div>
     <h1 id="intro-title"><b id="hero-top"></b><span id="hero-bottom"></span></h1>
    </div>
    <p class="lead" id="lead"></p>
@@ -478,7 +481,7 @@ details.pcard[open]>summary::after{content:"−"}
    </div>
    <div class="dots" id="dots" aria-hidden="true"></div>
    <div class="ask">
-    <div class="ring" id="ring" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit" id="digit">6</span></div>
+    <div class="ring" id="ring" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18" pathLength="100"/><circle class="bar" cx="22" cy="22" r="18" pathLength="100"/></svg><span class="digit iki" id="digit">12</span></div>
     <h2 class="question" id="question" lang="en"></h2>
    </div>
    <ol class="answers" id="answers" lang="en"></ol>
@@ -504,7 +507,7 @@ details.pcard[open]>summary::after{content:"−"}
 const QUIZZES = /*QUIZ*/;
 const AYAR = /*AYAR*/;
 let QUIZ = QUIZZES[0], Q = QUIZ.questions, lgs = QUIZ.scoring === 'lgs';
-const ASK_MS = 6000, L = ['A','B','C','D'];
+const ASK_MS = 12000, SN = ASK_MS / 1000, L = ['A','B','C','D']; // soru başına süre (12 sn)
 const $ = id => document.getElementById(id);
 const app = $('app');
 const S = {mode:'play', gap:1.5, shuffle:false, sound:true, vibe:true};
@@ -520,7 +523,7 @@ const ODEV = (() => { try { const k = new URLSearchParams(location.search).get('
 // Öğretmen paneli yalnız ?panel ile açılır; anahtar linkin # kısmındadır (sunucuya/loglara gitmez).
 const PANEL = (() => { try { return new URLSearchParams(location.search).has('panel'); } catch { return false; } })();
 
-let order = [], pos = 0, phase = 'intro', marks = {}, shown = {}, timer = null, ticker = null, endAt = 0, left = 0, paused = false, lastDigit = 6, wake = null, ac = null;
+let order = [], pos = 0, phase = 'intro', marks = {}, shown = {}, timer = null, ticker = null, endAt = 0, left = 0, paused = false, lastDigit = SN, wake = null, ac = null;
 const pad = n => String(n).padStart(2,'0');
 const fmt = (n, d=1) => n.toLocaleString('tr-TR', {minimumFractionDigits:d, maximumFractionDigits:d});
 
@@ -601,7 +604,7 @@ function start(){
  if (S.shuffle) for (let i = order.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
  marks = {}; shown = {};
  app.classList.toggle('watch', S.mode === 'watch');
- $('foot-mode').textContent = S.mode === 'watch' ? 'Sunum · 6 sn düşün, cevap yanar' : 'Oyun · dokunarak cevapla';
+ $('foot-mode').textContent = S.mode === 'watch' ? 'Sunum · ' + SN + ' sn düşün, cevap yanar' : 'Oyun · dokunarak cevapla';
  if (ODEV) ODEV.basla = Date.now();
  lockScreen(); ask(0);
 }
@@ -626,17 +629,18 @@ function ask(p){
  $('status-text').className = ''; $('status-text').textContent = S.mode === 'watch' ? 'Düşünme süresi' : 'Cevabını seç';
  $('gap-fill').classList.remove('run');
  const ring = $('ring'); ring.classList.remove('hurry', 'done'); restartAnim(ring, 'run', ASK_MS / 1000);
- $('digit').textContent = '6'; lastDigit = 6;
+ rakam(SN); lastDigit = SN;
  show('play'); paintSheet();
  schedule(() => reveal(-1), ASK_MS);
  clearInterval(ticker); ticker = setInterval(tick, 80);
 }
 
+function rakam(v){ const el = $('digit'); el.textContent = v; el.classList.toggle('iki', String(v).length > 1); } // 10-12 halkaya sığsın
 function tick(){
  if (phase !== 'ask' || paused) return;
  const d = Math.max(0, Math.ceil((endAt - performance.now()) / 1000));
  if (d !== lastDigit){
-  lastDigit = d; $('digit').textContent = d;
+  lastDigit = d; rakam(d);
   if (d <= 3 && d > 0){ $('ring').classList.add('hurry'); sfx.tick(); }
  }
 }
@@ -645,7 +649,7 @@ function choose(i){ if (phase !== 'ask' || S.mode !== 'play') return; if (paused
 
 function reveal(choice){
  if (phase !== 'ask') return;
- const took = Math.min(6, Math.max(.1, (ASK_MS - (endAt - performance.now())) / 1000));
+ const took = Math.min(SN, Math.max(.1, (ASK_MS - (endAt - performance.now())) / 1000));
  clearTimers(); clearInterval(ticker); phase = 'show';
  const qi = order[pos], q = Q[qi];
  shown[pos] = true;
@@ -656,7 +660,7 @@ function reveal(choice){
   else if (i === choice){ b.classList.add('is-miss'); b.querySelector('.mark').textContent = 'senin'; }
   else b.classList.add('is-dim');
  });
- const ring = $('ring'); ring.classList.remove('run', 'hurry'); ring.classList.add('done'); $('digit').textContent = '✓';
+ const ring = $('ring'); ring.classList.remove('run', 'hurry'); ring.classList.add('done'); rakam('✓');
  const st = $('status-text');
  if (S.mode === 'watch'){ st.className = 'ok'; st.textContent = 'Doğru cevap ' + L[q.a]; sfx.ok(); }
  else if (choice === q.a){ st.className = 'ok'; st.textContent = 'Doğru · ' + fmt(took) + ' sn'; sfx.ok(); buzz(35); }
@@ -671,6 +675,7 @@ function next(){ if (pos < Q.length - 1) ask(pos + 1); else finish(); }
 
 function setPaused(on){
  if (on === paused) return;
+ if (on && ODEV) return; // ödevde durdurma yok: düğme gizli, boşluk tuşu ve sekme değiştirme de süreyi durdurmaz
  if (on){
   if (phase !== 'ask' && phase !== 'show') return;
   left = Math.max(0, endAt - performance.now()); clearTimers(); paused = true;
@@ -846,27 +851,36 @@ async function odevAc(){
   ? odevNot('Henüz açılmadı', 'Bu ödev ' + tarih(bas) + ' tarihinde açılacak.', 'no')
   : odevNot('Süre doldu', 'Bu ödevin süresi ' + (bit ? tarih(bit) + ' tarihinde ' : '') + 'doldu.', 'no');
  $('odev-note').hidden = true;
- $('odev-lead').replaceChildren('Her soruda ', kalin('6 saniye'), ' var. Bitirince sonucun öğretmenine gider.');
+ $('odev-lead').replaceChildren('Her soruda ', kalin(SN + ' saniye'), ' var. Bitirince sonucun öğretmenine gider.');
  if (bit) $('odev-lead').append(' Son teslim: ', kalin(tarih(bit)), '.');
  $('odev-lead').hidden = false;
  const og = store.get('ogrenci') || {};
  $('who-no').value = typeof og.numara === 'string' ? og.numara : '';
  $('who-name').value = typeof og.ad === 'string' ? og.ad : '';
+ $('who-sinif').value = typeof og.sinif === 'string' ? og.sinif : '';
  $('who').hidden = false;
+}
+// "8a", "8 A", "8/a", "8.A", "8-A" → "8-A". Geçersizse ''. (Kod.gs sinifSube_ ile aynı kural.)
+function sinifSube(v){
+ const m = String(v || '').trim().toLocaleUpperCase('tr').match(/^(\d{1,2})\s*[-\/.\s]?\s*([A-ZÇĞİÖŞÜ])$/);
+ return m && +m[1] >= 1 && +m[1] <= 12 ? +m[1] + '-' + m[2] : '';
 }
 function odevGeri(){ clearTimers(); clearInterval(ticker); phase = 'intro'; setPaused(false); unlockScreen(); order = []; shown = {}; show('odev'); }
 $('odev-retry').addEventListener('click', () => { if (ODEV) odevAc(); });
 $('who').addEventListener('submit', e => {
  e.preventDefault();
  if (!ODEV) return;
- const no = $('who-no').value.trim(), ad = $('who-name').value.replace(/\s+/g, ' ').trim();
+ const no = $('who-no').value.trim(), ad = $('who-name').value.replace(/\s+/g, ' ').trim(), sinif = sinifSube($('who-sinif').value);
  const hata = !no ? ['who-no', 'Okul numaranı yaz.']
   : !/^\d{1,12}$/.test(no) ? ['who-no', 'Okul numarası yalnız rakamlardan oluşur.']
-  : ad.length < 3 || ad.split(' ').length < 2 ? ['who-name', 'Adını ve soyadını birlikte yaz.'] : null;
- ['who-no', 'who-name'].forEach(id => $(id).setAttribute('aria-invalid', String(!!hata && hata[0] === id)));
+  : ad.length < 3 || ad.split(' ').length < 2 ? ['who-name', 'Adını ve soyadını birlikte yaz.']
+  : !$('who-sinif').value.trim() ? ['who-sinif', 'Sınıfını ve şubeni yaz (ör. 8-A).']
+  : !sinif ? ['who-sinif', 'Sınıfını ve şubeni 8-A gibi yaz: önce sınıf, sonra şube harfi.'] : null;
+ ['who-no', 'who-name', 'who-sinif'].forEach(id => $(id).setAttribute('aria-invalid', String(!!hata && hata[0] === id)));
  $('who-err').textContent = hata ? hata[1] : '';
  if (hata) { $(hata[0]).focus(); return; }
- ODEV.ogrenci = {numara: no, ad}; store.set('ogrenci', ODEV.ogrenci);
+ $('who-sinif').value = sinif;
+ ODEV.ogrenci = {numara: no, ad, sinif}; store.set('ogrenci', ODEV.ogrenci);
  $('eyebrow').textContent = 'Ödev · ' + ad;
  home();
 });
@@ -900,7 +914,7 @@ async function kuyruguGonder(){
 function odevGonder(dogru, yanlis, bos, net){
  if (!ODEV.ogrenci) return;
  const n = Q.length, cevap = Q.map((q, i) => { const m = marks[i], c = m && m.c >= 0 ? m.c : -1; return (i + 1) + (c < 0 ? '-' : L[c] + (c === q.a ? '✓' : '✗')); });
- ODEV.son = {kod: ODEV.kod, test_slug: QUIZ.slug, numara: ODEV.ogrenci.numara, ad_soyad: ODEV.ogrenci.ad, dogru, yanlis, bos,
+ ODEV.son = {kod: ODEV.kod, test_slug: QUIZ.slug, numara: ODEV.ogrenci.numara, ad_soyad: ODEV.ogrenci.ad, sinif_sube: ODEV.ogrenci.sinif, dogru, yanlis, bos,
   puan: Math.round(1000 * Math.max(0, lgs ? net : dogru) / n) / 10, cevaplar: cevap.join(' '),
   istemci_sure_ms: Math.min(864e5, Math.max(0, Math.round(Date.now() - (ODEV.basla || Date.now())))), gonderim_id: yeniId()};
  kuyrukYaz(kuyruk().concat(ODEV.son));
@@ -913,7 +927,7 @@ async function sonGonder(){
  if (p === ODEV.son && r.sonuc !== 'ucusta') gonderimKutusu(r.sonuc, r.j);
 }
 function gonderimKutusu(durum, j){
- const p = ODEV.son, ok = durum === 'ok', bekle = durum === 'bekle', kim = 'No ' + p.numara + ' · ' + p.ad_soyad;
+ const p = ODEV.son, ok = durum === 'ok', bekle = durum === 'bekle', kim = 'No ' + p.numara + (p.sinif_sube ? ' · ' + p.sinif_sube : '') + ' · ' + p.ad_soyad;
  $('send').hidden = false; $('send').className = 'send' + (ok ? ' ok' : bekle ? '' : ' no');
  $('send-ico').className = 'bub' + (ok ? ' lit' : bekle ? '' : ' miss'); $('send-ico').textContent = ok ? '✓' : bekle ? '…' : '!';
  $('send-retry').hidden = durum !== 'gecici'; $('send-retry').disabled = false;
@@ -953,9 +967,9 @@ function testBilgi(slug){
 function odevMesaji(kod, slug, bitis){
  const z = testBilgi(slug);
  const link = location.origin + location.pathname + '?odev=' + encodeURIComponent(kod) + '#' + slug;
- return '📚 Ödev: ' + (z ? z.ad + ' (' + z.n + ' soru, her soruda 6 saniye)' : slug) + '\n' +
+ return '📚 Ödev: ' + (z ? z.ad + ' (' + z.n + ' soru, her soruda ' + SN + ' saniye)' : slug) + '\n' +
   (bitis ? '⏰ Son teslim: ' + gunSaat(Date.parse(bitis)) + '\n' : '') +
-  'Linki aç, okul numaranı ve adını soyadını yaz, başla.\n' + link;
+  'Linki aç, okul numaranı, adını soyadını ve sınıfını/şubeni yaz, başla.\n' + link;
 }
 function panelAc(){
  app.classList.add('panel-mode'); document.title = 'Öğretmen · Altı Saniye';
@@ -1012,7 +1026,7 @@ async function panelSiralama(kod, li){
  if (!j || !j.katilan) { const p = document.createElement('p'); p.className = 'pnote'; p.textContent = 'Henüz kimse çözmedi.'; kutu.append(p); return; }
  b.hidden = true;
  const ol = document.createElement('ol'); ol.className = 'prank';
- j.satirlar.forEach((r, i) => { const x = document.createElement('li'); x.textContent = (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + r.ad + ' — ' + siraOzeti(r); ol.append(x); });
+ j.satirlar.forEach((r, i) => { const x = document.createElement('li'); x.textContent = (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + r.ad + (r.sinif ? ' (' + r.sinif + ')' : '') + ' — ' + siraOzeti(r); ol.append(x); });
  const a = document.createElement('a'); a.className = 'btn wa p-sira-wa'; a.target = '_blank'; a.rel = 'noopener'; a.href = waLink(j.metin); a.textContent = 'Sıralamayı WhatsApp\'ta paylaş';
  kutu.append(ol, a);
 }
@@ -1043,7 +1057,7 @@ const KALIP = `Sen bir 8. sınıf İngilizce öğretmenisin. LGS tarzında, çok
 Kurallar:
 - Tam 20 soru yaz.
 - Sorular İngilizce olsun, 8. sınıf MEB İngilizce ders kitabı seviyesinde olsun.
-- Her soru çok kısa olsun: en fazla 2 satır ve 15 kelime. Öğrenci her soruyu 6 saniyede okuyup cevaplayacak.
+- Her soru çok kısa olsun: en fazla 2 satır ve 15 kelime. Öğrenci her soruyu 12 saniyede okuyup cevaplayacak.
 - Her soruda ne sorulduğu belli olsun: ya bir boşluk (_____) ya da bir soru cümlesi (?) olsun.
 - Her sorunun 4 şıkkı olsun: A, B, C, D. Şıklar kısa olsun (1-4 kelime).
 - Her sorunun yalnızca BİR doğru cevabı olsun. Diğer şıklar kesinlikle yanlış olsun.
@@ -1103,7 +1117,7 @@ function testCoz(metin){
   if (q.a < 0) hatalar.push(n + '. soruda “Cevap:” satırı yok.');
   if (q.q.length > 300 || o.some(x => x.length > 100)) hatalar.push(n + '. soru çok uzun.');
   if (q.q && !/\?|_{2,}|…|\.\.\./.test(q.q)) q.uyari.push('ne sorulduğu belli değil (boşluk ____ ya da soru işareti yok)');
-  if (q.q.length > 110) q.uyari.push('uzun, 6 saniyede okunmayabilir');
+  if (q.q.length > 110) q.uyari.push('uzun, ' + SN + ' saniyede okunmayabilir');
   if (o.some(x => x.length > 40)) q.uyari.push('şıklardan biri uzun');
   q.o = o;
   if (q.uyari.length) uyarilar.push(n + '. soru: ' + q.uyari.join(', '));
@@ -1134,9 +1148,9 @@ function ozelQuiz(slug, t){
   qs.forEach((q, i) => { q.c = t.sorular[i].c || kaynak.questions[0].c || ''; });
   return Object.assign({}, kaynak, {slug, questions: qs, facts: kaynak.facts.map(f => f[1] === 'soru' ? [String(qs.length), 'soru'] : f)});
  }
- return {slug, title: 'Altı Saniye · ' + ad, name: ad, desc: '', scoring: 'lgs', eyebrow: 'Ödev', heroTop: ad, heroBottom: '6 saniye',
-  leadHtml: 'Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.',
-  facts: [[String(qs.length), 'soru'], ['4', 'şık'], ['6', 'saniye']], playHint: 'Dokunarak cevapla, sonunda LGS netini gör.',
+ return {slug, title: 'Altı Saniye · ' + ad, name: ad, desc: '', scoring: 'lgs', eyebrow: 'Ödev', heroTop: ad, heroBottom: SN + ' saniye',
+  leadHtml: 'Her soruda <b>' + SN + ' saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.',
+  facts: [[String(qs.length), 'soru'], ['4', 'şık'], [String(SN), 'saniye']], playHint: 'Dokunarak cevapla, sonunda LGS netini gör.',
   sheetTag: ad.toLocaleUpperCase('tr').slice(0, 18),
   messages: [[0.88, 'Tam puana çok yakınsın.'], [0.64, 'Sağlam bir sonuç. Kaçırdıklarına bir göz at.'], [0.4, 'İyi başlangıç. Aşağıdakileri tekrar et, net yükselir.'], [-99, 'Aşağıdaki sorulardan başla, ikinci turda fark göreceksin.']],
   questions: qs};

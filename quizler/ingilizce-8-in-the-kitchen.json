@@ -8,8 +8,8 @@
  "eyebrow": "Unit 3 · In the Kitchen",
  "heroTop": "Kitchen",
  "heroBottom": "8. sınıf",
- "leadHtml": "3. ünite <b>In the Kitchen</b>. Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
- "facts": [["20", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "ünite"]],
+ "leadHtml": "3. ünite <b>In the Kitchen</b>. Her soruda <b>12 saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.",
+ "facts": [["20", "soru"], ["4", "şık"], ["12", "saniye"], ["1", "ünite"]],
  "playHint": "Dokunarak cevapla, sonunda LGS netini gör.",
  "sheetTag": "KITCHEN · 8",
  "messages": [

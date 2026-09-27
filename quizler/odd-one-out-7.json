@@ -8,8 +8,8 @@
  "eyebrow": "7. sınıf kelimeleri",
  "heroTop": "Odd one",
  "heroBottom": "out",
- "leadHtml": "Dört kelimeden biri gruba uymuyor. <b>6 saniye</b> içinde onu bul.",
- "facts": [["20", "soru"], ["4", "kelime"], ["6", "saniye"], ["10", "ünite"]],
+ "leadHtml": "Dört kelimeden biri gruba uymuyor. <b>12 saniye</b> içinde onu bul.",
+ "facts": [["20", "soru"], ["4", "kelime"], ["12", "saniye"], ["10", "ünite"]],
  "playHint": "Farklı kelimeye dokun, sonunda skorunu gör.",
  "sheetTag": "İNGİLİZCE · 7",
  "messages": [

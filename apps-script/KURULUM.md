@@ -1,6 +1,6 @@
 # Ödev modu kurulumu (öğretmen için)
 
-Bu rehberin sonunda şunlar olacak: öğrencilere WhatsApp'tan bir link gönderiyorsun. Öğrenci linki açıyor, okul numarasını ve adını soyadını yazıp testi çözüyor. Sonuç **senin Google E-Tablona** kendiliğinden düşüyor, öğrenci de kendi sonucunu ekranda görüyor. Ödevin açık olduğu süreyi sen belirliyorsun.
+Bu rehberin sonunda şunlar olacak: öğrencilere WhatsApp'tan bir link gönderiyorsun. Öğrenci linki açıyor, okul numarasını, adını soyadını ve sınıfını/şubesini yazıp testi çözüyor. Sonuç **senin Google E-Tablona** kendiliğinden düşüyor, öğrenci de kendi sonucunu ekranda görüyor. Ödevin açık olduğu süreyi sen belirliyorsun.
 
 **Süre:** ilk kurulum yaklaşık 20 dakika. Sonraki her ödev için 2 dakika (bir satır + bir link).
 
@@ -33,10 +33,12 @@ Bu rehberin sonunda şunlar olacak: öğrencilere WhatsApp'tan bir link gönderi
 | kod | test_slug | baslangic | bitis | sinif | not |
 |---|---|---|---|---|---|
 
-**Sonuçlar** sekmesi, ilk satır (A1'den N1'e):
+**Sonuçlar** sekmesi, ilk satır (A1'den O1'e):
 
-| sunucu_zamani | kod | test_slug | numara | ad_soyad | dogru | yanlis | bos | puan | durum | deneme_no | cevaplar | istemci_sure_ms | gonderim_id |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| sunucu_zamani | kod | test_slug | numara | ad_soyad | dogru | yanlis | bos | puan | durum | deneme_no | cevaplar | istemci_sure_ms | gonderim_id | sinif_sube |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+> Eski tablonda **sinif_sube** sütunu yoksa elle ekleme: yeni kod ilk sonuçta O1 hücresine başlığı kendisi yazar. Eski satırlarda bu sütun boş kalır.
 
 ## 3. Kodu yapıştır
 
@@ -150,6 +152,7 @@ Her tamamlanan deneme **Sonuçlar** sekmesine bir satır olarak düşer:
 | cevaplar | Soru sırasıyla: `1B✓ 2C✗ 3-`. Harf öğrencinin işaretlediği şık, ✓ doğru, ✗ yanlış, `-` boş. |
 | istemci_sure_ms | Testi bitirme süresi (milisaniye; 60000 = 1 dakika). Öğrencinin cihazından gelir. |
 | gonderim_id | Teknik alan. İnternet kopup sayfa aynı sonucu yeniden gönderirse ikinci satır açılmasın diye kullanılır. |
+| sinif_sube | Öğrencinin yazdığı sınıf ve şube, `8-A` biçiminde (8a, 8 A, 8/A gibi yazımlar 8-A'ya çevrilir). Sıralamada adın yanında görünür. |
 
 İpucu: **Veri > Filtre oluştur** ile koda ya da sınıfa göre süzebilirsin.
 
@@ -270,6 +273,6 @@ Kodu değiştirdin ama etkisi yoksa: yeni sürüm olarak dağıtmayı unutmuş o
 ## Bilmen gerekenler (sınırlar)
 
 - **Süre ve kayıt Google tarafında denetlenir.** Öğrencinin telefonundaki sayaç ve saat değiştirilebilir. Bu yüzden "zamanında / süre dışı" kararını sonucun Google'a **ulaştığı an** verir. İnterneti olmayan bir öğrenci testi süre içinde bitirip sonucu süre bittikten sonra gönderirse "süre dışı" görünür; `istemci_sure_ms` ve `sunucu_zamani` sütunlarına bakıp sen karar verirsin.
-- 6 saniyelik soru sayacı öğrencinin cihazında çalışır. Duraklat düğmesi ve teknik bilgisi olan biri bu sayacı atlatabilir. Sorular ve cevap anahtarı da sayfanın içindedir. Bu bir alıştırma aracıdır, sınav güvenliği sağlamaz.
+- 12 saniyelik soru sayacı öğrencinin cihazında çalışır. Ödevde durdur düğmesi yoktur ve sekme değiştirmek süreyi durdurmaz; yine de teknik bilgisi olan biri bu sayacı atlatabilir. Sorular ve cevap anahtarı da sayfanın içindedir. Bu bir alıştırma aracıdır, sınav güvenliği sağlamaz.
 - Puanı öğrencinin tarayıcısı hesaplar. Adresi bilen teknik biri sahte sonuç gönderebilir. Bilinmeyen kodlu gönderimler reddedilir ve kaydedilmez; bu yüzden kodu tahmin edilmesi zor seç.
 - Öğrenci adını ve numarasını kendisi yazar, doğrulanmaz. Aynı cihazda son yazılan bilgi hatırlanır ve istenirse değiştirilebilir.

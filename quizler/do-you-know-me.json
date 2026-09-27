@@ -9,8 +9,8 @@
  "eyebrow": "Tanışma testi",
  "heroTop": "Do you",
  "heroBottom": "know me?",
- "leadHtml": "Öğretmenini ne kadar tanıyorsun? Her soruda <b>6 saniye</b> var. Süre dolunca doğru şık yanar.",
- "facts": [["10", "soru"], ["4", "şık"], ["6", "saniye"], ["1", "öğretmen"]],
+ "leadHtml": "Öğretmenini ne kadar tanıyorsun? Her soruda <b>12 saniye</b> var. Süre dolunca doğru şık yanar.",
+ "facts": [["10", "soru"], ["4", "şık"], ["12", "saniye"], ["1", "öğretmen"]],
  "playHint": "Dokunarak cevapla, sonunda skorunu gör.",
  "sheetTag": "TANIŞMA TESTİ",
  "messages": [

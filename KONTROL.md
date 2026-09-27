@@ -47,7 +47,7 @@ Playwright kurulu değilken hızlı kontrol: `python3 araclar/kontrol.py --duman
 
 ## Duman testi hakkında
 
-- Motor değiştirilmez. 6 saniyelik zamanlayıcı Playwright'ın saat taklidiyle (`page.clock`) ileri sarılır; bütün test birkaç saniye sürer.
+- Motor değiştirilmez. 12 saniyelik zamanlayıcı Playwright'ın saat taklidiyle (`page.clock`) ileri sarılır; bütün test birkaç saniye sürer.
 - Cevap deseni: sırayla doğru şık, yanlış şık, süre dolsun. Böylece tıklama ve zaman aşımı yolları da denenir.
 - Ağdan bağımsızdır: yerel sunucu dışındaki istekler (Google Fonts) boş yanıtla karşılanır.
 
@@ -57,7 +57,7 @@ Google'a hiç istek atılmaz. Sayfa, `ayar.json`'unda sahte adres olan geçici b
 
 | Senaryo | Denetlenen |
 |---|---|
-| pencere açık | Numara ve ad zorunlu. Linkteki `#` farklı olsa da sunucunun `test_slug`'ı esas alınır. Sunum modu gizlidir. Tam akış sonunda "Öğretmene gönderildi ✓" görünür ve satırın bütün alanları doğrulanır. İkinci deneme `deneme_no` 2 olur. Sayfa yeniden açılınca bilgiler hatırlanır. |
+| pencere açık | Numara, ad soyad ve sınıf/şube zorunlu; sınıf/şube yazımı `8-A`'ya çevrilir, geçersiz yazım (8, A, 8-AB, 13-A) reddedilir. Sayaç 12'den başlar. Ödevde durdur düğmesi görünmez; boşluk tuşu ve sekme değiştirme süreyi durdurmaz. Linkteki `#` farklı olsa da sunucunun `test_slug`'ı esas alınır. Sunum modu gizlidir. Tam akış sonunda "Öğretmene gönderildi ✓" görünür ve satırın bütün alanları doğrulanır. İkinci deneme `deneme_no` 2 olur. Sayfa yeniden açılınca bilgiler hatırlanır. |
 | süre doldu / henüz açılmadı | "… tarihinde doldu / açılacak" yazar, form ve Başla görünmez, POST gitmez. |
 | geçersiz kod | Bilinmeyen kodda "bulunamadı" görünür. Biçimi bozuk kodda sunucuya hiç sorulmaz. |
 | süre dışı | Sayfa açıkken başlayan ödev, POST geldiğinde sunucu saatine göre "süre dışı" kaydedilir. |
@@ -65,7 +65,7 @@ Google'a hiç istek atılmaz. Sayfa, `ayar.json`'unda sahte adres olan geçici b
 | gönderilemedi → yeniden aç | Sunucu hata verirken kuyruk kalır; sayfa yeniden açılınca kendiliğinden gönderilir. |
 | kesin ret | Sunucu kodu tanımıyorsa kayıt yapılmaz, sonuç kuyruktan düşer, "Tekrar dene" görünmez. |
 | adres kurulmamış | Yer tutucu adreste uyarı görünür ve hiçbir istek gitmez. |
-| `?odev` yok | Tam akış çalışır; uç noktaya **0 istek** gider, ödev ekranı/kutusu görünmez, ödev anahtarı yazılmaz. |
+| `?odev` yok | Tam akış çalışır; durdur düğmesi görünür ve durdurup devam ettirir; uç noktaya **0 istek** gider, ödev ekranı/kutusu görünmez, ödev anahtarı yazılmaz. |
 | CORS: text/plain | Route'suz bağlamda, yazı tipi linkleri çıkarılmış aynı sayfayla tam akış koşar: 0 OPTIONS, yanıt okunur. Negatif kontrol olarak `application/json` OPTIONS tetikler ve istek düşer. |
 | panel | `?panel` anahtarsız açılınca "link gerekli" uyarısı çıkar ve hiç istek gitmez; yanlış anahtarda "geçersiz" çıkar. Ödev oluşturulunca WhatsApp mesajı test, son teslim ve linki içerir, ödev listeye düşer, mesajdaki link öğrenci olarak açılınca ödev formuna iner. Sıralama listesi ve "WhatsApp'ta paylaş" linki denetlenir. |
 | kendi testi (ChatGPT) | `araclar/ornek_chatgpt.txt` (gerçek ChatGPT çıktısı) panele yapıştırılır: 20 soru ayrıştırılır, "ne sorulduğu belli değil" uyarıları çıkar, doğru cevaplar A5 B5 C5 D5'e dengelenir. Kaydedilince test "Kendi testlerin" altında seçilir, ödev oluşturulur, öğrenci linki açıp testi sunucudan gelen içerikle çözer. |
