@@ -592,6 +592,18 @@ function paintSheet(){
 }
 
 /* ---------- Akış ---------- */
+/* Başlıkları CSS büyük harfe çeviriyor; sayfa lang="tr" olduğu için İngilizce "i" → "İ" oluyordu (FRİENDSHİP).
+   Metin " · " parçalarına bölünür; Türkçe harf içermeyen parça lang="en" ile yazılır (FRIENDSHIP),
+   Türkçe parça (8. SINIF İNGİLİZCE, TANIŞMA TESTİ) Türkçe kalır. {tr: '...'} her zaman Türkçe (ör. öğrenci adı). */
+function dilli(el, ...parcalar){
+ const cocuk = [];
+ parcalar.forEach(p => (typeof p === 'object' ? [[p.tr, 'tr']] : String(p).split(' · ').map(t => [t, /[çğıöşüÇĞİÖŞÜ]/.test(t) ? 'tr' : 'en']))
+  .forEach(([t, dil]) => {
+   if (cocuk.length) cocuk.push(' · ');
+   const sp = document.createElement('span'); sp.textContent = t; if (dil !== 'tr') sp.lang = dil; cocuk.push(sp);
+  }));
+ el.replaceChildren(...cocuk);
+}
 function show(name){ ['pick','odev','panel','intro','play','finish'].forEach(s => $(s).hidden = s !== name); app.classList.toggle('picking', name === 'pick' || name === 'odev' || name === 'panel'); window.scrollTo(0,0); }
 function clearTimers(){ clearTimeout(timer); timer = null; }
 function schedule(fn, ms){ clearTimers(); endAt = performance.now() + ms; timer = setTimeout(fn, ms); }
@@ -784,8 +796,8 @@ function setHash(slug){ try { history.replaceState(null, '', slug ? '#' + slug :
 function selectQuiz(slug){
  QUIZ = QUIZZES.find(z => z.slug === slug) || QUIZZES[0]; Q = QUIZ.questions; lgs = QUIZ.scoring === 'lgs';
  document.title = QUIZ.title;
- $('eyebrow').textContent = QUIZ.eyebrow;
- $('hero-top').textContent = QUIZ.heroTop; $('hero-bottom').textContent = QUIZ.heroBottom;
+ dilli($('eyebrow'), QUIZ.eyebrow);
+ dilli($('hero-top'), QUIZ.heroTop); dilli($('hero-bottom'), QUIZ.heroBottom);
  $('lead').innerHTML = QUIZ.leadHtml; $('play-hint').textContent = QUIZ.playHint;
  $('sheet-tag').textContent = QUIZ.sheetTag; $('total').textContent = Q.length;
  $('facts').replaceChildren(...QUIZ.facts.map(([n, l]) => { const d = document.createElement('div'); d.append(document.createElement('b'), document.createElement('span')); d.children[0].textContent = n; d.children[1].textContent = l; return d; }));
@@ -844,8 +856,8 @@ async function odevAc(){
  if (!z && b.test) { z = ozelQuiz(b.test_slug, b.test); if (z) QUIZZES.push(z); }
  if (!z) return odevNot('Test bulunamadı', 'Bu ödevin testi bu sayfada yok. Öğretmenine haber ver.', 'no');
  selectQuiz(z.slug);
- $('odev-eyebrow').textContent = 'Ödev · ' + z.name;
- $('odev-top').textContent = z.heroTop; $('odev-bottom').textContent = z.heroBottom;
+ dilli($('odev-eyebrow'), {tr: 'Ödev'}, z.name);
+ dilli($('odev-top'), z.heroTop); dilli($('odev-bottom'), z.heroBottom);
  const bas = Date.parse(b.baslangic), bit = Date.parse(b.bitis), simdi = Date.parse(b.simdi) || Date.now();
  if (!b.acik) return bas && simdi < bas
   ? odevNot('Henüz açılmadı', 'Bu ödev ' + tarih(bas) + ' tarihinde açılacak.', 'no')
@@ -881,7 +893,7 @@ $('who').addEventListener('submit', e => {
  if (hata) { $(hata[0]).focus(); return; }
  $('who-sinif').value = sinif;
  ODEV.ogrenci = {numara: no, ad, sinif}; store.set('ogrenci', ODEV.ogrenci);
- $('eyebrow').textContent = 'Ödev · ' + ad;
+ dilli($('eyebrow'), {tr: 'Ödev'}, {tr: ad});
  home();
 });
 

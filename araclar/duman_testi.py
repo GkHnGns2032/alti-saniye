@@ -130,6 +130,16 @@ def sonuc_denetle(page, c, dogru, yanlis, bos):
     expect(page.locator('#finish-msg')).not_to_be_empty()
 
 
+TR_HARF = set('çğıöşüÇĞİÖŞÜ')
+
+
+def buyuk(metin):
+    """Ekranda beklenen büyük harf: Türkçe harf içeren " · " parçası Türkçe kuralla (i→İ, ı→I),
+    içermeyen parça İngilizce kuralla (i→I) büyütülür. FRİENDSHİP gibi karışık yazım olmamalı."""
+    return ' · '.join(p.replace('i', 'İ').replace('ı', 'I').upper() if TR_HARF & set(p) else p.upper()
+                      for p in metin.split(' · '))
+
+
 def quiz_senaryosu(browser, taban, c, sayfa=None):
     s = sayfa or Sayfa(browser, taban)
     page = s.page
@@ -139,6 +149,9 @@ def quiz_senaryosu(browser, taban, c, sayfa=None):
         page.click(f'#test-{c["slug"]}')
         expect(page.locator('#intro')).to_be_visible()
         expect(page.locator('#total')).to_have_text(str(len(c['questions'])))
+        # büyük harfli başlıklar: innerText CSS text-transform'u uygular
+        for sec, metin in (('#eyebrow', c['eyebrow']), ('#hero-top', c['heroTop']), ('#hero-bottom', c['heroBottom'])):
+            eşit(page.locator(sec).inner_text(), buyuk(metin), f'{sec} büyük harf')
         page.click('#start')
         dogru, yanlis, bos = cevapla(page, c)
         sonuc_denetle(page, c, dogru, yanlis, bos)
@@ -937,6 +950,8 @@ def panel_hazir_kontrol(o):
             p2 = s2.page
             p2.goto(f'{o.taban}{link.path}?{link.query}#{link.fragment}')
             expect(p2.locator('#odev-eyebrow')).to_have_text('Ödev · ' + z['name'])
+            eşit(p2.locator('#odev-eyebrow').inner_text(), 'ÖDEV · 8. SINIF İNGİLİZCE · UNIT 1 FRIENDSHIP', 'ödev başlığı büyük harf')
+            eşit(p2.locator('#odev-top').inner_text(), 'FRIENDSHIP', 'ödev hero büyük harf')
             o.bilgi_gir(p2)
             p2.click('#start')
             expect(p2.locator('#unit')).to_have_text('Unit 1 · Friendship')
