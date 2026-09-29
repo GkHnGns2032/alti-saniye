@@ -199,6 +199,7 @@ const VAKALAR = [
   }],
   ['sınıf/şube yazımları 8-A biçimine çevrilir; geçersiz ya da eksikse boş kalır ama sonuç kaybolmaz', () => {
     const o = standart();
+    o.sayfalar['Ödevler'].v[1][4] = ''; // ödev şubeye bağlı değil: her yazım denenir (şube dışı kuralı S2 vakasında)
     const giris = ['8-A', '8a', ' 8 b ', '8/c', '7.D', '12-i', '8-ş', '13-A', '0-A', '8-AB', 'A-8', '', null, 8, undefined];
     const r = giris.map((x, i) => o.post(govde(Object.assign({numara: String(100 + i)}, x === undefined ? {} : {sinif_sube: x}))));
     const s = o.sonuclar().map(x => x[14]);
@@ -295,6 +296,7 @@ const VAKALAR = [
   }],
   ['eski Sonuçlar sekmesine (14 sütun) sinif_sube başlığı eklenir; eski satırlar sıralamada sınıfsız görünür', () => {
     const o = standart();
+    o.sayfalar['Ödevler'].v[1][4] = ''; // ödev şubeye bağlı değil: her yazım denenir (şube dışı kuralı S2 vakasında)
     const sh = o.ctx.SpreadsheetApp.getActiveSpreadsheet().insertSheet('Sonuçlar');
     sh.v = [['sunucu_zamani', 'kod', 'test_slug', 'numara', 'ad_soyad', 'dogru', 'yanlis', 'bos', 'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms', 'gonderim_id'],
       [new Date(simdi - 1000), 'ACIK1', 'ingilizce-8', '5', 'Eski Satır', 8, 2, 0, 80, 'zamanında', 1, '', 60000, 'eski-satir-0001']];
@@ -309,7 +311,7 @@ const VAKALAR = [
 // Sıralama için sonuç tablosu: aynı ödevde birkaç öğrenci, tekrar denemeler, süre dışı, başka ödev.
 function siralamaOrtami(istem) {
   const o = ortam({istem});
-  o.odev(['ACIK1', 'ingilizce-8', once, sonra, '8-A', ''], ['GECTI', 'ingilizce-8', new Date(simdi - 3 * GUN), new Date(simdi - 2 * GUN), '', '']);
+  o.odev(['ACIK1', 'ingilizce-8', once, sonra, '8-A, 8-B', ''], ['GECTI', 'ingilizce-8', new Date(simdi - 3 * GUN), new Date(simdi - 2 * GUN), '', '']);
   const g = (numara, ad, dogru, puan, sure, ek = {}) => o.post(govde(Object.assign({numara, ad_soyad: ad, dogru, yanlis: 10 - dogru, bos: 0, puan, istemci_sure_ms: sure}, ek)));
   g('11', 'Ayşe Yılmaz', 8, 80, 90000);
   g('12', 'Ali Veli', 9, 90, 120000);
@@ -407,7 +409,7 @@ VAKALAR.push(
     const o = siralamaOrtami();
     o.sayfalar['Sonuçlar'].v = o.sayfalar['Sonuçlar'].v.filter(r => r[4] !== 'Can Demir');
     const s = o.ctx.siralamaHazirla_('ACIK1'), m = s.metin.split('\n');
-    return s.subeler.length === 1 && m[0] === '🏆 Ödev sıralaması · ingilizce-8 · 8-A' && m[3] === '🥇 Ali Veli — 90 puan · 9 doğru, 1 yanlış' &&
+    return s.subeler.length === 1 && m[0] === '🏆 Ödev sıralaması · ingilizce-8 · 8-A, 8-B' && m[3] === '🥇 Ali Veli — 90 puan · 9 doğru, 1 yanlış' &&
       m[4] === '🥈 Ayşe Yılmaz — 80 puan · 8 doğru, 2 yanlış' && m[m.length - 1] === '3 öğrenci katıldı.';
   }],
   ['sıralama: süre dışı sonuç listede, işaretli; ondalık puan virgüllü; boş yalnız varsa yazılır', () => {
@@ -547,7 +549,7 @@ VAKALAR.push(
     const r = o.panel('odevler');
     const ilk = r.odevler[0], acik = r.odevler.find(x => x.kod === 'ACIK1');
     return r.ok && ilk.kod === yeni.kod && ilk.test_slug === 'ingilizce-8-teen-life' && ilk.sinif === '8-B' &&
-      ilk.katilan === 0 && ilk.bitis === yeni.bitis && acik.katilan === 4 && acik.sinif === '8-A';
+      ilk.katilan === 0 && ilk.bitis === yeni.bitis && acik.katilan === 4 && acik.sinif === '8-A, 8-B';
   }],
   ['panel: siralama → WhatsApp metni ve satırlar; sonuçsuz ödevde boş metin', () => {
     const o = panelOrtami();
@@ -701,10 +703,10 @@ VAKALAR.push(
     o.panel('liste_kaydet', {sinif_sube: '8-B', ogrenciler: [ogr('13', 'Can Demir')]});
     const r = o.panel('sonuclar', {kod: 'acik1'});
     const ayse = r.sonuclar.find(x => x.numara === '11'), can = r.sonuclar.find(x => x.numara === '13');
-    return r.ok && r.odev.kod === 'ACIK1' && r.odev.test_slug === 'ingilizce-8' && r.odev.sinif === '8-A' && !!r.odev.bitis &&
+    return r.ok && r.odev.kod === 'ACIK1' && r.odev.test_slug === 'ingilizce-8' && r.odev.sinif === '8-A, 8-B' && !!r.odev.bitis &&
       r.sonuclar.length === 4 && ayse.puan === 80 && ayse.sonraki === 0 && ayse.cevaplar === '1B✓ 2C✗ 3-' &&
       can.sinif === '8-B' && can.sonraki === 0 && typeof can.sure === 'number' && !!can.zaman &&
-      JSON.stringify(r.subeler) === '["8-A"]' && r.liste.map(x => x.numara).join() === '11,20' && !('test' in r);
+      JSON.stringify(r.subeler) === '["8-A","8-B"]' && r.liste.map(x => x.numara).join() === '11,20,13' && !('test' in r);
   }],
   ['sonuçlar: şubesiz ödevde çözenlerin şubeleri; bilinmeyen kod ve anahtarsız istek reddedilir', () => {
     const o = panelOrtami();
@@ -890,6 +892,14 @@ VAKALAR.push(
     const r = o.post(govde({kod: k, numara: '123', ad_soyad: 'Yılmaz Yılmaz', sinif_sube: '8-A'}));
     const g = o.get({odev: k, numara: '123', ad: 'Ayşe Ayşe', sinif: '8-A'});
     return r.hata === 'ad_uyusmuyor' && g.liste === 'ad_uyusmuyor' && o.sonuclar().length === 0;
+  }],
+  ['S2: hiç liste yokken şube_dışı yine reddedilir, şubesiz kabul edilir', () => {
+    const o = panelOrtami();
+    o.sayfalar['Sonuçlar'].v.splice(1);
+    const od = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8-A'});
+    const a = o.post(govde({kod: od.kod, sinif_sube: '8-B'}));
+    const b = o.post(govde({kod: od.kod}));
+    return a.hata === 'sube_disi' && a.subeler.join() === '8-A' && b.ok && isaret(o.sonuclar()[0], 'liste_yok');
   }],
   ['S2: ilk deneme listedeki adla tanınır: farklı yazılışla ikinci gönderim kaydedilmez', () => {
     const o = listeli(), k = o.odevA.kod;

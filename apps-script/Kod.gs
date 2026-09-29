@@ -257,9 +257,10 @@ const noNorm_ = n => String(n == null ? '' : n).trim().replace(/^0+(?=\d)/, '');
  *  Liste hiç yoksa bugünkü davranış (serbest ad, "liste_yok"). Listeler varken şubesiz gönderim reddedilir. */
 function listeKapisi_(odevSinif, sube, numara, ad) {
   const subeler = subeListesi_(odevSinif), liste = ogrenciListesi_();
+  if (!liste.length && !sube) return {durum: 'liste_yok'};
+  if (sube && subeler.length && subeler.indexOf(sube) < 0) return {hata: 'sube_disi', subeler: subeler};
   if (!liste.length) return {durum: 'liste_yok'};
   if (!sube) return {hata: 'sube_gerekli'};
-  if (subeler.length && subeler.indexOf(sube) < 0) return {hata: 'sube_disi', subeler: subeler};
   const sinif = liste.filter(function (o) { return o.sinif === sube; });
   if (!sinif.length) return {durum: 'liste_yok'};
   const kisi = sinif.filter(function (o) { return noNorm_(o.numara) === noNorm_(numara); })[0];
