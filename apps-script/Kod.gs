@@ -173,8 +173,10 @@ function panelIslem_(b, simdi) {
   }
   if (b.islem === 'siralama') {
     const s = siralamaHazirla_(b.kod);
-    return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
-      satirlar: s.satirlar.map(function (o) { return {ad: o.ad, sinif: o.sinif, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; })};
+    const sat = function (o) { return {sira: o.sira, ad: o.ad, sinif: o.sinif, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; };
+    // metin/satirlar eskisi gibi kalır (satirlar artık şube sırasıyla, sira şube içi); subeler yeni: şube şube blok
+    return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '', satirlar: s.satirlar.map(sat),
+      subeler: s.subeler.map(function (b) { return {sube: b.sube, metin: b.metin, satirlar: b.satirlar.map(sat)}; })};
   }
   if (b.islem === 'odev_ekle' || b.islem === 'test_ekle' || b.islem === 'liste_kaydet' || b.islem === 'karar') {
     const kilit = LockService.getScriptLock();
@@ -508,6 +510,8 @@ function kodUret_() {
  *   1. satır  WhatsApp'a yapıştırılacak metin (telefonda hücreye dokun → Kopyala)
  *   2. satır  açıklama + güncellenme zamanı
  *   3. satır  başlıklar, 4. satırdan sonrası tablo
+ * Ödevde birden çok şube varsa (8-A, 8-B…) her şube ayrı blok olur: bloğun üstünde o şubenin kendi WhatsApp
+ * metni, sıra her şubede 1'den; bloklar boş satırla ayrılır, şubesi olmayan eski kayıtlar en sonda.
  * Kendiliğinden: siralamalariGuncelle() 5 dakikada bir (kurulum() kurar), son 7 günde sonucu
  * gelen her ödev için. Anında: bilgisayarda "Altı Saniye > Sıralama oluştur" menüsü
  * (özel menüler telefondaki E-Tablolar uygulamasında görünmez). Kurallar (öğretmenin kararı):
@@ -521,6 +525,7 @@ function kodUret_() {
 
 const SIRALAMA = 'Sıralama';
 const YENI_GUN = 7; // zamanlayıcı yalnız son 7 günde sonucu gelen ödevleri yeniler
+const SUBESIZ = 'Şube yazılmamış';
 const SIRALAMA_BASLIK = ['sira', 'ad_soyad', 'sinif_sube', 'numara', 'puan', 'dogru', 'yanlis', 'bos', 'sure', 'durum'];
 
 function onOpen() {
@@ -571,13 +576,15 @@ function siralamalariGuncelle() {
   return n;
 }
 
-/** Sıralamayı hesaplar ve "Sıralama <KOD>" sekmesine yazar. {kod, sekme, satirlar, metin} döndürür. */
 /** "90 puan · 18 doğru, 2 yanlış" (+ ", 1 boş" varsa, + " (süre dışı)"). Panel de aynı biçimi kullanır. */
 function siraOzeti_(o) {
   return String(o.puan).replace('.', ',') + ' puan · ' + o.dogru + ' doğru, ' + o.yanlis + ' yanlış' +
     (o.bos ? ', ' + o.bos + ' boş' : '') + (o.durum === SURE_DISI ? ' (süre dışı)' : '');
 }
 
+/** Sıralamayı hesaplar ve "Sıralama <KOD>" sekmesine yazar (şube şube bloklar). {kod, sekme, satirlar, metin, subeler}
+ *  döndürür: satirlar şube sırasıyla düz liste (her satırda şube içi `sira`), metin şube metinlerinin birleşimi
+ *  (tek şubede eski tek metin), subeler [{sube, metin, satirlar}] (şubesizler sube '' ile en sonda). */
 function siralamaHazirla_(kodGirdisi) {
   const kod = normKod_(kodGirdisi);
   const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
@@ -593,44 +600,74 @@ function siralamaHazirla_(kodGirdisi) {
     const anahtar = numara + '|' + kisiAdi_(o.ad);
     if (!ilk[anahtar]) ilk[anahtar] = o; // satırlar gönderim sırasıyla eklenir: ilk görülen ilk denemedir
   });
-  const satirlar = Object.keys(ilk).map(function (k) { return ilk[k]; }).sort(function (a, b) {
+  const tumu = Object.keys(ilk).map(function (k) { return ilk[k]; }).sort(function (a, b) {
     return b.puan - a.puan || a.sure - b.sure || a.sira_no - b.sira_no;
   });
 
   const odev = odevBul_(kod);
-  const test = satirlar.length ? satirlar[0].test_slug : (odev ? odev.test_slug : '');
+  const test = tumu.length ? tumu[0].test_slug : (odev ? odev.test_slug : '');
   const sinif = odev ? odevSinifi_(kod) : '';
   const tz = tablo_().getSpreadsheetTimeZone();
 
-  const madalya = ['🥇', '🥈', '🥉'];
-  const metin = ['🏆 Ödev sıralaması · ' + test + (sinif ? ' · ' + sinif : ''), '(ilk denemeler, 100 üzerinden)', '']
-    .concat(satirlar.map(function (o, i) {
-      return (madalya[i] || (i + 1) + '.') + ' ' + o.ad + (o.sinif ? ' (' + o.sinif + ')' : '') + ' — ' + siraOzeti_(o);
-    }))
-    .concat(['', satirlar.length + ' öğrenci katıldı.'])
-    .join('\n');
-  if (!kod || !satirlar.length) return {kod: kod, sekme: '', satirlar: satirlar, metin: metin};
+  // Şube şube: her şubenin kendi sıralaması (sıra her şubede 1'den), kendi WhatsApp metni. Şubesi olmayan eski
+  // kayıtlar en sonda "Şube yazılmamış" bloğu. Tek şubeli (ya da hiç şubesiz) ödevde tek blok, eski biçim.
+  const gruplar = {};
+  tumu.forEach(function (o) { (gruplar[o.sinif] = gruplar[o.sinif] || []).push(o); });
+  const anahtarlar = Object.keys(gruplar).filter(function (k) { return k; }).sort(subeSirala_);
+  if (gruplar['']) anahtarlar.push('');
+  const cok = anahtarlar.length > 1;
+  const bloklar = (anahtarlar.length ? anahtarlar : ['']).map(function (k) {
+    const liste = gruplar[k] || [];
+    liste.forEach(function (o, i) { o.sira = i + 1; }); // şube içi sıra
+    const etiket = cok ? (k || SUBESIZ) : sinif;
+    return {sube: k, metin: siralamaMetni_(test, etiket, liste), satirlar: liste};
+  });
+  const satirlar = [].concat.apply([], bloklar.map(function (b) { return b.satirlar; })); // şube sırasıyla, şube içinde sıralı
+  const metin = bloklar.map(function (b) { return b.metin; }).join('\n\n');
+  if (!kod || !satirlar.length) return {kod: kod, sekme: '', satirlar: satirlar, metin: metin, subeler: []};
 
   const sekme = SIRALAMA + ' ' + kod;
-  const bilgi = '↑ Üstteki metni WhatsApp\'a yapıştır: telefonda hücreye dokun → Kopyala. ' + kod + ' · ' + test +
+  const bilgi = (cok ? '↑ Her şubenin kendi bloğunun üstündeki metni o şubenin WhatsApp grubuna yapıştır' : '↑ Üstteki metni WhatsApp\'a yapıştır') +
+    ': telefonda hücreye dokun → Kopyala. ' + kod + ' · ' + test +
     (sinif ? ' · ' + sinif : '') + ' · güncellendi: ' + Utilities.formatDate(new Date(), tz, 'dd.MM.yyyy HH:mm') +
     ' (5 dakikada bir kendiliğinden yenilenir)';
-  const tablo = [SIRALAMA_BASLIK];
-  satirlar.forEach(function (o, i) {
-    tablo.push([i + 1, metin_(o.ad), o.sinif, o.numara, o.puan, o.dogru, o.yanlis, o.bos, sure_(o.sure), o.durum]);
-  });
   const genislik = SIRALAMA_BASLIK.length;
+  const bos = function () { const r = []; for (let i = 0; i < genislik; i++) r.push(''); return r; };
+  const ust = function (v) { const r = bos(); r[0] = v; return r; };
+  const izgara = [], metinSatirlari = []; // metinSatirlari: {satir (1'den), sayi (metnin satır sayısı)}
+  bloklar.forEach(function (b, bi) {
+    if (bi) izgara.push(bos()); // bloklar arası boş satır
+    izgara.push(ust(b.metin));
+    metinSatirlari.push({satir: izgara.length, sayi: b.metin.split('\n').length});
+    if (!bi) izgara.push(ust(bilgi));
+    izgara.push(SIRALAMA_BASLIK.slice());
+    b.satirlar.forEach(function (o) {
+      izgara.push([o.sira, metin_(o.ad), o.sinif, o.numara, o.puan, o.dogru, o.yanlis, o.bos, sure_(o.sure), o.durum]);
+    });
+  });
   let hedef = tablo_().getSheetByName(sekme);
   if (!hedef) hedef = tablo_().insertSheet(sekme);
   hedef.clear();
-  hedef.getRange(1, 1).setValue(metin);
-  hedef.getRange(2, 1).setValue(bilgi);
-  hedef.getRange(3, 1, tablo.length, genislik).setValues(tablo);
-  hedef.getRange(1, 1, 1, genislik).merge().setWrap(true).setVerticalAlignment('top');
-  hedef.getRange(2, 1, 1, genislik).merge().setWrap(true);
-  hedef.setRowHeight(1, 21 * metin.split('\n').length + 8);
+  hedef.getRange(1, 1, izgara.length, genislik).setValues(izgara);
+  metinSatirlari.forEach(function (m, i) {
+    hedef.getRange(m.satir, 1, 1, genislik).merge().setWrap(true).setVerticalAlignment('top');
+    hedef.setRowHeight(m.satir, 21 * m.sayi + 8);
+    if (!i) hedef.getRange(m.satir + 1, 1, 1, genislik).merge().setWrap(true);
+  });
   hedef.setFrozenRows(0);
-  return {kod: kod, sekme: sekme, satirlar: satirlar, metin: metin};
+  return {kod: kod, sekme: sekme, satirlar: satirlar, metin: metin,
+    subeler: bloklar.map(function (b) { return {sube: b.sube, metin: b.metin, satirlar: b.satirlar}; })};
+}
+
+/** Bir şubenin WhatsApp metni. Sayfadaki siralamaMetni ile aynı biçim. */
+function siralamaMetni_(test, etiket, liste) {
+  const madalya = ['🥇', '🥈', '🥉'];
+  return ['🏆 Ödev sıralaması · ' + test + (etiket ? ' · ' + etiket : ''), '(ilk denemeler, 100 üzerinden)', '']
+    .concat(liste.map(function (o, i) {
+      return (madalya[i] || (i + 1) + '.') + ' ' + o.ad + (o.sinif ? ' (' + o.sinif + ')' : '') + ' — ' + siraOzeti_(o);
+    }))
+    .concat(['', liste.length + ' öğrenci katıldı.'])
+    .join('\n');
 }
 
 /** Ad karşılaştırması için: Türkçe küçük harf, tek boşluk. "AYŞE  Yılmaz" = "ayşe yılmaz". */
