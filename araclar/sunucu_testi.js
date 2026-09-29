@@ -308,11 +308,13 @@ const VAKALAR = [
 ];
 
 /* ---------- Sıralama ---------- */
+// Sıralama süresi artık sunucu ölçümü (sütun 15): eski vakalar istemci süresini o sütuna yansıtır (beklentiler aynı kalır).
+const sureyiSunucuya = o => { const v = o.sayfalar['Sonuçlar'].v; v.forEach((r, i) => { if (i > 0 && typeof r[12] === 'number' && r[15] === '') r[15] = r[12]; }); };
 // Sıralama için sonuç tablosu: aynı ödevde birkaç öğrenci, tekrar denemeler, süre dışı, başka ödev.
 function siralamaOrtami(istem) {
   const o = ortam({istem});
   o.odev(['ACIK1', 'ingilizce-8', once, sonra, '8-A, 8-B', ''], ['GECTI', 'ingilizce-8', new Date(simdi - 3 * GUN), new Date(simdi - 2 * GUN), '', '']);
-  const g = (numara, ad, dogru, puan, sure, ek = {}) => o.post(govde(Object.assign({numara, ad_soyad: ad, dogru, yanlis: 10 - dogru, bos: 0, puan, istemci_sure_ms: sure}, ek)));
+  const g = (numara, ad, dogru, puan, sure, ek = {}) => { const r = o.post(govde(Object.assign({numara, ad_soyad: ad, dogru, yanlis: 10 - dogru, bos: 0, puan, istemci_sure_ms: sure}, ek))); sureyiSunucuya(o); return r; };
   g('11', 'Ayşe Yılmaz', 8, 80, 90000);
   g('12', 'Ali Veli', 9, 90, 120000);
   g('11', 'Ayşe Yılmaz', 10, 100, 60000);       // 2. deneme: sayılmamalı
@@ -350,6 +352,7 @@ VAKALAR.push(
     o.post(govde({numara: '21', ad_soyad: 'Mert Aslan', dogru: 7, puan: 70, sinif_sube: '8-A', istemci_sure_ms: 80000}));
     o.post(govde({numara: '22', ad_soyad: 'Elif Şen', dogru: 9, puan: 90, sinif_sube: '8-A', istemci_sure_ms: 90000}));
     o.post(govde({numara: '23', ad_soyad: 'Zeynep Kara', dogru: 8, puan: 85, sinif_sube: '8-b', istemci_sure_ms: 95000}));
+    sureyiSunucuya(o);
     const s = o.ctx.siralamaHazirla_('ACIK1');
     const sh = o.sayfalar['Sıralama ACIK1'], v = sh.v;
     const [a, b, yok] = s.subeler;
@@ -983,6 +986,43 @@ VAKALAR.push(
     const o = standart();
     o.post(govde({kod: 'x'.repeat(300)}));
     return Object.keys(o.onbellek).every(k => k.length < 60);
+  }]
+);
+
+VAKALAR.push(
+  ['S5: GET damgası POST\'ta doğrulanır, sure_sunucu_ms yazılır', () => {
+    const o = listeli(), k = o.odevA.kod;
+    const g = o.get({odev: k, numara: '0123', ad: 'Ayşe Yılmaz', sinif: '8-A'});
+    const r = o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A', damga: g.damga}));
+    const s = o.sonuclar()[0];
+    return typeof g.damga === 'string' && g.damga.split('|')[1] === '123' && r.ok &&
+      typeof s[15] === 'number' && s[15] >= 0 && s[15] < 5000 && s[17] === '';
+  }],
+  ['S5: sahte imza, başka öğrencinin damgası, damgasız gönderim → süre boş, sure_dogrulanmadi', () => {
+    const o = listeli(), k = o.odevA.kod;
+    const g = o.get({odev: k, numara: '123', ad: 'Ayşe Yılmaz', sinif: '8-A'});
+    const p = g.damga.split('|'); p[2] = String(Number(p[2]) - 3600e3); // 1 saat öne çekilmiş
+    o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A', damga: p.join('|')}));
+    o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A', damga: g.damga}));
+    const s = o.sonuclar();
+    return s.length === 2 && s.every(x => x[15] === '' && x[17].split(',').indexOf('sure_dogrulanmadi') >= 0);
+  }],
+  ['S5: liste hatası varken damga verilmez; DAMGA_SIRRI kurulum()\'da oluşur ve depoda yoktur', () => {
+    const o = listeli();
+    const g = o.get({odev: o.odevA.kod, numara: '555', ad: 'Biri Başka', sinif: '8-A'});
+    o.ctx.kurulum();
+    return g.damga === undefined && /^[0-9a-f]{64}$/.test(o.ozellikler.DAMGA_SIRRI) && KOD.indexOf(o.ozellikler.DAMGA_SIRRI) < 0;
+  }],
+  ['S5: eşit puanda sunucu süresi kısa olan önde; istemci süresi yok sayılır', () => {
+    const o = listeli(), k = o.odevA.kod;
+    const gA = o.get({odev: k, numara: '123', ad: 'Ayşe Yılmaz', sinif: '8-A'});
+    const gB = o.get({odev: k, numara: '7', ad: 'Ali Veli', sinif: '8-A'});
+    const sh = () => o.sayfalar['Sonuçlar'];
+    o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A', damga: gB.damga, istemci_sure_ms: 1}));
+    o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A', damga: gA.damga, istemci_sure_ms: 999999}));
+    sh().v[1][15] = 90000; sh().v[2][15] = 30000; // Ali 90 sn, Ayşe 30 sn
+    const r = o.panel('siralama', {kod: k});
+    return r.satirlar[0].ad === 'Ayşe Nur Yılmaz' && r.satirlar[1].ad === 'Ali Veli';
   }]
 );
 

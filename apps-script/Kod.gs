@@ -54,6 +54,7 @@ const GUN_MS = 24 * 60 * 60 * 1000;
 // Öğretmen panelinin linki bu adresle kurulur (kurulum() günlüğe yazar). Site taşınırsa burayı değiştir.
 const SITE = 'https://gkhngns2032.github.io/alti-saniye/';
 const ANAHTAR_OZELLIGI = 'OGRETMEN_ANAHTARI';
+const DAMGA_OZELLIGI = 'DAMGA_SIRRI';
 const TESTLER = 'Testler';
 const TEST_BASLIK = ['test_slug', 'ad', 'soru_sayisi', 'olusturma', 'icerik'];
 // Sınıf listesi: öğretmen panele yapıştırır; ödevi yapmayanları görmek ve sonucu numarayla eşlemek için.
@@ -92,6 +93,7 @@ function doGet(e) {
       yanit.liste = kapi.hata || kapi.durum;
       const no = kapi.durum === 'tamam' ? kapi.numara : String(p.numara).trim();
       yanit.onceki = !kapi.hata && oncekiVar_(odev.anahtar, no, kapi.durum === 'tamam' ? kapi.ad : String(p.ad));
+      if (!kapi.hata) yanit.damga = damgaUret_(odev.anahtar, no, Date.now());
     }
     return json_(yanit);
   } catch (err) {
@@ -134,6 +136,8 @@ function doPost(e) {
     if (kapi.hata) return json_({ok: false, hata: kapi.hata, subeler: kapi.subeler, kalici: true});
     ek.yazilan_ad = g.ad_soyad;
     if (kapi.durum === 'tamam') { g.ad_soyad = kapi.ad; g.numara = kapi.numara; } else ek.isaretler.push('liste_yok');
+    const t0 = damgaCoz_(g.damga, odev.anahtar, g.numara);
+    if (t0 != null && t0 <= simdi.getTime()) ek.sure_sunucu = simdi.getTime() - t0; else ek.isaretler.push('sure_dogrulanmadi');
 
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return json_({ok: false, hata: 'mesgul'});
@@ -165,6 +169,7 @@ function kurulum() {
   const n = siralamalariGuncelle();
   const ozellik = PropertiesService.getScriptProperties();
   if (!ozellik.getProperty(ANAHTAR_OZELLIGI)) ozellik.setProperty(ANAHTAR_OZELLIGI, yeniAnahtar_());
+  damgaSirri_();
   console.log('Sekmeler hazır, sıralama zamanlayıcısı kuruldu (5 dk), ' + n + ' sıralama yenilendi. ' +
     'E-tablo saat dilimi: ' + tablo_().getSpreadsheetTimeZone());
   ogretmenLinki();
@@ -182,6 +187,24 @@ function ogretmenLinki() {
 function anahtariYenile() {
   PropertiesService.getScriptProperties().setProperty(ANAHTAR_OZELLIGI, yeniAnahtar_());
   return ogretmenLinki();
+}
+
+/* Süre damgası: öğrenci bilgisini girince (GET) sunucu "KOD|numara|t|imza" verir; gönderimde imza
+   doğrulanır ve süre sunucu saatiyle ölçülür (istemci süresi yalnız bilgi). Sır Betik Özellikleri'nde. */
+function damgaSirri_() {
+  const oz = PropertiesService.getScriptProperties();
+  let s = oz.getProperty(DAMGA_OZELLIGI);
+  if (!s) { s = yeniAnahtar_(); oz.setProperty(DAMGA_OZELLIGI, s); }
+  return s;
+}
+function imza_(m) {
+  return Utilities.computeHmacSha256Signature(m, damgaSirri_()).map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
+}
+function damgaUret_(kod, numara, t) { const m = kod + '|' + noNorm_(numara) + '|' + t; return m + '|' + imza_(m); }
+function damgaCoz_(damga, kod, numara) {
+  const p = String(damga == null ? '' : damga).split('|');
+  if (p.length !== 4 || p[0] !== kod || p[1] !== noNorm_(numara) || !/^\d{13}$/.test(p[2])) return null;
+  return imza_(p.slice(0, 3).join('|')) === p[3] ? Number(p[2]) : null;
 }
 
 function yeniAnahtar_() {
@@ -338,7 +361,7 @@ function odevSonuclari_(kodGirdisi) {
     if (ilk[anahtar]) { ilk[anahtar].sonraki++; return; }
     ilk[anahtar] = {numara: numara, ad: ad, sinif: sinifSube_(r[14]), dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0,
       bos: Number(r[7]) || 0, puan: Number(r[8]) || 0, durum: String(r[9]), cevaplar: String(r[11]).replace(/^'/, ''),
-      sure: r[12] === '' || r[12] == null ? null : Number(r[12]), zaman: iso_(r[0] instanceof Date ? r[0] : null), sonraki: 0,
+      sure: r[SUT.sure_sunucu] === '' || r[SUT.sure_sunucu] == null ? null : Number(r[SUT.sure_sunucu]), istemci_sure: r[12] === '' || r[12] == null ? null : Number(r[12]), zaman: iso_(r[0] instanceof Date ? r[0] : null), sonraki: 0,
       puan_kaynagi: String(r[SUT.puan_kaynagi] || ''), isaretler: String(r[SUT.isaretler] || ''),
       sure_sunucu: r[SUT.sure_sunucu] === '' || r[SUT.sure_sunucu] == null ? null : Number(r[SUT.sure_sunucu])};
     sira.push(ilk[anahtar]);
@@ -697,7 +720,7 @@ function siralamaHazirla_(kodGirdisi) {
     const numara = String(r[3]).trim();
     const o = {sira_no: i, test_slug: String(r[2]), numara: numara, ad: String(r[4]).replace(/^'/, '').trim(),
       dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0, bos: Number(r[7]) || 0, puan: Number(r[8]) || 0,
-      durum: String(r[9]), sure: r[12] === '' || r[12] == null ? Infinity : Number(r[12]), sinif: sinifSube_(r[14])};
+      durum: String(r[9]), sure: r[SUT.sure_sunucu] === '' || r[SUT.sure_sunucu] == null ? Infinity : Number(r[SUT.sure_sunucu]), sinif: sinifSube_(r[14])};
     const anahtar = numara + '|' + kisiAdi_(o.ad);
     if (!ilk[anahtar]) ilk[anahtar] = o; // satırlar gönderim sırasıyla eklenir: ilk görülen ilk denemedir
   });
@@ -932,12 +955,13 @@ function gonderimDenetle_(b) {
   if (typeof b.puan !== 'number' || !isFinite(b.puan)) return {hata: 'gecersiz'};
   if (typeof b.cevaplar !== 'string' || b.cevaplar.length > 4000) return {hata: 'gecersiz'};
   if (b.istemci_sure_ms != null && !tam(b.istemci_sure_ms, 864e5)) return {hata: 'gecersiz'};
+  if (b.damga != null && (typeof b.damga !== 'string' || b.damga.length > 200)) return {hata: 'gecersiz'};
   if (typeof b.gonderim_id !== 'string' || !/^[A-Za-z0-9-]{8,64}$/.test(b.gonderim_id)) return {hata: 'gecersiz'};
   return {
     // sınıf/şube sayfada zorunlu; burada boş yalnız hiç sınıf listesi yokken kabul edilir (liste varsa listeKapisi_ sube_gerekli ile reddeder)
     kod: kod, test_slug: b.test_slug, numara: numara, ad_soyad: ad, sinif_sube: sinifSube_(b.sinif_sube),
     dogru: b.dogru, yanlis: b.yanlis, bos: b.bos, puan: b.puan, cevaplar: b.cevaplar,
-    istemci_sure_ms: b.istemci_sure_ms == null ? '' : b.istemci_sure_ms, gonderim_id: b.gonderim_id
+    istemci_sure_ms: b.istemci_sure_ms == null ? '' : b.istemci_sure_ms, gonderim_id: b.gonderim_id, damga: b.damga || ''
   };
 }
 
