@@ -885,6 +885,12 @@ VAKALAR.push(
     return a.liste === 'tamam' && b.liste === 'ad_uyusmuyor' && c.liste === 'listede_yok' &&
       ![a, b, c].some(x => JSON.stringify(x).indexOf('Nur') >= 0);
   }],
+  ['S2: tekrarlanan kelime tek sayılır: "Yılmaz Yılmaz" reddedilir (POST ve GET)', () => {
+    const o = listeli(), k = o.odevA.kod;
+    const r = o.post(govde({kod: k, numara: '123', ad_soyad: 'Yılmaz Yılmaz', sinif_sube: '8-A'}));
+    const g = o.get({odev: k, numara: '123', ad: 'Ayşe Ayşe', sinif: '8-A'});
+    return r.hata === 'ad_uyusmuyor' && g.liste === 'ad_uyusmuyor' && o.sonuclar().length === 0;
+  }],
   ['S2: ilk deneme listedeki adla tanınır: farklı yazılışla ikinci gönderim kaydedilmez', () => {
     const o = listeli(), k = o.odevA.kod;
     o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A'}));

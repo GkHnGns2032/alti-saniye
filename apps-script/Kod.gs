@@ -247,7 +247,7 @@ function adKelimeleri_(ad) {
 
 /** Yazılan her kelime listedeki adda geçmeli, en az 2 kelime (ikinci adını yazmayan reddedilmesin). */
 function adUyar_(yazilan, listedeki) {
-  const y = adKelimeleri_(yazilan), l = adKelimeleri_(listedeki);
+  const y = adKelimeleri_(yazilan).filter(function (k, i, a) { return a.indexOf(k) === i; }), l = adKelimeleri_(listedeki);
   return y.length >= 2 && y.every(function (k) { return l.indexOf(k) >= 0; });
 }
 
@@ -898,7 +898,7 @@ function gonderimDenetle_(b) {
   if (b.istemci_sure_ms != null && !tam(b.istemci_sure_ms, 864e5)) return {hata: 'gecersiz'};
   if (typeof b.gonderim_id !== 'string' || !/^[A-Za-z0-9-]{8,64}$/.test(b.gonderim_id)) return {hata: 'gecersiz'};
   return {
-    // sınıf/şube sayfada zorunlu; eski sayfadan (önbellek) gelen sonuç kaybolmasın diye burada boş kabul edilir
+    // sınıf/şube sayfada zorunlu; burada boş yalnız hiç sınıf listesi yokken kabul edilir (liste varsa listeKapisi_ sube_gerekli ile reddeder)
     kod: kod, test_slug: b.test_slug, numara: numara, ad_soyad: ad, sinif_sube: sinifSube_(b.sinif_sube),
     dogru: b.dogru, yanlis: b.yanlis, bos: b.bos, puan: b.puan, cevaplar: b.cevaplar,
     istemci_sure_ms: b.istemci_sure_ms == null ? '' : b.istemci_sure_ms, gonderim_id: b.gonderim_id
