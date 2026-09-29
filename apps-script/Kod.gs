@@ -55,6 +55,8 @@ const GUN_MS = 24 * 60 * 60 * 1000;
 const SITE = 'https://gkhngns2032.github.io/alti-saniye/';
 const ANAHTAR_OZELLIGI = 'OGRETMEN_ANAHTARI';
 const DAMGA_OZELLIGI = 'DAMGA_SIRRI';
+const DAMGALAR = 'Damgalar';
+const DAMGA_BASLIK = ['kod', 'numara', 't'];
 const TESTLER = 'Testler';
 const TEST_BASLIK = ['test_slug', 'ad', 'soru_sayisi', 'olusturma', 'icerik'];
 // Sınıf listesi: öğretmen panele yapıştırır; ödevi yapmayanları görmek ve sonucu numarayla eşlemek için.
@@ -93,7 +95,7 @@ function doGet(e) {
       yanit.liste = kapi.hata || kapi.durum;
       const no = kapi.durum === 'tamam' ? kapi.numara : String(p.numara).trim();
       yanit.onceki = !kapi.hata && oncekiVar_(odev.anahtar, no, kapi.durum === 'tamam' ? kapi.ad : String(p.ad));
-      if (!kapi.hata) yanit.damga = damgaUret_(odev.anahtar, no, Date.now());
+      if (!kapi.hata && /^\d{1,12}$/.test(no)) yanit.damga = damgaUret_(odev.anahtar, no, ilkDamga_(odev.anahtar, no));
     }
     return json_(yanit);
   } catch (err) {
@@ -199,6 +201,22 @@ function damgaSirri_() {
 }
 function imza_(m) {
   return Utilities.computeHmacSha256Signature(m, damgaSirri_()).map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
+}
+/* Kod+numara başına YALNIZ İLK damga zamanı verilir (Damgalar sekmesinde kalıcı): öğrenci gönderimden hemen
+   önce yeni damga alıp süreyi ~0 gösteremesin. Kilit yok: yarışta çift satır olabilir, en küçük t kazanır.
+   Ödev bittikten sonra öğretmen sekmeyi temizleyebilir. */
+function ilkDamga_(kod, numara) {
+  const n = noNorm_(numara), sh = sayfa_(DAMGALAR, DAMGA_BASLIK);
+  let en = null;
+  sh.getDataRange().getValues().slice(1).forEach(function (r) {
+    const t = Number(r[2]);
+    if (normKod_(r[0]) === normKod_(kod) && noNorm_(r[1]) === n && t > 0 && (en === null || t < en)) en = t;
+  });
+  if (en !== null) return en;
+  const t = Date.now(), satir = sh.getLastRow() + 1;
+  sh.getRange(satir, 2).setNumberFormat('@');
+  sh.getRange(satir, 1, 1, 3).setValues([[kod, n, t]]);
+  return t;
 }
 function damgaUret_(kod, numara, t) { const m = kod + '|' + noNorm_(numara) + '|' + t; return m + '|' + imza_(m); }
 function damgaCoz_(damga, kod, numara) {

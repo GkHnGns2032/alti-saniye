@@ -998,7 +998,7 @@ VAKALAR.push(
     return typeof g.damga === 'string' && g.damga.split('|')[1] === '123' && r.ok &&
       typeof s[15] === 'number' && s[15] >= 0 && s[15] < 5000 && s[17] === '';
   }],
-  ['S5: sahte imza, başka öğrencinin damgası, damgasız gönderim → süre boş, sure_dogrulanmadi', () => {
+  ['S5: sahte imza ve başka öğrencinin damgası → süre boş, sure_dogrulanmadi', () => {
     const o = listeli(), k = o.odevA.kod;
     const g = o.get({odev: k, numara: '123', ad: 'Ayşe Yılmaz', sinif: '8-A'});
     const p = g.damga.split('|'); p[2] = String(Number(p[2]) - 3600e3); // 1 saat öne çekilmiş
@@ -1021,6 +1021,39 @@ VAKALAR.push(
     o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A', damga: gB.damga, istemci_sure_ms: 1}));
     o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A', damga: gA.damga, istemci_sure_ms: 999999}));
     sh().v[1][15] = 90000; sh().v[2][15] = 30000; // Ali 90 sn, Ayşe 30 sn
+    const r = o.panel('siralama', {kod: k});
+    return r.satirlar[0].ad === 'Ayşe Nur Yılmaz' && r.satirlar[1].ad === 'Ali Veli';
+  }]
+);
+
+VAKALAR.push(
+  ['S5: damgasız gönderim → süre boş, sure_dogrulanmadi', () => {
+    const o = listeli(), k = o.odevA.kod;
+    o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A'}));
+    const s = o.sonuclar();
+    return s.length === 1 && s[0][15] === '' && s[0][17].split(',').indexOf('sure_dogrulanmadi') >= 0;
+  }],
+  ['S5: aynı öğrenciye hep İLK damga verilir (Damgalar sekmesinde tek satır); başka öğrenci ayrı satır', () => {
+    const o = listeli(), k = o.odevA.kod;
+    const a1 = o.get({odev: k, numara: '123', ad: 'Ayşe Yılmaz', sinif: '8-A'}), a2 = o.get({odev: k, numara: '0123', ad: 'Ayşe Yılmaz', sinif: '8-A'});
+    const b = o.get({odev: k, numara: '7', ad: 'Ali Veli', sinif: '8-A'});
+    const v = o.sayfalar['Damgalar'].v.slice(1);
+    return a1.damga.split('|')[2] === a2.damga.split('|')[2] && v.filter(r => r[0] === k && r[1] === '123').length === 1 &&
+      v.filter(r => r[1] === '7').length === 1 && v.length === 2 && b.damga.split('|')[1] === '7';
+  }],
+  ['S5: başka ödev kodunun damgası (aynı numara) POST\'ta reddedilir → sure_dogrulanmadi', () => {
+    const o = listeli(), k = o.odevA.kod;
+    const p = o.get({odev: k, numara: '123', ad: 'Ayşe Yılmaz', sinif: '8-A'}).damga.split('|');
+    p[0] = 'BASKA'; // kod alanı değişti: imza tutmaz
+    o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A', damga: p.join('|')}));
+    const s = o.sonuclar()[0];
+    return s[15] === '' && s[17].split(',').indexOf('sure_dogrulanmadi') >= 0;
+  }],
+  ['S5: eşit puanda sunucu süresi olan, olmayanın önünde (yoksa en sona)', () => {
+    const o = listeli(), k = o.odevA.kod;
+    o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A'}));
+    o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A'}));
+    o.sayfalar['Sonuçlar'].v[2][15] = 50000; // yalnız Ayşe'nin süresi var; Ali önce gelmişti
     const r = o.panel('siralama', {kod: k});
     return r.satirlar[0].ad === 'Ayşe Nur Yılmaz' && r.satirlar[1].ad === 'Ali Veli';
   }]
