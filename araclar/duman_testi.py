@@ -25,6 +25,8 @@ Ek olarak <slug>/index.html yönlendirmesinin doğru teste indiği denetlenir.
 → WhatsApp linki → o linkin öğrenci olarak açılıp ödev formuna inmesi, sıralamanın WhatsApp'ta paylaşımı; ChatGPT'den
 yapıştırılan testin (araclar/ornek_chatgpt.txt, öğretmenin gerçek çıktısı) okunması, dengelenmesi,
 kaydedilmesi, o testle ödev verilip öğrencinin çözmesi; hatalı yapıştırmaların yakalanması.
+Fotoğraf kalıbı: iki kopyalama düğmesinin panoya doğru kalıbı yazması; araclar/ornek_chatgpt_foto.txt (8 soru, 2'sinde
+"(emin değilim)") okunur, sarı uyarı çıkar, kayıtlı açıklamada ifade kalmaz.
 Herhangi bir konsol hatası ya da yakalanmamış JS istisnası = FAIL.
 Test ağdan bağımsızdır: yerel sunucu dışındaki istekler (Google Fonts) boş 200 yanıtla
 karşılanır; yazı tipi yedeğe düşer, davranış değişmez, CI'da ağ kesintisi testi bozmaz.
@@ -1341,6 +1343,60 @@ def panel_ozel_hatalar(o):
         s.kapat()
 
 
+def panel_foto_kalibi(o):
+    """Fotoğraf kalıbı: iki düğme doğru metni panoya yazar; kalıba uyan çıktı (araclar/ornek_chatgpt_foto.txt) okunur,
+    "(emin değilim)" olan sorular sarı uyarı alır ve kayıtlı açıklamada o ifade kalmaz."""
+    o.uc.sifirla()
+    kaynak = (KOK / 'sablon.html').read_text(encoding='utf-8')
+    kalip = re.search(r'const KALIP = `(.*?)`;', kaynak, re.S).group(1)
+    foto = re.search(r'const KALIP_FOTO = `(.*?)`;', kaynak, re.S).group(1)
+    if 'emin değilim' not in foto or 'Sayfa hakkında not (isteğe bağlı):' not in foto or 'TEST: (' not in foto or 'fotoğraf' in kalip.lower():
+        raise AssertionError('kalıplar beklenen içerikte değil')
+    metin = (KOK / 'araclar' / 'ornek_chatgpt_foto.txt').read_text(encoding='utf-8')
+    s = o.sayfa()
+    page = s.page
+    try:
+        # gerçek pano yerine kayıt tutan sahte pano: hangi metnin kopyalandığı okunabilsin
+        page.add_init_script("window.__pano = []; Object.defineProperty(navigator, 'clipboard', {configurable: true, "
+                             "value: {writeText: t => { window.__pano.push(t); return Promise.resolve(); }}});")
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        page.click('#t-kart summary')
+        expect(page.locator('#t-kalip-foto')).to_have_text('Fotoğraf kalıbını kopyala')
+        expect(page.locator('#t-kart .adimlar')).to_contain_text("ChatGPT'de fotoğrafı ekle (📎 / +), fotoğraf kalıbını yapıştır, gönder.")
+        page.click('#t-kalip')
+        expect(page.locator('#t-kalip')).to_contain_text('Kopyalandı')
+        page.click('#t-kalip-foto')
+        expect(page.locator('#t-kalip-foto')).to_contain_text('Kopyalandı')
+        pano = page.evaluate('window.__pano')
+        eşit(len(pano), 2, 'pano yazımı')
+        if pano[0] != kalip or pano[1] != foto or pano[0] == pano[1]:
+            raise AssertionError('düğmeler panoya doğru kalıbı yazmadı')
+        # kalıba uyan çıktı: 8 soru, 2 sarı uyarı, açıklamada "(emin değilim)" yok
+        page.fill('#t-metin', metin)
+        page.click('#t-kontrol')
+        expect(page.locator('#t-hatalar')).to_be_hidden()
+        expect(page.locator('#t-ozet')).to_contain_text('8 soru bulundu')
+        expect(page.locator('#t-onizleme > li')).to_have_count(8)
+        expect(page.locator('#t-onizleme > li.uyarili')).to_have_count(2)
+        expect(page.locator('#t-uyarilar > li')).to_have_count(3)  # "Kontrol etmen iyi olur:" + 2 uyarı
+        expect(page.locator('#t-uyarilar')).to_contain_text('5. soru: ChatGPT cevaptan emin değil — kontrol et')
+        expect(page.locator('#t-uyarilar')).to_contain_text('8. soru: ChatGPT cevaptan emin değil — kontrol et')
+        expect(page.locator('#t-onizleme')).not_to_contain_text('emin değilim')
+        expect(page.locator('#t-ad')).to_have_value('Unit 7 Tourism')
+        page.click('#t-kaydet')
+        expect(page.locator('#t-tamam')).to_contain_text('kaydedildi')
+        slug, t = next(iter(o.uc.testler.items()))
+        eşit(len(t['sorular']), 8, 'kaydedilen soru')
+        if any('emin değilim' in q['tr'] for q in t['sorular']):
+            raise AssertionError('kayıtlı açıklamada "(emin değilim)" kalmış')
+        eşit(t['sorular'][4]['tr'], 'Crowded (kalabalık) kelimesinin zıttı empty (boş) kelimesidir.', '5. sorunun temiz açıklaması')
+        o.bitir(s)
+        return 'iki kalıp düğmesi panoya doğru metni yazdı · fotoğraf çıktısı: 8 soru, 2 "emin değilim" sarı uyarı, kayıtta ifade yok'
+    finally:
+        s.kapat()
+
+
 def odev_cors(o):
     """Ön-kontrol kanıtı. Playwright'ta route() açıkken CORS ön-kontrolünü Playwright kendisi karşılar,
     OPTIONS sunucuya ulaşmaz; bu yüzden bu senaryo HİÇ route olmayan bir bağlamda koşar. Sayfa,
@@ -1420,6 +1476,7 @@ def main():
         kos('panel  sonuçlar', panel_siralama, o)
         kos('panel  ChatGPT testi → ödev', panel_ozel_test, o)
         kos('panel  ChatGPT hatalı metin', panel_ozel_hatalar, o)
+        kos('panel  fotoğraf kalıbı', panel_foto_kalibi, o)
         kos('panel  hazır testi kontrol et', panel_hazir_kontrol, o)
         kos('panel  sınıf listesi', panel_sinif_listesi, o)
         kos('panel  sözlü notları', panel_sozlu, o)

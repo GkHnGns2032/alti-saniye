@@ -451,8 +451,8 @@ details.pcard[open]>summary::after{content:"−"}
      <summary><h2>Kendi testini ekle (ChatGPT)</h2></summary>
      <div class="pcard-govde">
      <ol class="adimlar">
-      <li><span><b>1.</b> Kalıbı kopyala.</span><button class="btn ghost wide" id="t-kalip" type="button">Kalıbı kopyala</button></li>
-      <li><span><b>2.</b> ChatGPT'yi aç, kalıbı yapıştır, en alttaki “Konu:” satırına konuyu yaz, gönder.</span><a class="btn ghost wide" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT'yi aç</a></li>
+      <li><span><b>1.</b> Kalıbı kopyala. Kitap sayfasından test yapacaksan fotoğraf kalıbını kopyala.</span><button class="btn ghost wide" id="t-kalip" type="button">Kalıbı kopyala</button><button class="btn ghost wide" id="t-kalip-foto" type="button">Fotoğraf kalıbını kopyala</button></li>
+      <li><span><b>2.</b> ChatGPT'yi aç, kalıbı yapıştır, en alttaki “Konu:” satırına konuyu yaz, gönder. Kitap sayfasından test yapacaksan: ChatGPT'de fotoğrafı ekle (📎 / +), fotoğraf kalıbını yapıştır, gönder.</span><a class="btn ghost wide" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT'yi aç</a></li>
       <li><span><b>3.</b> Soruları oku. Beğenmediğini ChatGPT'ye değiştirt. Sonra cevabın altındaki <b>Kopyala</b>'ya dokun ve buraya yapıştır:</span></li>
      </ol>
      <textarea id="t-metin" placeholder="ChatGPT'nin cevabını buraya yapıştır" autocomplete="off" spellcheck="false"></textarea>
@@ -1410,6 +1410,39 @@ Açıklama: (kısa Türkçe açıklama)
 2) ...
 
 Konu: `;
+const KALIP_FOTO = `Sen bir 8. sınıf İngilizce öğretmenisin. Ekteki fotoğraf bir 8. sınıf İngilizce ders kitabı ya da çalışma kitabı sayfası. Bu sayfadan LGS tarzında, çoktan seçmeli bir test hazırla.
+
+Sayfayı nasıl kullanacağın:
+- Sayfada çoktan seçmeli ya da boşluk doldurma soruları varsa onları AYNEN aktar. Şık sayısı 4'ten azsa 4'e tamamla; eklediğin şıklar kesinlikle yanlış olsun.
+- Sayfada soru yoksa ya da 5'ten az soru varsa, sayfadaki kelime ve cümlelerden yeni sorular üret. Toplam soru sayısı en az 5, en çok 20 olsun.
+- Paragrafa, diyaloğa ya da resme bağlı sorular ("according to the text", "look at the picture" gibi) tek başına anlaşılır olsun: gereken bilgiyi soru cümlesine yaz. Kısa yazamıyorsan o soruyu atla.
+- Eşleştirme, doğru/yanlış ve yazma sorularını 4 şıklı soruya çevir ya da atla.
+- Fotoğrafta okuyamadığın kısmı uydurma, o soruyu atla.
+- Kitapta cevap anahtarı yoksa soruyu kendin çöz. Cevabından emin olmadığın her sorunun "Açıklama:" satırının SONUNA "(emin değilim)" yaz.
+- "TEST:" satırına kitabın ünite ya da konu adını yaz.
+
+Kurallar:
+- Sorular İngilizce olsun, 8. sınıf MEB İngilizce ders kitabı seviyesinde olsun.
+- Her soru çok kısa olsun: en fazla 2 satır ve 15 kelime. Öğrenci her soruyu 12 saniyede okuyup cevaplayacak.
+- Her soruda ne sorulduğu belli olsun: ya bir boşluk (_____) ya da bir soru cümlesi (?) olsun.
+- Her sorunun 4 şıkkı olsun: A, B, C, D. Şıklar kısa olsun (1-4 kelime).
+- Her sorunun yalnızca BİR doğru cevabı olsun. Diğer şıklar kesinlikle yanlış olsun.
+- Her sorudan sonra "Cevap:" satırına doğru harfi, "Açıklama:" satırına tek cümlelik Türkçe açıklama yaz.
+- Giriş ya da kapanış cümlesi yazma. Kalın yazı, tablo, madde işareti kullanma.
+- Tam olarak aşağıdaki biçimi kullan:
+
+TEST: (kitabın ünite ya da konu adı)
+1) (soru)
+A) (şık)
+B) (şık)
+C) (şık)
+D) (şık)
+Cevap: (harf)
+Açıklama: (kısa Türkçe açıklama)
+
+2) ...
+
+Sayfa hakkında not (isteğe bağlı): `;
 function testSecenekleri(){
  const sec = $('p-test').value, grup = (etiket, liste) => { const g = document.createElement('optgroup'); g.label = etiket; liste.forEach(([slug, ad, n]) => { const o = document.createElement('option'); o.value = slug; o.textContent = ad + ' (' + n + ' soru)'; g.append(o); }); return g; };
  const on = onaylilar(), onayli = new Set(Object.values(on));
@@ -1452,6 +1485,10 @@ function testCoz(metin){
   if (q.q && !/\?|_{2,}|…|\.\.\./.test(q.q)) q.uyari.push('ne sorulduğu belli değil (boşluk ____ ya da soru işareti yok)');
   if (q.q.length > 110) q.uyari.push('uzun, ' + SN + ' saniyede okunmayabilir');
   if (o.some(x => x.length > 40)) q.uyari.push('şıklardan biri uzun');
+  if (/emin\s+değilim/.test(q.tr.toLocaleLowerCase('tr'))) { // fotoğraf kalıbı: cevap anahtarı yoksa ChatGPT kendi çözer ve şüphesini yazar
+   q.uyari.push('ChatGPT cevaptan emin değil — kontrol et');
+   q.tr = q.tr.replace(/\s*\(?\s*emin\s+değilim\s*\)?\.?/gi, '').trim(); // kayıtlı açıklamada "(emin değilim)" kalmaz
+  }
   q.o = o;
   if (q.uyari.length) uyarilar.push(n + '. soru: ' + q.uyari.join(', '));
  });
@@ -1699,12 +1736,13 @@ $('n-indir').addEventListener('click', () => {
  csvIndir('sozlu-notlari-' + NOTLAR.sube + '.csv', [bas].concat(h.ogrenciler.map(x => [x.s.numara, x.s.ad, x.not == null ? '' : x.not, x.sayi]
   .concat(x.hucre.map(c => c.puan == null ? (c.karar === 'ozurlu' ? 'özürlü' : 'sayılmıyor') : fmtPuan(c.puan) + (c.karar && c.puan === 0 ? ' (yapmadı)' : ''))))));
 });
-$('t-kalip').addEventListener('click', async () => {
- const b = $('t-kalip');
- try { await navigator.clipboard.writeText(KALIP); }
- catch { const t = document.createElement('textarea'); t.value = KALIP; document.body.append(t); t.select(); try { document.execCommand('copy'); } catch {} t.remove(); }
- b.textContent = 'Kopyalandı ✓ Şimdi ChatGPT\'ye yapıştır';
-});
+async function kalipKopyala(b, kalip, tamam){
+ try { await navigator.clipboard.writeText(kalip); }
+ catch { const t = document.createElement('textarea'); t.value = kalip; document.body.append(t); t.select(); try { document.execCommand('copy'); } catch {} t.remove(); }
+ b.textContent = tamam;
+}
+$('t-kalip').addEventListener('click', () => kalipKopyala($('t-kalip'), KALIP, 'Kopyalandı ✓ Şimdi ChatGPT\'ye yapıştır'));
+$('t-kalip-foto').addEventListener('click', () => kalipKopyala($('t-kalip-foto'), KALIP_FOTO, 'Kopyalandı ✓ Fotoğrafı ekle, sonra yapıştır'));
 $('t-kontrol').addEventListener('click', () => {
  if (!PANEL) return;
  const t = testCoz($('t-metin').value);
