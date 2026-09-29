@@ -111,10 +111,24 @@ function doPost(e) {
     if (!odev) return json_({ok: false, hata: 'bilinmeyen_kod', kalici: true});
     if (odev.test_slug !== g.test_slug) return json_({ok: false, hata: 'test_uyusmuyor', kalici: true});
 
+    const ta = testAnahtari_(odev.test_slug);
+    const ek = {isaretler: []};
+    if (ta) {
+      const secim = cevapCoz_(g.cevaplar, ta.anahtar.length);
+      if (!secim) return json_({ok: false, hata: 'gecersiz', kalici: true});
+      Object.assign(g, puanla_(secim, ta.anahtar, ta.puanlama));
+      ek.puan_kaynagi = 'sunucu';
+    } else {
+      g.puan = Math.min(100, Math.max(0, g.puan));
+      ek.puan_kaynagi = 'istemci';
+    }
+
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return json_({ok: false, hata: 'mesgul'});
     try {
-      return json_(sonucYaz_(odev, g, simdi, {}));
+      const sonuc = sonucYaz_(odev, g, simdi, ek);
+      if (ta && sonuc.ok) Object.assign(sonuc, {dogru: g.dogru, yanlis: g.yanlis, bos: g.bos, puan: g.puan, anahtar: ta.anahtar, aciklamalar: ta.aciklamalar});
+      return json_(sonuc);
     } finally {
       kilit.releaseLock();
     }
@@ -385,13 +399,18 @@ function testDenetle_(b) {
     if (typeof q.c === 'string' && q.c.trim()) soru.c = q.c.trim().slice(0, 60);
     sorular.push(soru);
   }
-  return {ad: b.ad.replace(/\s+/g, ' ').trim(), sorular: sorular, kaynak: kaynak};
+  return {ad: b.ad.replace(/\s+/g, ' ').trim(), sorular: sorular, kaynak: kaynak,
+    puanlama: b.puanlama === 'plain' || b.puanlama === 'lgs' ? b.puanlama : '', oto: b.oto === true};
 }
 
 function testEkle_(b, simdi) {
   const t = testDenetle_(b);
   if (t.hata) return {ok: false, hata: t.hata, no: t.no, kalici: true};
-  const icerik = JSON.stringify(t.kaynak ? {ad: t.ad, kaynak: t.kaynak, sorular: t.sorular} : {ad: t.ad, sorular: t.sorular});
+  const govdeT = {ad: t.ad, sorular: t.sorular};
+  if (t.kaynak) govdeT.kaynak = t.kaynak;
+  if (t.puanlama) govdeT.puanlama = t.puanlama;
+  if (t.oto) govdeT.oto = true;
+  const icerik = JSON.stringify(govdeT);
   if (icerik.length > 45000) return {ok: false, hata: 'cok_uzun', kalici: true};
   const sh = sayfa_(TESTLER, TEST_BASLIK);
   const var_ = {};
@@ -403,7 +422,7 @@ function testEkle_(b, simdi) {
   return {ok: true, test_slug: slug, ad: t.ad, n: t.sorular.length, kaynak: t.kaynak};
 }
 
-/** Kayıtlı test: {ad, sorular, kaynak} ya da null. */
+/** Kayıtlı test: {ad, sorular, kaynak, puanlama, oto} ya da null. */
 function ozelTest_(slug) {
   const satirlar = sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues();
   for (let i = 1; i < satirlar.length; i++) {
@@ -411,7 +430,8 @@ function ozelTest_(slug) {
     try {
       const t = JSON.parse(String(satirlar[i][4]));
       return t && Array.isArray(t.sorular) ?
-        {ad: String(t.ad || satirlar[i][1]), sorular: t.sorular, kaynak: typeof t.kaynak === 'string' ? t.kaynak : ''} : null;
+        {ad: String(t.ad || satirlar[i][1]), sorular: t.sorular, kaynak: typeof t.kaynak === 'string' ? t.kaynak : '',
+          puanlama: t.puanlama === 'plain' || t.puanlama === 'lgs' ? t.puanlama : '', oto: t.oto === true} : null;
     } catch (err) {
       return null;
     }
@@ -700,6 +720,75 @@ function sure_(ms) {
 
 function html_(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ---------- Puanlama (sunucuda) ----------
+   Sayfanın gönderdiği doğru/yanlış/puan YOK SAYILIR: "1A✓ 2B✗ 3-" metnindeki harfler sunucunun
+   anahtarıyla puanlanır (✓/✗ işaretleri de yok sayılır). Anahtar: öğretmen testinde Testler sekmesi,
+   hazır testte sitedeki quizler/<slug>.json (6 saat önbellek). Anahtar okunamazsa sonuç kaybolmasın
+   diye istemci sayıları (puan 0-100'e kırpılarak) yazılır ve puan_kaynagi "istemci" olur. */
+
+const QUIZ_ONBELLEK_SN = 6 * 60 * 60;
+const CEVAP_RE = /^(\d{1,2})([A-D-])[✓✗]?$/;
+
+/** "1A✓ 2B✗ 3-" → [0, 1, -1] (asıl soru sırası). Parça sayısı n değilse, numara tekrar/aralık dışıysa null. */
+function cevapCoz_(metin, n) {
+  const parcalar = String(metin == null ? '' : metin).replace(/^'/, '').trim().split(/\s+/).filter(Boolean);
+  if (parcalar.length !== n) return null;
+  const secim = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const m = parcalar[i].match(CEVAP_RE);
+    if (!m) return null;
+    const no = +m[1];
+    if (no < 1 || no > n || secim[no - 1] !== undefined) return null;
+    secim[no - 1] = m[2] === '-' ? -1 : 'ABCD'.indexOf(m[2]);
+  }
+  return secim;
+}
+
+/** Sayfadaki formülle birebir (sablon.html odevGonder). */
+function puanla_(secim, anahtar, puanlama) {
+  let d = 0, y = 0, b = 0;
+  secim.forEach(function (c, i) { if (c < 0) b++; else if (c === anahtar[i]) d++; else y++; });
+  const n = anahtar.length;
+  return {dogru: d, yanlis: y, bos: b, puan: Math.round(1000 * Math.max(0, puanlama === 'plain' ? d : d - y / 3) / n) / 10};
+}
+
+function testAnahtari_(slug) {
+  if (String(slug).indexOf('ozel-') === 0) {
+    const t = ozelTest_(slug);
+    if (!t) return null;
+    const pl = t.puanlama || (t.kaynak && (hazirTest_(t.kaynak) || {}).scoring === 'plain' ? 'plain' : 'lgs');
+    return {anahtar: t.sorular.map(q => q.a), aciklamalar: t.sorular.map(q => q.tr || ''), puanlama: pl, kaynak: 'tablo'};
+  }
+  const h = hazirTest_(slug);
+  return h ? {anahtar: h.questions.map(q => q.a), aciklamalar: h.questions.map(q => q.tr || ''),
+    puanlama: h.scoring === 'plain' ? 'plain' : 'lgs', kaynak: 'site'} : null;
+}
+
+function hazirTest_(slug) {
+  if (!/^[a-z0-9-]{1,60}$/.test(String(slug))) return null;
+  let c = null;
+  try { c = CacheService.getScriptCache(); } catch (e) { /* önbellek yoksa her seferinde oku */ }
+  const k = 'quiz:' + slug;
+  if (c) {
+    const eski = c.get(k);
+    if (eski) { try { return JSON.parse(eski); } catch (e) { /* bozuk önbellek: yeniden oku */ } }
+  }
+  try {
+    const r = UrlFetchApp.fetch(SITE + 'quizler/' + slug + '.json', {muteHttpExceptions: true, followRedirects: true});
+    if (r.getResponseCode() !== 200) return null;
+    const t = JSON.parse(r.getContentText());
+    if (!t || !Array.isArray(t.questions) || !t.questions.length ||
+      !t.questions.every(q => q && Number.isInteger(q.a) && q.a >= 0 && q.a <= 3)) return null;
+    const kucuk = {scoring: t.scoring, questions: t.questions.map(q => ({a: q.a, tr: typeof q.tr === 'string' ? q.tr : ''}))};
+    const s = JSON.stringify(kucuk);
+    if (c && s.length < 90000) c.put(k, s, QUIZ_ONBELLEK_SN);
+    return kucuk;
+  } catch (e) {
+    console.error('hazır test okunamadı: ' + slug + ' · ' + e);
+    return null;
+  }
 }
 
 /* ---------- Kayıt ---------- */

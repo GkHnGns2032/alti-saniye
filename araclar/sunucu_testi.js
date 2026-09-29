@@ -153,6 +153,12 @@ const standart = () => {
   return o;
 };
 
+const ANAHTAR_25 = Array.from({length: 25}, (_, i) => i % 4);
+const SITE = {'ingilizce-8': {scoring: 'lgs', questions: ANAHTAR_25.map((a, i) => ({q: 'q' + i, o: ['a', 'b', 'c', 'd'], a, tr: 'açıklama ' + (i + 1)}))}};
+// desen: D doğru · Y yanlış · B boş (asıl soru sırasıyla)
+const cevapMetni = (anahtar, desen) => anahtar.map((a, i) => (i + 1) + (desen[i] === 'D' ? 'ABCD'[a] + '✓' : desen[i] === 'Y' ? 'ABCD'[(a + 1) % 4] + '✗' : '-')).join(' ');
+const siteli = () => { const o = ortam({site: SITE}); o.odev(['ACIK1', 'ingilizce-8', once, sonra, '', '']); return o; };
+
 /* ---------- Vakalar ---------- */
 const VAKALAR = [
   ['GET parametresiz → sağlık yanıtı', () => {
@@ -604,7 +610,7 @@ VAKALAR.push(
     const t = o.panel('test_ekle', testK(6));
     const od = o.panel('odev_ekle', {test_slug: t.test_slug, bitis: gelecek()});
     const g = o.get({odev: od.kod});
-    const k = o.post(govde({kod: od.kod, test_slug: t.test_slug}));
+    const k = o.post(govde({kod: od.kod, test_slug: t.test_slug, cevaplar: '1A 2B 3C 4D 5A 6B'}));
     const hazir = o.get({odev: 'ACIK1'});
     return g.gecerli && g.acik && g.test_slug === t.test_slug && g.test.sorular.length === 6 && g.test.ad === 'Unit 6: Adventures!' &&
       k.ok && k.durum === 'zamanında' && !('test' in hazir);
@@ -773,6 +779,55 @@ VAKALAR.push(
     const a = o.panel('notlar', {sinif_sube: 'sekiz'});
     const b = o.post({islem: 'notlar', anahtar: 'x'.repeat(64), sinif_sube: '8-A'});
     return a.ok === false && a.hata === 'sinif' && b.hata === 'yetkisiz' && !b.ogrenciler;
+  }]
+);
+
+VAKALAR.push(
+  ['S1: sayfanın puanı yok sayılır, sunucu cevaplardan hesaplar (LGS neti) ve yanıtta anahtarı verir', () => {
+    const o = siteli();
+    const r = o.post(govde({puan: 9999, dogru: 25, yanlis: 0, bos: 0, cevaplar: cevapMetni(ANAHTAR_25, 'D'.repeat(20) + 'YYY' + 'BB')}));
+    const s = o.sonuclar()[0];
+    return r.ok && r.dogru === 20 && r.yanlis === 3 && r.bos === 2 && r.puan === 76 && // (20 - 1) / 25 → 76
+      s[5] === 20 && s[6] === 3 && s[7] === 2 && s[8] === 76 && s[16] === 'sunucu' &&
+      r.anahtar.join() === ANAHTAR_25.join() && r.aciklamalar[0] === 'açıklama 1';
+  }],
+  ['S1: ✓/✗ işaretleri yok sayılır (yalnız harf); işaretsiz biçim de kabul', () => {
+    const o = siteli();
+    const yalan = ANAHTAR_25.map((a, i) => (i + 1) + 'ABCD'[(a + 1) % 4] + '✓').join(' '); // hepsi yanlış ama ✓ yazılmış
+    const r = o.post(govde({cevaplar: yalan}));
+    const r2 = o.post(govde({numara: '77', cevaplar: ANAHTAR_25.map((a, i) => (i + 1) + 'ABCD'[a]).join(' ')}));
+    return r.ok && r.dogru === 0 && r.yanlis === 25 && r.puan === 0 && r2.puan === 100;
+  }],
+  ['S1: bozuk cevaplar (eksik, fazla, tekrar numara, 26. soru, E şıkkı) kesin reddedilir, satır yazılmaz', () => {
+    const o = siteli();
+    const tam = cevapMetni(ANAHTAR_25, 'D'.repeat(25));
+    const kotu = [tam.split(' ').slice(0, 24).join(' '), tam + ' 26A', tam.replace('2B', '1A'), tam.replace(/^1[A-D]/, '26A'), tam.replace(/^1[A-D]/, '1E'), ''];
+    return kotu.every(c => { const r = o.post(govde({cevaplar: c})); return r.ok === false && r.hata === 'gecersiz' && r.kalici === true; }) &&
+      o.sonuclar().length === 0;
+  }],
+  ['S1: hazır test siteden bir kez okunur, sonra önbellekten', () => {
+    const o = siteli();
+    o.post(govde({cevaplar: cevapMetni(ANAHTAR_25, 'D'.repeat(25))}));
+    o.post(govde({numara: '5', cevaplar: cevapMetni(ANAHTAR_25, 'D'.repeat(25))}));
+    return o.urlIstekleri.length === 1 && /quizler\/ingilizce-8\.json$/.test(o.urlIstekleri[0]);
+  }],
+  ['S1: site okunamazsa sonuç kaybolmaz: istemci puanı 0-100 arasına kırpılır, puan_kaynagi=istemci', () => {
+    const o = ortam(); // site boş → 404
+    o.odev(['ACIK1', 'ingilizce-8', once, sonra, '', '']);
+    const r = o.post(govde({puan: 9999}));
+    const s = o.sonuclar()[0];
+    return r.ok && s[8] === 100 && s[16] === 'istemci' && r.anahtar === undefined;
+  }]
+);
+const ozelSorular = n => Array.from({length: n}, (_, i) => ({q: 'Soru ' + (i + 1) + ' ____?', o: ['w' + i, 'x' + i, 'y' + i, 'z' + i], a: (i + 2) % 4, tr: 'tr ' + i}));
+VAKALAR.push(
+  ['S1: öğretmen testi Testler sekmesinden puanlanır; puanlama:"plain" saygı görür', () => {
+    const o = panelOrtami();
+    const t = o.panel('test_ekle', {ad: 'Deneme', sorular: ozelSorular(10), puanlama: 'plain'});
+    const od = o.panel('odev_ekle', {test_slug: t.test_slug, bitis: gelecek()});
+    const anahtar = ozelSorular(10).map(q => q.a), sayi = o.urlIstekleri.length; // panelOrtami kurulumu ingilizce-8 için siteye zaten baktı
+    const r = o.post(govde({kod: od.kod, test_slug: t.test_slug, numara: '31', cevaplar: cevapMetni(anahtar, 'DDDDDDDYYB')}));
+    return t.ok && r.ok && r.dogru === 7 && r.yanlis === 2 && r.puan === 70 && o.urlIstekleri.length === sayi;
   }]
 );
 
