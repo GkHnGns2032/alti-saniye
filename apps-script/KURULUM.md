@@ -138,7 +138,7 @@ https://gkhngns2032.github.io/alti-saniye/index.html?odev=KOD#test_slug
 
 ## 8. Sonuçları oku
 
-Her öğrencinin bir ödevdeki **ilk denemesi** **Sonuçlar** sekmesine bir satır olarak düşer. Öğrenci ödevi yeniden açarsa "Bu ödevi daha önce çözdün… bu denemenin sonucu kaydedilmeyecek" uyarısını görür; tekrar çözebilir ama sonuç gönderilmez (eski bir sayfadan gelse de Google tarafı ikinciyi yazmaz). Aynı numarayı yazan başka biri (başka ad) ayrı öğrenci sayılır.
+Her öğrencinin bir ödevdeki **ilk denemesi** **Sonuçlar** sekmesine bir satır olarak düşer. Öğrenci ödevi yeniden açarsa "Bu ödevi daha önce çözdün… bu denemenin sonucu kaydedilmeyecek" uyarısını görür; tekrar çözebilir ama sonuç gönderilmez (eski bir sayfadan gelse de Google tarafı ikinciyi yazmaz). Aynı numarayı yazan başka biri (başka ad) ayrı öğrenci sayılır (listesi yüklü şubede numara listedeki kişiye aittir: kayda listedeki ad girer, başka ad reddedilir).
 
 | sütun | anlamı |
 |---|---|
@@ -285,7 +285,16 @@ Kararlar e-tablonun **Kararlar** sekmesine kaydedilir (sekme kendiliğinden aç�
 
 ## Kodu güncellemek
 
-`Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Ardından **kurulum**'u bir kez **Çalıştır** (zamanlayıcı yeni kodla kurulsun). Yalnızca sıralama bölümü değiştiyse bu kadarı yeter. Aşağıdaki yeniden dağıtım yalnızca öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.
+**Ödev güvenliği sürümü (bu sürümde yeni SÜRÜM dağıtmak ŞART):** Öğrencilerin kullandığı ödev tarafı değişti; yalnız kodu yapıştırmak yetmez. Sırayla:
+
+1. **Önce site güncellenir:** değişiklik (PR) birleşir, yaklaşık 10 dakika bekle. Sebep: yeni sunucu öğretmen testini öğrenciye cevapsız gönderir; eski (önbellekteki) sayfa cevapsız testi açamaz ve "Test bulunamadı" der. Yeni sayfa ise eski sunucuyla da çalışır. Bu arada panelden yeni ödev verme.
+2. `Kod.gs`'i yeniden yapıştır, **Kaydet**, sonra **kurulum**'u **Çalıştır**. Süre damgası için gizli bir anahtar bu adımda oluşur. Google yeni bir izin isteyebilir: sunucu artık testin cevap dosyasını siteden okuyor. **İzinleri incele** deyip **Harici hizmete bağlan** iznini ver.
+3. **Dağıt > Dağıtımları yönet** > ✏️ > **Sürüm: Yeni sürüm** > **Dağıt**. Adres aynı kalır, `ayar.json`'a dokunmazsın.
+4. **Kontrol:** panelde bir ödevde **Sonuçları göster**'e bas. Yeni gelen sonuçlarda **"⚠ Puan doğrulanamadı"** yazmamalı. Yazıyorsa 1. adım (site) henüz yayında değil ya da izin verilmemiş demektir; birkaç dakika bekleyip 2. ve 3. adımı tekrarla.
+
+**Geri alma:** `Kod.gs`'in en üstündeki `const CEVAP_GIZLE = true;` satırını `false` yaparsan öğrenci yine her sorudan sonra doğru şıkkı görür (eski davranış). Puanı hesaplamak yine sunucuda kalır. Değiştirince yine kaydet ve yeni sürüm olarak dağıt.
+
+`Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Ardından **kurulum**'u bir kez **Çalıştır** (zamanlayıcı yeni kodla kurulsun). Yalnızca sıralama bölümü değiştiyse bu kadarı yeter (ödev güvenliği sürümünde yeni sürüm dağıtmak şart, yukarıdaki kutuya bak). Aşağıdaki yeniden dağıtım yalnızca öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.
 
 **Şube şube sıralama sürümü (yalnız sıralama bölümü değişti):** Kod.gs'i yeniden yapıştır, kaydet ve **kurulum**'u Çalıştır; yeni dağıtım gerekmez. Yapıştırmazsan "Sıralama <KOD>" sekmesi ve menü penceresi eski, şubeleri karışık metni üretmeye devam eder (bir sınıfın grubuna başka sınıfın isimleri gidebilir). Yeni sürümde çok şubeli ödevde her şubenin metni ayrı bloktadır ve menüde ayrı kutuda, ayrı Kopyala düğmesiyle gelir.
 
@@ -305,6 +314,17 @@ Kodu değiştirdin ama etkisi yoksa: yeni sürüm olarak dağıtmayı unutmuş o
 ## Bilmen gerekenler (sınırlar)
 
 - **Süre ve kayıt Google tarafında denetlenir.** Öğrencinin telefonundaki sayaç ve saat değiştirilebilir. Bu yüzden "zamanında / süre dışı" kararını sonucun Google'a **ulaştığı an** verir. İnterneti olmayan bir öğrenci testi süre içinde bitirip sonucu süre bittikten sonra gönderirse "süre dışı" görünür; `istemci_sure_ms` ve `sunucu_zamani` sütunlarına bakıp sen karar verirsin.
-- 12 saniyelik soru sayacı öğrencinin cihazında çalışır. Ödevde durdur düğmesi yoktur ve sekme değiştirmek süreyi durdurmaz; yine de teknik bilgisi olan biri bu sayacı atlatabilir. Sorular ve cevap anahtarı da sayfanın içindedir. Bu bir alıştırma aracıdır, sınav güvenliği sağlamaz.
-- Puanı öğrencinin tarayıcısı hesaplar. Adresi bilen teknik biri sahte sonuç gönderebilir. Bilinmeyen kodlu gönderimler reddedilir ve kaydedilmez; bu yüzden kodu tahmin edilmesi zor seç.
-- Öğrenci adını ve numarasını kendisi yazar, doğrulanmaz. Aynı cihazda son yazılan bilgi hatırlanır ve istenirse değiştirilebilir.
+- 12 saniyelik soru sayacı öğrencinin cihazında çalışır. Ödevde durdur düğmesi yoktur ve sekme değiştirmek süreyi durdurmaz; yine de teknik bilgisi olan biri bu sayacı atlatabilir. Bu bir alıştırma aracıdır, sınav güvenliği sağlamaz.
+- **Puanı sunucu hesaplar.** Öğrenci sayfa üzerinden puanını değiştiremez; Google, işaretlenen şıklardan puanı kendisi bulur. Bilinmeyen kodlu gönderimler reddedilir ve kaydedilmez; yine de kodu tahmin edilmesi zor seç.
+- **Sınıf listesi yüklü şubede** numara listede olmalı ve ad eşleşmeli (Ayşe / Ayse, büyük-küçük harf, baştaki 0 fark etmez). Sıralamada ve tabloda **listedeki ad** görünür, öğrencinin yazdığı değil. Ödev yalnız kendisine verilen şubelerden sonuç kabul eder.
+- **Doğru cevabı öğrenci ancak bitirince görür.** Kendi testlerinde ve hazır testten oluşturduğun ödevlerde (panel arka planda korumalı bir kopya çıkarır) doğru şık soru sırasında yanmaz; cevaplar gönderimden sonra açılır. Koruma en güçlü **kendi testlerinde**dir; hazır testin sınırı aşağıda.
+- **Bir arkadaşının numarasıyla çözen öğrenci:** panelde o öğrencinin denemesinde **Bu denemeyi geçersiz say**'a dokun (iki adımlı onay). Deneme sıralamadan, katılım sayısından ve sözlü notundan düşer; öğrenci kendi numarasıyla yeniden çözebilir. Yanlışlıkla bastıysan **Geri al** (öğrenci yeniden çözmediyse).
+- **Çözüm süresini Google ölçer**, öğrencinin telefonundaki sayaç değil. E-tabloda **Damgalar** adlı bir sekme kendiliğinden açılır; ödev bitince bu sekmenin içini temizleyebilirsin, silmen gerekmez.
+- **Hız sınırı:** her ödev kodu için dakikada 240 istek. Normal bir sınıfa fazlasıyla yeter. Biri kodu kasten boğarsa gönderimler gecikir, sonradan ulaşınca **"süre dışı"** işaretiyle kaydolur, kaybolmaz. Not çizelgesinde "süre dışı" varsayılan olarak tam puandır.
+
+**Bilinen sınırlar (dürüst liste):**
+
+- **Sınıf listesi yüklenmemiş şubede kimlik ve ad doğrulanmaz.** Kararlı bir öğrenci uydurma bir numarayla gönderip bitirince cevap anahtarını görebilir. **Sınıf listesini yüklemek korumanın parçasıdır**; ödev vermeden önce şubenin listesini yükle (13. bölüm).
+- **Hazır testten verilen ödev tam korunmaz.** Öğrenci aynı testi sitede alıştırma olarak önceden çözüp doğru cevapların **metnini** öğrenebilir; ödevde şıkların harfi değişir, metni değişmez. Ödev ekranı kaynak testin adını da gösterir ve soru metinleri GitHub'da herkese açıktır. Bunun için teknik bilgi gerekmez. **Tam koruma için kendi testini ver.**
+- **Arkadaşından bakıp çözmeyi teknik olarak engellemek mümkün değil.**
+- Listesi yüklenmemiş şubede öğrenci adını ve numarasını kendisi yazar, doğrulanmaz. Listeler yüklüyken **şubesiz** verdiğin ödevde listesi olmayan bir şube yazan öğrenci "Bu numara … listesinde yok" mesajı alır ve gönderemez: o şubenin listesini yükle ya da ödeve şubeyi yaz. Okul numarası okul genelinde tekil varsayılır (iki şubede aynı numara olmamalı; geçersiz say ikisini birden vurur). Aynı cihazda son yazılan bilgi hatırlanır ve istenirse değiştirilebilir.

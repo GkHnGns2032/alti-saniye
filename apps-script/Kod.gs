@@ -40,18 +40,26 @@
  * taşıdığı için sayfa JSON'u okuyabilir.
  */
 
+// Ödevde cevap anahtarı öğrenciye gitmez (sayfa doğru şıkkı soru sırasında yakmaz, puanı sunucu verir).
+// false → eski davranış: test cevaplı gelir, doğru şık her sorudan sonra yanar. Puanlama (S1) etkilenmez.
+const CEVAP_GIZLE = true;
 const ODEVLER = 'Ödevler';
 const SONUCLAR = 'Sonuçlar';
 const ODEV_BASLIK = ['kod', 'test_slug', 'baslangic', 'bitis', 'sinif', 'not'];
 const SONUC_BASLIK = ['sunucu_zamani', 'kod', 'test_slug', 'numara', 'ad_soyad', 'dogru', 'yanlis', 'bos',
-  'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms', 'gonderim_id', 'sinif_sube'];
-// sinif_sube sonradan eklendi; eski tablolarda sayfa_() başlığını en sağa kendisi yazar, eski satırlarda boş kalır.
+  'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms', 'gonderim_id', 'sinif_sube',
+  'sure_sunucu_ms', 'puan_kaynagi', 'isaretler', 'yazilan_ad'];
+// sinif_sube ve sonraki dört sütun sonradan eklendi; eski tablolarda sayfa_() başlıkları en sağa kendisi yazar, eski satırlarda boş kalır.
+const SUT = {sure_sunucu: 15, puan_kaynagi: 16, isaretler: 17, yazilan_ad: 18};
 const ZAMANINDA = 'zamanında';
 const SURE_DISI = 'süre dışı';
 const GUN_MS = 24 * 60 * 60 * 1000;
 // Öğretmen panelinin linki bu adresle kurulur (kurulum() günlüğe yazar). Site taşınırsa burayı değiştir.
 const SITE = 'https://gkhngns2032.github.io/alti-saniye/';
 const ANAHTAR_OZELLIGI = 'OGRETMEN_ANAHTARI';
+const DAMGA_OZELLIGI = 'DAMGA_SIRRI';
+const DAMGALAR = 'Damgalar';
+const DAMGA_BASLIK = ['kod', 'numara', 't'];
 const TESTLER = 'Testler';
 const TEST_BASLIK = ['test_slug', 'ad', 'soru_sayisi', 'olusturma', 'icerik'];
 // Sınıf listesi: öğretmen panele yapıştırır; ödevi yapmayanları görmek ve sonucu numarayla eşlemek için.
@@ -69,6 +77,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   if (!('odev' in p)) return json_({ok: true, servis: 'alti-saniye', surum: 1});
   try {
+    if (hizDenetle_(normKod_(p.odev))) return json_({gecerli: false, hata: 'yavas'});
     const odev = odevBul_(normKod_(p.odev));
     if (!odev) return json_({gecerli: false});
     if (odev.hata) return json_({gecerli: false, hata: odev.hata});
@@ -82,9 +91,15 @@ function doGet(e) {
       simdi: simdi.toISOString()
     };
     const ozel = odev.test_slug.indexOf('ozel-') === 0 ? ozelTest_(odev.test_slug) : null;
-    if (ozel) yanit.test = ozel;
+    if (ozel) { yanit.test = CEVAP_GIZLE ? gizliTest_(ozel) : ozel; if (CEVAP_GIZLE) yanit.gizli = true; }
     // öğrenci bilgisini yazınca sayfa sorar: bu ödevi daha önce çözmüş mü? (yalnız ilk deneme kaydedilir)
-    if (p.numara && p.ad) yanit.onceki = oncekiVar_(odev.anahtar, String(p.numara).trim(), String(p.ad));
+    if (p.numara && p.ad) {
+      const kapi = listeKapisi_(odev.sinif, sinifSube_(p.sinif), String(p.numara).trim(), String(p.ad));
+      yanit.liste = kapi.hata || kapi.durum;
+      const no = kapi.durum === 'tamam' ? kapi.numara : String(p.numara).trim();
+      yanit.onceki = !kapi.hata && oncekiVar_(odev.anahtar, no, kapi.durum === 'tamam' ? kapi.ad : String(p.ad));
+      if (!kapi.hata && /^\d{1,12}$/.test(no)) yanit.damga = damgaUret_(odev.anahtar, no, ilkDamga_(odev.anahtar, no));
+    }
     return json_(yanit);
   } catch (err) {
     console.error(err);
@@ -102,6 +117,7 @@ function doPost(e) {
       return json_({ok: false, hata: 'gecersiz', kalici: true});
     }
     if (govde && typeof govde === 'object' && 'islem' in govde) return json_(panelIslem_(govde, simdi));
+    if (govde && typeof govde === 'object' && hizDenetle_(normKod_(govde.kod))) return json_({ok: false, hata: 'yavas'});
     const g = gonderimDenetle_(govde);
     if (g.hata) return json_({ok: false, hata: g.hata, kalici: true});
 
@@ -109,10 +125,32 @@ function doPost(e) {
     if (!odev) return json_({ok: false, hata: 'bilinmeyen_kod', kalici: true});
     if (odev.test_slug !== g.test_slug) return json_({ok: false, hata: 'test_uyusmuyor', kalici: true});
 
+    const ta = testAnahtari_(odev.test_slug);
+    const ek = {isaretler: []};
+    if (ta) {
+      const secim = cevapCoz_(g.cevaplar, ta.anahtar.length);
+      if (!secim) return json_({ok: false, hata: 'gecersiz', kalici: true});
+      Object.assign(g, puanla_(secim, ta.anahtar, ta.puanlama));
+      ek.puan_kaynagi = 'sunucu';
+    } else {
+      g.puan = Math.min(100, Math.max(0, g.puan));
+      ek.puan_kaynagi = 'istemci';
+    }
+
+    const kapi = listeKapisi_(odev.sinif, g.sinif_sube, g.numara, g.ad_soyad);
+    if (kapi.hata) return json_({ok: false, hata: kapi.hata, subeler: kapi.subeler, kalici: true});
+    ek.yazilan_ad = g.ad_soyad;
+    if (kapi.durum === 'tamam') { g.ad_soyad = kapi.ad; g.numara = kapi.numara; } else ek.isaretler.push('liste_yok');
+    const t0 = damgaCoz_(g.damga, odev.anahtar, g.numara);
+    if (t0 != null && t0 <= simdi.getTime()) ek.sure_sunucu = simdi.getTime() - t0; else ek.isaretler.push('sure_dogrulanmadi');
+
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return json_({ok: false, hata: 'mesgul'});
     try {
-      return json_(sonucYaz_(odev, g, simdi));
+      const sonuc = sonucYaz_(odev, g, simdi, ek);
+      if (ta && sonuc.ok) Object.assign(sonuc, sonuc.tekrar ? {} : {dogru: g.dogru, yanlis: g.yanlis, bos: g.bos, puan: g.puan}, {anahtar: ta.anahtar, aciklamalar: ta.aciklamalar});
+      else if (sonuc.tekrar) ['dogru', 'yanlis', 'bos', 'puan'].forEach(function (k) { delete sonuc[k]; }); // istemci puanlı ödevde eski yanıt biçimi
+      return json_(sonuc);
     } finally {
       kilit.releaseLock();
     }
@@ -137,6 +175,7 @@ function kurulum() {
   const n = siralamalariGuncelle();
   const ozellik = PropertiesService.getScriptProperties();
   if (!ozellik.getProperty(ANAHTAR_OZELLIGI)) ozellik.setProperty(ANAHTAR_OZELLIGI, yeniAnahtar_());
+  damgaSirri_();
   console.log('Sekmeler hazır, sıralama zamanlayıcısı kuruldu (5 dk), ' + n + ' sıralama yenilendi. ' +
     'E-tablo saat dilimi: ' + tablo_().getSpreadsheetTimeZone());
   ogretmenLinki();
@@ -154,6 +193,40 @@ function ogretmenLinki() {
 function anahtariYenile() {
   PropertiesService.getScriptProperties().setProperty(ANAHTAR_OZELLIGI, yeniAnahtar_());
   return ogretmenLinki();
+}
+
+/* Süre damgası: öğrenci bilgisini girince (GET) sunucu "KOD|numara|t|imza" verir; gönderimde imza
+   doğrulanır ve süre sunucu saatiyle ölçülür (istemci süresi yalnız bilgi). Sır Betik Özellikleri'nde. */
+function damgaSirri_() {
+  const oz = PropertiesService.getScriptProperties();
+  let s = oz.getProperty(DAMGA_OZELLIGI);
+  if (!s) { s = yeniAnahtar_(); oz.setProperty(DAMGA_OZELLIGI, s); }
+  return s;
+}
+function imza_(m) {
+  return Utilities.computeHmacSha256Signature(m, damgaSirri_()).map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
+}
+/* Kod+numara başına YALNIZ İLK damga zamanı verilir (Damgalar sekmesinde kalıcı): öğrenci gönderimden hemen
+   önce yeni damga alıp süreyi ~0 gösteremesin. Kilit yok: yarışta çift satır olabilir, en küçük t kazanır.
+   Ödev bittikten sonra öğretmen sekmeyi temizleyebilir. */
+function ilkDamga_(kod, numara) {
+  const n = noNorm_(numara), sh = sayfa_(DAMGALAR, DAMGA_BASLIK);
+  let en = null;
+  sh.getDataRange().getValues().slice(1).forEach(function (r) {
+    const t = Number(r[2]);
+    if (normKod_(r[0]) === normKod_(kod) && noNorm_(r[1]) === n && t > 0 && (en === null || t < en)) en = t;
+  });
+  if (en !== null) return en;
+  const t = Date.now(), satir = sh.getLastRow() + 1;
+  sh.getRange(satir, 2).setNumberFormat('@');
+  sh.getRange(satir, 1, 1, 3).setValues([[kod, n, t]]);
+  return t;
+}
+function damgaUret_(kod, numara, t) { const m = kod + '|' + noNorm_(numara) + '|' + t; return m + '|' + imza_(m); }
+function damgaCoz_(damga, kod, numara) {
+  const p = String(damga == null ? '' : damga).split('|');
+  if (p.length !== 4 || p[0] !== kod || p[1] !== noNorm_(numara) || !/^\d{13}$/.test(p[2])) return null;
+  return imza_(p.slice(0, 3).join('|')) === p[3] ? Number(p[2]) : null;
 }
 
 function yeniAnahtar_() {
@@ -176,12 +249,12 @@ function panelIslem_(b, simdi) {
     return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
       satirlar: s.satirlar.map(function (o) { return {ad: o.ad, sinif: o.sinif, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; })};
   }
-  if (b.islem === 'odev_ekle' || b.islem === 'test_ekle' || b.islem === 'liste_kaydet' || b.islem === 'karar') {
+  if (b.islem === 'odev_ekle' || b.islem === 'test_ekle' || b.islem === 'liste_kaydet' || b.islem === 'karar' || b.islem === 'deneme_gecersiz') {
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return {ok: false, hata: 'mesgul'};
     try {
       return b.islem === 'odev_ekle' ? odevEkle_(b, simdi) : b.islem === 'test_ekle' ? testEkle_(b, simdi) :
-        b.islem === 'karar' ? kararYaz_(b, simdi) : listeKaydet_(b);
+        b.islem === 'karar' ? kararYaz_(b, simdi) : b.islem === 'deneme_gecersiz' ? denemeGecersiz_(b) : listeKaydet_(b);
     } finally {
       kilit.releaseLock();
     }
@@ -211,6 +284,38 @@ function ogrenciListesi_() {
   return sh.getRange(2, 1, sh.getLastRow() - 1, OGRENCI_BASLIK.length).getValues()
     .map(function (r) { return {sinif: sinifSube_(r[0]), numara: String(r[1]).trim(), ad: String(r[2]).replace(/^'/, '').trim()}; })
     .filter(function (o) { return o.sinif && o.numara; });
+}
+
+/** Türkçe harf, büyük/küçük ve boşluk duyarsız kelimeler: "Ayşe  YILMAZ" → ["ayse", "yilmaz"]. */
+function adKelimeleri_(ad) {
+  const tr = {'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'â': 'a', 'î': 'i', 'û': 'u'};
+  return kisiAdi_(ad).replace(/[çğıöşüâîû]/g, function (h) { return tr[h]; }).split(' ').filter(Boolean);
+}
+
+/** Yazılan her kelime listedeki adda geçmeli, en az 2 kelime (ikinci adını yazmayan reddedilmesin). */
+function adUyar_(yazilan, listedeki) {
+  const y = adKelimeleri_(yazilan).filter(function (k, i, a) { return a.indexOf(k) === i; }), l = adKelimeleri_(listedeki);
+  return y.length >= 2 && y.every(function (k) { return l.indexOf(k) >= 0; });
+}
+
+const noNorm_ = n => String(n == null ? '' : n).trim().replace(/^0+(?=\d)/, '');
+
+/** Sınıf listesi kapısı. Listesi olan şubede numara listede ve ad eşleşmeli; kayda listedeki ad girer.
+ *  Liste hiç yoksa bugünkü davranış (serbest ad, "liste_yok"). Listeler varken şubesiz gönderim reddedilir;
+ *  şubesiz ödevde listesi olmayan şube de ("listede_yok"). */
+function listeKapisi_(odevSinif, sube, numara, ad) {
+  const subeler = subeListesi_(odevSinif), liste = ogrenciListesi_();
+  if (!liste.length && !sube) return {durum: 'liste_yok'};
+  if (sube && subeler.length && subeler.indexOf(sube) < 0) return {hata: 'sube_disi', subeler: subeler};
+  if (!liste.length) return {durum: 'liste_yok'};
+  if (!sube) return {hata: 'sube_gerekli'};
+  const sinif = liste.filter(function (o) { return o.sinif === sube; });
+  // şubesiz ödevde listesiz şube yazılarak kapıdan kaçılmasın; ödevde adı yazılmış listesiz şube serbest kalır
+  if (!sinif.length) return subeler.length ? {durum: 'liste_yok'} : {hata: 'listede_yok'};
+  const kisi = sinif.filter(function (o) { return noNorm_(o.numara) === noNorm_(numara); })[0];
+  if (!kisi) return {hata: 'listede_yok'};
+  if (!adUyar_(ad, kisi.ad)) return {hata: 'ad_uyusmuyor'};
+  return {durum: 'tamam', ad: kisi.ad, numara: kisi.numara};
 }
 
 /** Panelde şube seçimi için: [{sinif, n}], şube sırasıyla. */
@@ -271,15 +376,18 @@ function odevSonuclari_(kodGirdisi) {
   const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
   const son = sh.getLastRow();
   const veri = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
-  const ilk = {}, sira = [];
+  const ilk = {}, sira = [], gecersizler = [];
   veri.forEach(function (r) {
     if (normKod_(r[1]) !== kod) return;
     const ad = String(r[4]).replace(/^'/, '').trim(), numara = String(r[3]).trim();
+    if (gecersizMi_(r)) { gecersizler.push({numara: numara, ad: ad, puan: Number(r[8]) || 0, zaman: iso_(r[0] instanceof Date ? r[0] : null)}); return; }
     const anahtar = numara + '|' + kisiAdi_(ad);
     if (ilk[anahtar]) { ilk[anahtar].sonraki++; return; }
     ilk[anahtar] = {numara: numara, ad: ad, sinif: sinifSube_(r[14]), dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0,
       bos: Number(r[7]) || 0, puan: Number(r[8]) || 0, durum: String(r[9]), cevaplar: String(r[11]).replace(/^'/, ''),
-      sure: r[12] === '' || r[12] == null ? null : Number(r[12]), zaman: iso_(r[0] instanceof Date ? r[0] : null), sonraki: 0};
+      sure: r[SUT.sure_sunucu] === '' || r[SUT.sure_sunucu] == null ? null : Number(r[SUT.sure_sunucu]), istemci_sure: r[12] === '' || r[12] == null ? null : Number(r[12]), zaman: iso_(r[0] instanceof Date ? r[0] : null), sonraki: 0,
+      puan_kaynagi: String(r[SUT.puan_kaynagi] || ''), isaretler: String(r[SUT.isaretler] || ''),
+      sure_sunucu: r[SUT.sure_sunucu] === '' || r[SUT.sure_sunucu] == null ? null : Number(r[SUT.sure_sunucu])};
     sira.push(ilk[anahtar]);
   });
   const subeler = subeListesi_(odev.sinif);
@@ -288,7 +396,35 @@ function odevSonuclari_(kodGirdisi) {
   const ilgili = subeler.filter(function (x) { return !tek[x] && (tek[x] = true); });
   const liste = ogrenciListesi_().filter(function (o) { return ilgili.indexOf(o.sinif) >= 0; });
   const test = odev.test_slug.indexOf('ozel-') === 0 ? ozelTest_(odev.test_slug) : null;
-  return {ok: true, odev: odev, sonuclar: sira, liste: liste, subeler: ilgili.sort(subeSirala_), test: test || undefined};
+  return {ok: true, odev: odev, sonuclar: sira, liste: liste, subeler: ilgili.sort(subeSirala_), gecersizler: gecersizler, test: test || undefined};
+}
+
+/* ---------- Geçersiz deneme (öğretmen) ----------
+   Arkadaşının numarasıyla önce çözen olursa öğretmen o denemeyi geçersiz sayar: satır SİLİNMEZ,
+   "isaretler" sütununa "gecersiz" yazılır; ilk-deneme kuralı onu yok sayar, öğrenci yeniden çözer.
+   Geri alma yalnız o numarada yeni geçerli deneme yokken (yoksa iki "ilk deneme" olurdu). */
+const GECERSIZ = 'gecersiz';
+function gecersizMi_(r) { return String(r[SUT.isaretler] == null ? '' : r[SUT.isaretler]).split(',').indexOf(GECERSIZ) >= 0; }
+function isaretDegistir_(metin, isaret, ekle) {
+  const l = String(metin == null ? '' : metin).split(',').map(x => x.trim()).filter(x => x && x !== isaret);
+  if (ekle) l.push(isaret);
+  return l.join(',');
+}
+function denemeGecersiz_(b) {
+  const kod = normKod_(b.kod), no = noNorm_(b.numara);
+  if (!odevBul_(kod)) return {ok: false, hata: 'yok', kalici: true};
+  if (!/^\d{1,12}$/.test(no)) return {ok: false, hata: 'gecersiz', kalici: true};
+  const sh = sayfa_(SONUCLAR, SONUC_BASLIK), son = sh.getLastRow();
+  const v = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
+  const satir = [];
+  v.forEach(function (r, i) { if (normKod_(r[1]) === kod && noNorm_(r[3]) === no) satir.push(i); });
+  if (!satir.length) return {ok: false, hata: 'yok', kalici: true};
+  const gecerli = satir.filter(i => !gecersizMi_(v[i]));
+  if (b.geri && gecerli.length) return {ok: false, hata: 'yeni_deneme_var', kalici: true};
+  const hedef = b.geri ? satir : gecerli;
+  hedef.forEach(i => sh.getRange(i + 2, SUT.isaretler + 1).setValue(isaretDegistir_(v[i][SUT.isaretler], GECERSIZ, !b.geri)));
+  SpreadsheetApp.flush();
+  return {ok: true, kod: kod, numara: no, gecersiz: !b.geri, n: hedef.length};
 }
 
 /* ---------- Sözlü notları ---------- */
@@ -330,6 +466,7 @@ function notCizelgesi_(subeGirdisi) {
   const veri = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
   const ilk = {}, sonuclar = [], cozulen = {};
   veri.forEach(function (r) {
+    if (gecersizMi_(r)) return;
     const kod = normKod_(r[1]), numara = String(r[3]).trim(), sinif = sinifSube_(r[14]);
     if (!kod || !listede[noNorm(numara)] || (sinif && sinif !== sube)) return;
     const anahtar = kod + '|' + numara + '|' + kisiAdi_(String(r[4]).replace(/^'/, ''));
@@ -383,13 +520,18 @@ function testDenetle_(b) {
     if (typeof q.c === 'string' && q.c.trim()) soru.c = q.c.trim().slice(0, 60);
     sorular.push(soru);
   }
-  return {ad: b.ad.replace(/\s+/g, ' ').trim(), sorular: sorular, kaynak: kaynak};
+  return {ad: b.ad.replace(/\s+/g, ' ').trim(), sorular: sorular, kaynak: kaynak,
+    puanlama: b.puanlama === 'plain' || b.puanlama === 'lgs' ? b.puanlama : '', oto: b.oto === true};
 }
 
 function testEkle_(b, simdi) {
   const t = testDenetle_(b);
   if (t.hata) return {ok: false, hata: t.hata, no: t.no, kalici: true};
-  const icerik = JSON.stringify(t.kaynak ? {ad: t.ad, kaynak: t.kaynak, sorular: t.sorular} : {ad: t.ad, sorular: t.sorular});
+  const govdeT = {ad: t.ad, sorular: t.sorular};
+  if (t.kaynak) govdeT.kaynak = t.kaynak;
+  if (t.puanlama) govdeT.puanlama = t.puanlama;
+  if (t.oto) govdeT.oto = true;
+  const icerik = JSON.stringify(govdeT);
   if (icerik.length > 45000) return {ok: false, hata: 'cok_uzun', kalici: true};
   const sh = sayfa_(TESTLER, TEST_BASLIK);
   const var_ = {};
@@ -401,7 +543,13 @@ function testEkle_(b, simdi) {
   return {ok: true, test_slug: slug, ad: t.ad, n: t.sorular.length, kaynak: t.kaynak};
 }
 
-/** Kayıtlı test: {ad, sorular, kaynak} ya da null. */
+/** Öğrenciye giden test: doğru cevap (a) ve açıklama (tr) çıkarılır — açıklama cevabı ele verir. */
+function gizliTest_(t) {
+  return {ad: t.ad, kaynak: t.kaynak, puanlama: t.puanlama,
+    sorular: t.sorular.map(function (q) { const s = {q: q.q, o: q.o}; if (q.c) s.c = q.c; return s; })};
+}
+
+/** Kayıtlı test: {ad, sorular, kaynak, puanlama, oto} ya da null. */
 function ozelTest_(slug) {
   const satirlar = sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues();
   for (let i = 1; i < satirlar.length; i++) {
@@ -409,7 +557,8 @@ function ozelTest_(slug) {
     try {
       const t = JSON.parse(String(satirlar[i][4]));
       return t && Array.isArray(t.sorular) ?
-        {ad: String(t.ad || satirlar[i][1]), sorular: t.sorular, kaynak: typeof t.kaynak === 'string' ? t.kaynak : ''} : null;
+        {ad: String(t.ad || satirlar[i][1]), sorular: t.sorular, kaynak: typeof t.kaynak === 'string' ? t.kaynak : '',
+          puanlama: t.puanlama === 'plain' || t.puanlama === 'lgs' ? t.puanlama : '', oto: t.oto === true} : null;
     } catch (err) {
       return null;
     }
@@ -424,12 +573,12 @@ function testListesi_() {
   return sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues().slice(1).reverse()
     .filter(function (r) { return String(r[0]).indexOf('ozel-') === 0; })
     .map(function (r) {
-      let kaynak = '';
-      try { kaynak = String(JSON.parse(String(r[4])).kaynak || ''); } catch (err) { /* bozuk içerik: kaynaksız say */ }
-      return {slug: String(r[0]), ad: String(r[1]).replace(/^'/, ''), n: Number(r[2]) || 0, kaynak: kaynak};
+      let kaynak = '', oto = false;
+      try { const ic = JSON.parse(String(r[4])); kaynak = String(ic.kaynak || ''); oto = ic.oto === true; } catch (err) { /* bozuk içerik: kaynaksız say */ }
+      return {slug: String(r[0]), ad: String(r[1]).replace(/^'/, ''), n: Number(r[2]) || 0, kaynak: kaynak, oto: oto};
     })
     .filter(function (t) {
-      if (!t.kaynak) return true;
+      if (t.oto || !t.kaynak) return true;
       if (gorulen[t.kaynak]) return false;
       return (gorulen[t.kaynak] = true);
     });
@@ -456,7 +605,8 @@ function odevListesi_() {
   const son = sh.getLastRow();
   const kisiler = {};
   if (son >= 2) {
-    sh.getRange(2, 1, son - 1, 5).getValues().forEach(function (r) {
+    sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues().forEach(function (r) {
+      if (gecersizMi_(r)) return;
       const k = normKod_(r[1]);
       (kisiler[k] = kisiler[k] || {})[String(r[3]).trim() + '|' + kisiAdi_(String(r[4]).replace(/^'/, ''))] = true;
     });
@@ -596,11 +746,11 @@ function siralamaHazirla_(kodGirdisi) {
   const veriler = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
   const ilk = {}; // numara|ad → ilk deneme (en eski satır)
   veriler.forEach(function (r, i) {
-    if (!kod || normKod_(r[1]) !== kod) return;
+    if (!kod || normKod_(r[1]) !== kod || gecersizMi_(r)) return;
     const numara = String(r[3]).trim();
     const o = {sira_no: i, test_slug: String(r[2]), numara: numara, ad: String(r[4]).replace(/^'/, '').trim(),
       dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0, bos: Number(r[7]) || 0, puan: Number(r[8]) || 0,
-      durum: String(r[9]), sure: r[12] === '' || r[12] == null ? Infinity : Number(r[12]), sinif: sinifSube_(r[14])};
+      durum: String(r[9]), sure: r[SUT.sure_sunucu] === '' || r[SUT.sure_sunucu] == null ? Infinity : Number(r[SUT.sure_sunucu]), sinif: sinifSube_(r[14])};
     const anahtar = numara + '|' + kisiAdi_(o.ad);
     if (!ilk[anahtar]) ilk[anahtar] = o; // satırlar gönderim sırasıyla eklenir: ilk görülen ilk denemedir
   });
@@ -700,6 +850,75 @@ function html_(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/* ---------- Puanlama (sunucuda) ----------
+   Sayfanın gönderdiği doğru/yanlış/puan YOK SAYILIR: "1A✓ 2B✗ 3-" metnindeki harfler sunucunun
+   anahtarıyla puanlanır (✓/✗ işaretleri de yok sayılır). Anahtar: öğretmen testinde Testler sekmesi,
+   hazır testte sitedeki quizler/<slug>.json (6 saat önbellek). Anahtar okunamazsa sonuç kaybolmasın
+   diye istemci sayıları (puan 0-100'e kırpılarak) yazılır ve puan_kaynagi "istemci" olur. */
+
+const QUIZ_ONBELLEK_SN = 6 * 60 * 60;
+const CEVAP_RE = /^(\d{1,2})([A-D-])[✓✗]?$/;
+
+/** "1A✓ 2B✗ 3-" → [0, 1, -1] (asıl soru sırası). Parça sayısı n değilse, numara tekrar/aralık dışıysa null. */
+function cevapCoz_(metin, n) {
+  const parcalar = String(metin == null ? '' : metin).replace(/^'/, '').trim().split(/\s+/).filter(Boolean);
+  if (parcalar.length !== n) return null;
+  const secim = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const m = parcalar[i].match(CEVAP_RE);
+    if (!m) return null;
+    const no = +m[1];
+    if (no < 1 || no > n || secim[no - 1] !== undefined) return null;
+    secim[no - 1] = m[2] === '-' ? -1 : 'ABCD'.indexOf(m[2]);
+  }
+  return secim;
+}
+
+/** Sayfadaki formülle birebir (sablon.html odevGonder). */
+function puanla_(secim, anahtar, puanlama) {
+  let d = 0, y = 0, b = 0;
+  secim.forEach(function (c, i) { if (c < 0) b++; else if (c === anahtar[i]) d++; else y++; });
+  const n = anahtar.length;
+  return {dogru: d, yanlis: y, bos: b, puan: Math.round(1000 * Math.max(0, puanlama === 'plain' ? d : d - y / 3) / n) / 10};
+}
+
+function testAnahtari_(slug) {
+  if (String(slug).indexOf('ozel-') === 0) {
+    const t = ozelTest_(slug);
+    if (!t) return null;
+    const pl = t.puanlama || (t.kaynak && (hazirTest_(t.kaynak) || {}).scoring === 'plain' ? 'plain' : 'lgs');
+    return {anahtar: t.sorular.map(q => q.a), aciklamalar: t.sorular.map(q => q.tr || ''), puanlama: pl, kaynak: 'tablo'};
+  }
+  const h = hazirTest_(slug);
+  return h ? {anahtar: h.questions.map(q => q.a), aciklamalar: h.questions.map(q => q.tr || ''),
+    puanlama: h.scoring === 'plain' ? 'plain' : 'lgs', kaynak: 'site'} : null;
+}
+
+function hazirTest_(slug) {
+  if (!/^[a-z0-9-]{1,60}$/.test(String(slug))) return null;
+  let c = null;
+  try { c = CacheService.getScriptCache(); } catch (e) { /* önbellek yoksa her seferinde oku */ }
+  const k = 'quiz:' + slug;
+  if (c) {
+    const eski = c.get(k);
+    if (eski) { try { return JSON.parse(eski); } catch (e) { /* bozuk önbellek: yeniden oku */ } }
+  }
+  try {
+    const r = UrlFetchApp.fetch(SITE + 'quizler/' + slug + '.json', {muteHttpExceptions: true, followRedirects: true});
+    if (r.getResponseCode() !== 200) return null;
+    const t = JSON.parse(r.getContentText());
+    if (!t || !Array.isArray(t.questions) || !t.questions.length ||
+      !t.questions.every(q => q && Number.isInteger(q.a) && q.a >= 0 && q.a <= 3)) return null;
+    const kucuk = {scoring: t.scoring, questions: t.questions.map(q => ({a: q.a, tr: typeof q.tr === 'string' ? q.tr : ''}))};
+    const s = JSON.stringify(kucuk);
+    if (c && s.length < 90000) { try { c.put(k, s, QUIZ_ONBELLEK_SN); } catch (e) { /* yazılamazsa da puan sunucudan */ } }
+    return kucuk;
+  } catch (e) {
+    console.error('hazır test okunamadı: ' + slug + ' · ' + e);
+    return null;
+  }
+}
+
 /* ---------- Kayıt ---------- */
 
 /** Yalnız ilk deneme kaydedilir: aynı ödevde aynı numara + ad (büyük/küçük harf ve boşluk farkı yok sayılır) varsa true. */
@@ -708,12 +927,12 @@ function oncekiVar_(anahtar, numara, ad) {
   const son = sh.getLastRow();
   if (son < 2) return false;
   const kisi = kisiAdi_(ad);
-  return sh.getRange(2, 1, son - 1, 5).getValues().some(function (s) {
-    return normKod_(s[1]) === anahtar && String(s[3]).trim() === numara && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisi;
+  return sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues().some(function (s) {
+    return !gecersizMi_(s) && normKod_(s[1]) === anahtar && noNorm_(s[3]) === noNorm_(numara) && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisi;
   });
 }
 
-function sonucYaz_(odev, g, simdi) {
+function sonucYaz_(odev, g, simdi, ek) {
   const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
   const son = sh.getLastRow();
   let deneme = 0, onceki = false;
@@ -721,20 +940,25 @@ function sonucYaz_(odev, g, simdi) {
     const satirlar = sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues();
     for (let i = 0; i < satirlar.length; i++) {
       const s = satirlar[i];
-      if (String(s[13]) === g.gonderim_id) {
-        return {ok: true, durum: String(s[9]), deneme_no: Number(s[10]), tekrar: true};
-      }
-      if (normKod_(s[1]) === odev.anahtar && String(s[3]).trim() === g.numara) {
+      if (normKod_(s[1]) === odev.anahtar && noNorm_(s[3]) === noNorm_(g.numara)) {
+        // ağ tekrarı yalnız aynı ödev + aynı numarada tanınır ve KAYITLI sonucu döndürür; başka ödevin/kişinin
+        // gonderim_id'si kısa devre yapmaz (yeni gönderim sayılır): anahtar ancak öğrencinin kendi kaydından sonra gider
+        if (String(s[13]) === g.gonderim_id) {
+          return {ok: true, durum: String(s[9]), deneme_no: Number(s[10]), tekrar: true,
+            dogru: Number(s[5]), yanlis: Number(s[6]), bos: Number(s[7]), puan: Number(s[8])};
+        }
         deneme++;
-        if (kisiAdi_(String(s[4]).replace(/^'/, '')) === kisiAdi_(g.ad_soyad)) onceki = true;
+        if (!gecersizMi_(s) && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisiAdi_(g.ad_soyad)) onceki = true;
       }
     }
   }
   const durum = pencereIcinde_(odev, simdi) ? ZAMANINDA : SURE_DISI;
   // yalnız ilk deneme kaydedilir; sonrakiler alıştırmadır (sayfa öğrenciyi önceden uyarır, eski sayfa gönderse de yazılmaz)
   if (onceki) return {ok: true, kaydedilmedi: true, durum: durum, deneme_no: deneme + 1, sunucu_zamani: simdi.toISOString()};
+  const e = ek || {};
   const satir = [simdi, odev.kod, odev.test_slug, g.numara, metin_(g.ad_soyad), g.dogru, g.yanlis, g.bos,
-    g.puan, durum, deneme + 1, metin_(g.cevaplar), g.istemci_sure_ms, g.gonderim_id, g.sinif_sube];
+    g.puan, durum, deneme + 1, metin_(g.cevaplar), g.istemci_sure_ms, g.gonderim_id, g.sinif_sube,
+    e.sure_sunucu == null ? '' : e.sure_sunucu, e.puan_kaynagi || 'istemci', (e.isaretler || []).join(','), metin_(e.yazilan_ad || g.ad_soyad)];
   const r = son + 1;
   sh.getRange(r, 4).setNumberFormat('@'); // numara metin kalsın (baştaki sıfırlar silinmesin)
   sh.getRange(r, 15).setNumberFormat('@'); // sınıf/şube metin kalsın (e-tablo tarihe çevirmesin)
@@ -764,12 +988,13 @@ function gonderimDenetle_(b) {
   if (typeof b.puan !== 'number' || !isFinite(b.puan)) return {hata: 'gecersiz'};
   if (typeof b.cevaplar !== 'string' || b.cevaplar.length > 4000) return {hata: 'gecersiz'};
   if (b.istemci_sure_ms != null && !tam(b.istemci_sure_ms, 864e5)) return {hata: 'gecersiz'};
+  if (b.damga != null && (typeof b.damga !== 'string' || b.damga.length > 200)) return {hata: 'gecersiz'};
   if (typeof b.gonderim_id !== 'string' || !/^[A-Za-z0-9-]{8,64}$/.test(b.gonderim_id)) return {hata: 'gecersiz'};
   return {
-    // sınıf/şube sayfada zorunlu; eski sayfadan (önbellek) gelen sonuç kaybolmasın diye burada boş kabul edilir
+    // sınıf/şube sayfada zorunlu; burada boş yalnız hiç sınıf listesi yokken kabul edilir (liste varsa listeKapisi_ sube_gerekli ile reddeder)
     kod: kod, test_slug: b.test_slug, numara: numara, ad_soyad: ad, sinif_sube: sinifSube_(b.sinif_sube),
     dogru: b.dogru, yanlis: b.yanlis, bos: b.bos, puan: b.puan, cevaplar: b.cevaplar,
-    istemci_sure_ms: b.istemci_sure_ms == null ? '' : b.istemci_sure_ms, gonderim_id: b.gonderim_id
+    istemci_sure_ms: b.istemci_sure_ms == null ? '' : b.istemci_sure_ms, gonderim_id: b.gonderim_id, damga: b.damga || ''
   };
 }
 
@@ -782,7 +1007,7 @@ function odevBul_(anahtar) {
   for (let i = 1; i < satirlar.length; i++) {
     const s = satirlar[i];
     if (normKod_(s[0]) !== anahtar) continue;
-    const odev = {anahtar: anahtar, kod: String(s[0]).trim(), test_slug: String(s[1]).trim()};
+    const odev = {anahtar: anahtar, kod: String(s[0]).trim(), test_slug: String(s[1]).trim(), sinif: String(s[4] == null ? '' : s[4]).trim()};
     try {
       odev.baslangic = zaman_(s[2], false);
       odev.bitis = zaman_(s[3], true);
@@ -832,6 +1057,28 @@ function zaman_(v, bitisMi) {
 }
 
 /* ---------- Yardımcılar ---------- */
+
+/* Hız sınırı: tavan (davranış eşiği değil); 30 kişilik şube yenilemeler ve yeniden denemelerle bile altında kalır.
+   İstekler Google'a ulaşmayı sürdürür; sınır onları e-tabloya dokunmadan, ucuzca geri çevirir.
+   Kişi başı sayaç YOK: kod+numara bilen biri gerçek öğrenciyi kilitleyebilirdi.
+   Önbellek çalışmazsa sınır uygulanmaz (fail-open): gerçek öğrencinin sonucu kaybolmasın. */
+const HIZ = {kod: [240, 60]}; // [en çok istek, saniye]
+function sinirAsildi_(anahtar, tavan, sn) {
+  try {
+    const c = CacheService.getScriptCache(), k = 'hiz:' + anahtar, simdi = Date.now();
+    let s = null;
+    try { s = JSON.parse(c.get(k) || 'null'); } catch (e) { /* bozuk sayaç: sıfırla */ }
+    if (!s || typeof s.b !== 'number' || simdi - s.b > sn * 1000) s = {b: simdi, n: 0};
+    s.n++;
+    c.put(k, JSON.stringify(s), sn + 5);
+    return s.n > tavan;
+  } catch (e) {
+    return false;
+  }
+}
+function hizDenetle_(kod) {
+  return sinirAsildi_('k:' + String(kod).slice(0, 40), HIZ.kod[0], HIZ.kod[1]);
+}
 
 function tablo_() {
   return SpreadsheetApp.getActiveSpreadsheet();
