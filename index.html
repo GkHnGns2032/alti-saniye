@@ -951,11 +951,12 @@ async function odevAc(){
  let b;
  try { const u = new URL(AYAR.gonderim); u.searchParams.set('odev', ODEV.kod); b = await (await fetch(u)).json(); }
  catch { return odevNot('Bağlantı kurulamadı', 'Ödev bilgisi alınamadı. İnternet bağlantını kontrol edip tekrar dene.', 'no', true); }
+ if (b && b.hata === 'yavas') return odevNot('Sistem şu an yoğun', 'Birkaç saniye sonra tekrar dene.', 'no', true);
  if (!b || !b.gecerli) return b && b.hata === 'tarih'
   ? odevNot('Ödevin tarihi okunamadı', 'Öğretmeninin tablosundaki başlangıç ya da bitiş tarihi okunamadı. Öğretmenine haber ver.', 'no')
   : odevNot('Ödev bulunamadı', 'Bu ödev kodu tanınmadı. Linki öğretmeninden yeniden iste.', 'no');
  let z = QUIZZES.find(q => q.slug === b.test_slug);
- if (!z && b.test) { z = ozelQuiz(b.test_slug, b.test, !!b.gizli); if (z) QUIZZES.push(z); }
+ if (!z && b.test) { z = ozelQuiz(b.test_slug, b.test, !!b.gizli); if (z && b.gizli) z.questions.forEach(q => { q.a = -1; }); if (z) QUIZZES.push(z); } // gizli: kısmi anahtar gelse de yarım anahtarlı test çıkmaz
  if (!z) return odevNot('Test bulunamadı', 'Bu ödevin testi bu sayfada yok. Öğretmenine haber ver.', 'no');
  ODEV.gizli = !!b.gizli && !!z && z.questions.every(q => q.a < 0);
  selectQuiz(z.slug);
@@ -990,10 +991,13 @@ $('odev-retry').addEventListener('click', () => { if (ODEV) odevAc(); });
 const kisiAnahtari = (kod, no, ad) => [String(kod).toUpperCase(), noNorm(no), ad.toLocaleLowerCase('tr').replace(/\s+/g, ' ').trim()].join('|');
 function cozuldu(no, ad){ const l = store.get('cozulen'); return Array.isArray(l) && l.includes(kisiAnahtari(ODEV.kod, no, ad)); }
 function cozulduYaz(no, ad){ const l = store.get('cozulen'), k = kisiAnahtari(ODEV.kod, no, ad); const y = (Array.isArray(l) ? l : []).filter(x => x !== k); y.push(k); store.set('cozulen', y.slice(-200)); }
-async function oncekiSor(no, ad){
- try { const u = new URL(AYAR.gonderim); u.searchParams.set('odev', ODEV.kod); u.searchParams.set('numara', no); u.searchParams.set('ad', ad); const b = await (await fetch(u)).json(); return !!(b && b.onceki); }
- catch { return false; } // bağlantı yoksa sunucu yine ikinci denemeyi yazmaz
+async function oncekiSor(no, ad, sinif){
+ try { const u = new URL(AYAR.gonderim); u.searchParams.set('odev', ODEV.kod); u.searchParams.set('numara', no); u.searchParams.set('ad', ad); u.searchParams.set('sinif', sinif); const b = await (await fetch(u)).json(); return {onceki: !!(b && b.onceki), liste: b && b.liste, damga: b && typeof b.damga === 'string' ? b.damga : ''}; }
+ catch { return {onceki: false, liste: '', damga: ''}; } // bağlantı yoksa (ya da sistem yoğunsa) sunucu gönderimde yine denetler
 }
+const LISTE_HATA = {listede_yok: s => 'Bu numara ' + s + ' listesinde yok. Numaranı ve şubeni kontrol et; doğruysa öğretmenine haber ver.',
+ ad_uyusmuyor: () => 'Adın sınıf listesindekiyle uyuşmuyor. Adını ve soyadını okulda kayıtlı olduğu gibi yaz.',
+ sube_disi: s => 'Bu ödev ' + s + ' şubesine verilmedi. Şubeni kontrol et.', sube_gerekli: () => 'Sınıfını ve şubeni yaz (ör. 8-A).'};
 $('who').addEventListener('submit', async e => {
  e.preventDefault();
  if (!ODEV) return;
@@ -1010,8 +1014,10 @@ $('who').addEventListener('submit', async e => {
  ODEV.ogrenci = {numara: no, ad, sinif}; store.set('ogrenci', ODEV.ogrenci);
  const go = $('who-go'), yazi = go.innerHTML;
  go.disabled = true; go.textContent = 'Kontrol ediliyor…';
- ODEV.onceki = cozuldu(no, ad) || await oncekiSor(no, ad);
+ const sor = await oncekiSor(no, ad, sinif);
  go.disabled = false; go.innerHTML = yazi;
+ if (LISTE_HATA[sor.liste]) { $('who-err').textContent = LISTE_HATA[sor.liste](sinif); $(sor.liste === 'ad_uyusmuyor' ? 'who-name' : sor.liste === 'listede_yok' ? 'who-no' : 'who-sinif').focus(); return; }
+ ODEV.onceki = cozuldu(no, ad) || sor.onceki; ODEV.damga = sor.damga;
  $('tekrar-not').hidden = !ODEV.onceki;
  dilli($('eyebrow'), {tr: 'Ödev'}, {tr: ad});
  home();
@@ -1054,7 +1060,7 @@ function odevGonder(dogru, yanlis, bos, net){
   $('send-text').textContent = 'Bu ödevin ilk sonucun zaten kayıtlı. Tekrar denemeler öğretmene gönderilmez.';
   return;
  }
- ODEV.onceki = true; cozulduYaz(ODEV.ogrenci.numara, ODEV.ogrenci.ad); $('tekrar-not').hidden = false;
+ ODEV.tekrar = !!ODEV.onceki; ODEV.onceki = true; cozulduYaz(ODEV.ogrenci.numara, ODEV.ogrenci.ad); $('tekrar-not').hidden = false;
  const n = Q.length, cevap = Q.map((q, i) => { const m = marks[i], c = m && m.c >= 0 ? m.c : -1; return (i + 1) + (c < 0 ? '-' : L[c] + (q.a < 0 ? '' : c === q.a ? '✓' : '✗')); });
  ODEV.son = {kod: ODEV.kod, test_slug: QUIZ.slug, numara: ODEV.ogrenci.numara, ad_soyad: ODEV.ogrenci.ad, sinif_sube: ODEV.ogrenci.sinif, dogru, yanlis, bos,
   puan: Math.round(1000 * Math.max(0, lgs ? net : dogru) / n) / 10, cevaplar: cevap.join(' '),
@@ -1077,8 +1083,8 @@ function sonucUygula(j){
  if (!ODEV.gizli) return true;
  Q.forEach((q, i) => { q.a = Number.isInteger(j.anahtar[i]) && j.anahtar[i] >= 0 && j.anahtar[i] <= 3 ? j.anahtar[i] : -1; q.tr = typeof (j.aciklamalar || [])[i] === 'string' ? j.aciklamalar[i] : ''; });
  if (Q.some(q => q.a < 0)) { Q.forEach(q => { q.a = -1; q.tr = ''; }); return false; }
- ODEV.sonuc = j; ODEV.bekliyor = false; finish(); ODEV.sonuc = null;
- Q.forEach(q => { q.a = -1; q.tr = ''; }); // yeniden çözerken anahtar yine görünmesin
+ ODEV.sonuc = j; ODEV.bekliyor = false;
+ try { finish(); } finally { ODEV.sonuc = null; Q.forEach(q => { q.a = -1; q.tr = ''; }); } // istisna olsa da anahtar bellekte kalmaz; yeniden çözerken de görünmesin
  return true;
 }
 function gonderimKutusu(durum, j){
@@ -1086,10 +1092,10 @@ function gonderimKutusu(durum, j){
  $('send').hidden = false; $('send').className = 'send' + (ok ? ' ok' : bekle || kay ? '' : ' no');
  $('send-ico').className = 'bub' + (ok ? ' lit' : bekle || kay ? '' : ' miss'); $('send-ico').textContent = ok ? '✓' : bekle ? '…' : kay ? 'i' : '!';
  $('send-retry').hidden = durum !== 'gecici'; $('send-retry').disabled = false;
- const [baslik, metin] = bekle ? ['Öğretmene gönderiliyor…', kim]
-  : kay ? ['Kaydedilmedi', 'Bu ödevin ilk sonucun zaten kayıtlı. Tekrar denemeler öğretmene gönderilmez.']
+ const [baslik, metin] = bekle ? [ODEV.tekrar ? 'Sonucun hesaplanıyor…' : 'Öğretmene gönderiliyor…', kim]
+  : kay ? ['Kaydedilmedi', 'Bu ödevin ilk sonucun zaten kayıtlı. Tekrar denemeler kaydedilmez.']
   : ok ? ['Öğretmene gönderildi ✓', kim + (j.durum === 'süre dışı' ? ' · süre dolduktan sonra ulaştığı için “süre dışı” kaydedildi' : '') + ' · Tekrar çözebilirsin ama yeni sonuçlar kaydedilmez.']
-  : durum === 'kalici' ? ['Gönderilemedi', j && j.hata === 'bilinmeyen_kod' ? 'Bu ödev öğretmenin listesinde artık yok. Sonucunu öğretmenine kendin göster.' : 'Öğretmenin sistemi bu sonucu kabul etmedi. Öğretmenine haber ver.']
+  : durum === 'kalici' ? ['Gönderilemedi', j && j.hata === 'bilinmeyen_kod' ? 'Bu ödev öğretmenin listesinde artık yok. Sonucunu öğretmenine kendin göster.' : LISTE_HATA[j && j.hata] ? LISTE_HATA[j.hata](p.sinif_sube) : 'Öğretmenin sistemi bu sonucu kabul etmedi. Öğretmenine haber ver.']
   : ['Gönderilemedi — tekrar dene', 'Sonucun bu cihazda saklandı. Sayfayı yeniden açtığında da kendiliğinden gönderilmeye çalışılır.'];
  $('send-title').textContent = baslik; $('send-text').textContent = metin;
  if (ODEV.gizli && ODEV.bekliyor && !bekle){ // sonuç ekranı henüz çizilmedi: neden bekliyor, söyle

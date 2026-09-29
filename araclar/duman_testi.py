@@ -228,6 +228,9 @@ class SahteUcNokta:
         self.kararlar = {}  # (kod, numara | '*') → karar
         self.post_modu = 'normal'  # 'normal' | 'sunucu_hatasi'
         self.gizli = True  # Kod.gs CEVAP_GIZLE: öğretmen testi öğrenciye cevapsız gider
+        self.hiz_modu = False  # True: kod başına hız sınırı taklidi (POST → yavas)
+        self.hiz_get = False  # True: GET → {gecerli: False, hata: 'yavas'}
+        self.son_damga = None  # son POST'un damga alanı
         self.eski_sunucu = False  # True: Task 1-7 öncesi sunucu (test cevaplı gider, POST puanlamaz)
         self.hazir_puanlama = {c['slug']: c.get('scoring') for c in quizleri_oku()}  # Kod.gs hazirTest_(kaynak).scoring
         self.kilit = threading.Lock()
@@ -238,6 +241,8 @@ class SahteUcNokta:
             self.istekler.clear()
             self.post_modu = post_modu
             self.gizli = True
+            self.hiz_modu = self.hiz_get = False
+            self.son_damga = None
             self.eski_sunucu = False
             for k in [k for k in self.odevler if k.startswith('P')]:
                 del self.odevler[k]  # panelden eklenenler
@@ -251,6 +256,8 @@ class SahteUcNokta:
     def doget(self, q):
         if 'odev' not in q:
             return {'ok': True, 'servis': 'alti-saniye', 'surum': 1}
+        if self.hiz_get:
+            return {'gecerli': False, 'hata': 'yavas'}
         o = self.odevler.get(q['odev'][0].strip().upper())
         if not o:
             return {'gecerli': False}
@@ -270,6 +277,16 @@ class SahteUcNokta:
             ad = ' '.join(q['ad'][0].lower().split())
             yanit['onceki'] = any(r['kod'].upper() == q['odev'][0].strip().upper() and r['numara'] == q['numara'][0]
                                   and ' '.join(r['ad_soyad'].lower().split()) == ad for r in self.satirlar)
+            sube = sinif_sube(q.get('sinif', [''])[0])  # Kod.gs listeKapisi_ taklidi
+            liste = [x for x in self.ogrenciler if x['sinif'] == sube]
+            if liste:
+                kisi = next((x for x in liste if x['numara'].lstrip('0') == q['numara'][0].lstrip('0')), None)
+                yazilan = ' '.join(q['ad'][0].lower().split()).split()
+                yanit['liste'] = 'listede_yok' if not kisi else ('tamam' if len(yazilan) >= 2 and all(k in kisi['ad'].lower().split() for k in yazilan) else 'ad_uyusmuyor')
+            else:
+                yanit['liste'] = 'liste_yok'
+            if yanit['liste'] in ('tamam', 'liste_yok'):
+                yanit['damga'] = q['odev'][0].strip().upper() + '|' + q['numara'][0] + '|' + str(int(time.time() * 1000)) + '|sahte'
         return yanit
 
     def dopost(self, govde):
@@ -281,6 +298,9 @@ class SahteUcNokta:
             return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
         if 'islem' in g:
             return self.panel(g)
+        if self.hiz_modu:
+            return {'ok': False, 'hata': 'yavas'}
+        self.son_damga = g.get('damga')
         o = self.odevler.get(str(g.get('kod', '')).strip().upper())
         if not o or o[3].get('post_red'):
             return {'ok': False, 'hata': 'bilinmeyen_kod', 'kalici': True}
@@ -1606,6 +1626,97 @@ def odev_gizli_tekrar(o):
         s.kapat()
 
 
+def bos_bitir(page):
+    """Hiç cevap vermeden bitir: bitiş ekranı görünür görünmez dur (saat ilerlerse uçuştaki POST 30 sn'de iptal olur)."""
+    for _ in range(40):
+        if page.locator('#finish').is_visible():
+            return
+        page.clock.run_for(3_000)
+    raise AssertionError('test bitmedi')
+
+
+def odev_liste_hatalari(o):
+    """Sınıf listesi hataları öğrenci formunda, test BAŞLAMADAN gösterilir; damga gönderime taşınır."""
+    gizli_hazirla(o)
+    o.uc.ogrenciler.append({'sinif': '8-A', 'numara': '123', 'ad': 'Ayşe Nur Yılmaz'})
+    s = o.sayfa()
+    page = s.page
+    def dene(no, ad, sinif='8-A'):
+        page.fill('#who-no', no); page.fill('#who-name', ad); page.fill('#who-sinif', sinif); page.click('#who-go')
+    try:
+        o.ac(page, 'PGIZLI', '#' + GIZLI_SLUG)
+        expect(page.locator('#who')).to_be_visible()
+        dene('555', 'Ayşe Yılmaz')
+        expect(page.locator('#who-err')).to_contain_text('Bu numara 8-A listesinde yok')
+        expect(page.locator('#who')).to_be_visible()
+        expect(page.locator('#intro')).to_be_hidden()
+        dene('123', 'Biri Başka')
+        expect(page.locator('#who-err')).to_contain_text('Adın sınıf listesindekiyle uyuşmuyor')
+        expect(page.locator('#intro')).to_be_hidden()
+        dene('123', 'Ayşe Yılmaz')
+        expect(page.locator('#intro')).to_be_visible()
+        expect(page.locator('#who-err')).to_have_text('')
+        page.click('#start')
+        bos_bitir(page)
+        expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
+        eşit(str(o.uc.son_damga).endswith('|sahte') and str(o.uc.son_damga).startswith('PGIZLI|123|'), True, 'POST damgası')
+        o.bitir(s)
+        return 'listede yok / ad uyuşmuyor → form hatası, test başlamadı · doğru bilgi → başladı, POST damgası "|sahte"'
+    finally:
+        s.kapat()
+
+
+def odev_yavas(o):
+    """Hız sınırı: GET yavas → "Sistem şu an yoğun" + tekrar · POST yavas → kuyrukta kalır, "Tekrar dene" sonra gider."""
+    gizli_hazirla(o)
+    s = o.sayfa()
+    page = s.page
+    try:
+        o.uc.hiz_get = True
+        page.goto(f'{o.taban}/index.html?odev=PGIZLI#{GIZLI_SLUG}')
+        expect(page.locator('#odev-note-title')).to_have_text('Sistem şu an yoğun')
+        expect(page.locator('#odev-retry')).to_be_visible()
+        o.uc.hiz_get = False
+        page.click('#odev-retry')
+        o.bilgi_gir(page)
+        o.uc.hiz_modu = True
+        page.click('#start')
+        bos_bitir(page)
+        expect(page.locator('#send-title')).to_have_text('Gönderilemedi — tekrar dene')
+        eşit(len(o.kuyruk(page)), 1, 'kuyruk (yavas → kalıcı değil)')
+        o.uc.hiz_modu = False
+        page.click('#send-retry')
+        expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
+        eşit(o.kuyruk(page), [], 'kuyruk boşaldı')
+        o.bitir(s)
+        return 'GET yavas → "Sistem şu an yoğun" + tekrar · POST yavas → kuyrukta, "Tekrar dene" → ✓'
+    finally:
+        s.kapat()
+
+
+def odev_gizli_tekrar_metin(o):
+    """Alıştırma (2. deneme) metinleri: "Tekrar denemeler kaydedilmez"; "Öğretmene gönderiliyor…" başlığı görünmez."""
+    gizli_hazirla(o)
+    s = o.sayfa()
+    page = s.page
+    try:
+        o.ac(page, 'PGIZLI', '#' + GIZLI_SLUG)
+        o.bilgi_gir(page)
+        page.click('#start')
+        bos_bitir(page)
+        expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
+        page.evaluate("window.__basliklar = []; new MutationObserver(() => window.__basliklar.push(document.getElementById('send-title').textContent)).observe(document.getElementById('send-title'), {childList: true, characterData: true, subtree: true})")
+        page.click('#again')
+        bos_bitir(page)
+        expect(page.locator('#send-title')).to_have_text('Kaydedilmedi')
+        expect(page.locator('#send-text')).to_contain_text('Tekrar denemeler kaydedilmez')
+        eşit([b for b in page.evaluate('window.__basliklar') if 'gönderiliyor' in b], [], 'alıştırmada "gönderiliyor" başlığı')
+        o.bitir(s)
+        return '2. deneme: "Kaydedilmedi" + "Tekrar denemeler kaydedilmez", "gönderiliyor…" yok'
+    finally:
+        s.kapat()
+
+
 def odev_cors(o):
     """Ön-kontrol kanıtı. Playwright'ta route() açıkken CORS ön-kontrolünü Playwright kendisi karşılar,
     OPTIONS sunucuya ulaşmaz; bu yüzden bu senaryo HİÇ route olmayan bir bağlamda koşar. Sayfa,
@@ -1684,6 +1795,9 @@ def main():
         kos('ödev   gizli: çevrimdışı sonuç', odev_gizli_cevrimdisi, o)
         kos('ödev   eski sunucu (cevaplı test)', odev_eski_sunucu, o)
         kos('ödev   gizli: 2. deneme puanlanır', odev_gizli_tekrar, o)
+        kos('ödev   liste hataları + damga', odev_liste_hatalari, o)
+        kos('ödev   hız sınırı (yavas)', odev_yavas, o)
+        kos('ödev   gizli: alıştırma metinleri', odev_gizli_tekrar_metin, o)
         kos('panel  anahtarsız / yanlış', panel_anahtarsiz, o)
         kos('panel  ödev oluştur → WhatsApp', panel_odev_olustur, o)
         kos('panel  sonuçlar', panel_siralama, o)
