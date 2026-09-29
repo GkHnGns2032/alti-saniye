@@ -25,6 +25,8 @@ Ek olarak <slug>/index.html yönlendirmesinin doğru teste indiği denetlenir.
 → WhatsApp linki → o linkin öğrenci olarak açılıp ödev formuna inmesi, sıralamanın WhatsApp'ta paylaşımı; ChatGPT'den
 yapıştırılan testin (araclar/ornek_chatgpt.txt, öğretmenin gerçek çıktısı) okunması, dengelenmesi,
 kaydedilmesi, o testle ödev verilip öğrencinin çözmesi; hatalı yapıştırmaların yakalanması.
+Fotoğraf kalıbı: iki kopyalama düğmesinin panoya doğru kalıbı yazması; araclar/ornek_chatgpt_foto.txt (8 soru, 2'sinde
+"(emin değilim)") okunur, sarı uyarı çıkar, kayıtlı açıklamada ifade kalmaz.
 Herhangi bir konsol hatası ya da yakalanmamış JS istisnası = FAIL.
 Test ağdan bağımsızdır: yerel sunucu dışındaki istekler (Google Fonts) boş 200 yanıtla
 karşılanır; yazı tipi yedeğe düşer, davranış değişmez, CI'da ağ kesintisi testi bozmaz.
@@ -908,25 +910,37 @@ def panel_siralama(o):
         expect(kart.locator('.p-katilan')).to_have_text('👥 4 öğrenci çözdü')
         kart.locator('.p-sonuc').click()
         expect(kart.locator('.s-ozet')).to_have_text('3 / 4 öğrenci çözdü · ortalama 75 · 1 öğrenci yapmadı')
-        # sıralama (varsayılan sekme)
-        sira = kart.locator('.s-sira li')
-        expect(sira).to_have_count(4)
+        # sıralama (varsayılan görünüm: şube şube; iki şube var → her şubenin bloğu, sıra her şubede 1'den)
+        expect(kart.locator('.s-sube option')).to_have_text(['Şube şube (hepsi)', '8-A', '8-B'])
+        expect(kart.locator('.s-blok-bas')).to_have_text(['8-A · 2/3 çözdü · ortalama 80', '8-B · 1/1 çözdü · ortalama 60'])
+        sira = kart.locator('.s-sira').nth(0).locator('li')
+        expect(sira).to_have_count(3)
         expect(sira.first).to_have_text('🥇 Ali Can (8-A) — 90 puan · 9 doğru, 0 yanlış, 1 boş')
         expect(sira.nth(2)).to_have_text('🥉 Ayşe Kaya (8-A) — 70')
-        href = unquote(kart.locator('.s-wa').get_attribute('href'))
-        if not href.startswith('https://wa.me/?text=') or 'Ali Can (8-A) — 90 puan' not in href or '4 öğrenci katıldı.' not in href:
-            raise AssertionError(f'sıralama WhatsApp linki hatalı: {href}')
-        # hatırlatma: yalnız listede olup yapmayan
-        expect(kart.locator('.s-hatirlat')).to_have_text('Yapmayanlara hatırlat (1 öğrenci)')
+        expect(kart.locator('.s-sira').nth(1).locator('li')).to_have_text(['🥇 Can Demir (8-B) — 60 puan · 6 doğru, 4 yanlış'])  # 8-B'de sıra yeniden 1'den
+        # karışık "bütün şubeler" düğmesi yok: her şubenin kendi WhatsApp düğmesi ve metni var
+        expect(kart.locator('.s-wa')).to_have_count(2)
+        expect(kart.locator('.s-wa').nth(0)).to_have_text("8-A sıralamasını WhatsApp'ta paylaş")
+        href = unquote(kart.locator('.s-wa').nth(0).get_attribute('href'))
+        if not href.startswith('https://wa.me/?text=') or not href.split('\n')[0].endswith('· 8-A'):
+            raise AssertionError(f'8-A WhatsApp başlığı hatalı: {href}')
+        if 'Ali Can (8-A) — 90 puan' not in href or '3 öğrenci katıldı.' not in href or 'Can Demir' in href:
+            raise AssertionError(f'8-A WhatsApp metni yalnız 8-A öğrencilerini içermeli: {href}')
+        href_b = unquote(kart.locator('.s-wa').nth(1).get_attribute('href'))
+        if '· 8-B' not in href_b.split('\n')[0] or 'Can Demir (8-B) — 60 puan' not in href_b or 'Ali Can' in href_b or '1 öğrenci katıldı.' not in href_b:
+            raise AssertionError(f'8-B WhatsApp metni hatalı: {href_b}')
+        # hatırlatma her şubenin bloğunda, yalnız o şubenin yapmayanları (8-B'de yapmayan yok → düğme yok)
+        expect(kart.locator('.s-hatirlat')).to_have_count(1)
+        expect(kart.locator('.s-hatirlat')).to_have_text('8-A · yapmayanlara hatırlat (1 öğrenci)')
         h = unquote(kart.locator('.s-hatirlat').get_attribute('href'))
-        if '• Gelmeyen Öğrenci' not in h or '?odev=ACIK1' not in h or 'Ayşe' in h:
+        if '• Gelmeyen Öğrenci' not in h or '?odev=ACIK1' not in h or 'Ayşe' in h or '(8-A)' not in h:
             raise AssertionError(f'hatırlatma mesajı hatalı: {h}')
-        # öğrenciler
+        # öğrenciler: şube başlıkları altında gruplu, grupta numara sırası, listede olmayan grubun sonunda
         kart.locator('.s-sekme[data-k="ogr"]').click()
+        expect(kart.locator('.s-blok-bas')).to_have_text(['8-A', '8-B'])
         kisiler = kart.locator('.s-kisi')
         expect(kisiler).to_have_count(5)
-        expect(kisiler.locator('.s-ad')).to_have_text(['5 · Ayşe Kaya (8-A)', '6 · Ali Can (8-A)', '7 · Gelmeyen Öğrenci (8-A)',
-                                                        '8 · Can Demir (8-B)', '9 · Yabancı Kişi (8-A)'])
+        expect(kisiler.locator('.s-ad')).to_have_text(['5 · Ayşe Kaya', '6 · Ali Can', '7 · Gelmeyen Öğrenci', '9 · Yabancı Kişi', '8 · Can Demir'])
         expect(kart.locator('.s-kisi.yapmadi .s-not')).to_have_text('Yapmadı')
         ali = kisiler.nth(1)
         ali.locator('.s-kisi-bas').click()
@@ -934,36 +948,58 @@ def panel_siralama(o):
         expect(ali.locator('.s-detay .pnote')).to_contain_text('sonra 1 kez daha çözdü (sayılmaz)')
         expect(ali.locator('.s-cevaplar li')).to_have_count(len(q))
         eşit([ali.locator('.s-cevaplar li').nth(k).get_attribute('class') for k in range(3)], ['dogru', 'yanlis', 'bos'], 'cevap renkleri')
-        kisiler.nth(4).locator('.s-kisi-bas').click()
-        expect(kisiler.nth(4).locator('.s-detay .pnote')).to_contain_text('sınıf listesinde bu numara yok')
-        # sorular
+        kisiler.nth(3).locator('.s-kisi-bas').click()
+        expect(kisiler.nth(3).locator('.s-detay .pnote')).to_contain_text('sınıf listesinde bu numara yok')
+        # sorular (şubeden bağımsız, değişmedi)
         kart.locator('.s-sekme[data-k="soru"]').click()
         sor = kart.locator('.s-sorular li')
         expect(sor).to_have_count(len(q))
         expect(sor.last.locator('strong')).to_have_text('%25 doğru · 1 D · 0 Y · 3 B')
         expect(kart.locator('.s-sorular li', has_text=q[1]['q'].replace('\n', ' ')).locator('.s-yanlis')).to_contain_text('(1 kişi)')
-        # indir (bütün şubeler)
+        # indir (şube şube): önce şube, sonra şube içi sıra; "Sıra" sütunu, çözmeyen boş
         with page.expect_download() as d:
             kart.locator('.s-indir').click()
         csv = pathlib.Path(d.value.path()).read_text(encoding='utf-8-sig').splitlines()
-        eşit(csv[0].split(';')[:4], ['Numara', 'Ad Soyad', 'Şube', 'Durum'], 'CSV başlık')
+        eşit(csv[0].split(';')[:5], ['Numara', 'Ad Soyad', 'Şube', 'Sıra', 'Durum'], 'CSV başlık')
         eşit(len(csv), 6, 'CSV satır')
-        if not any(r.startswith('5;Ayşe Kaya;8-A;çözdü;70;;;;1:01;') and r.endswith(';' * len(q)) for r in csv):
+        eşit([r.split(';')[:4] for r in csv[1:]], [['6', 'Ali Can', '8-A', '1'], ['9', 'Yabancı Kişi', '8-A', '2'], ['5', 'Ayşe Kaya', '8-A', '3'],
+                                                   ['7', 'Gelmeyen Öğrenci', '8-A', ''], ['8', 'Can Demir', '8-B', '1']], 'CSV şube sırası')
+        if not csv[3].startswith('5;Ayşe Kaya;8-A;3;çözdü;70;;;;1:01;') or not csv[3].endswith(';' * len(q)):
             raise AssertionError(f'CSV cevapsız eski kayıt boş olmalı: {csv}')
-        if not any(r.startswith('7;Gelmeyen Öğrenci;8-A;yapmadı') for r in csv):
+        if not csv[4].startswith('7;Gelmeyen Öğrenci;8-A;;yapmadı'):
             raise AssertionError(f'CSV yapmayan satırı yok: {csv}')
-        if not any(r.startswith('6;Ali Can;8-A;çözdü;90;9;0;1;1:01') and r.endswith(';' + 'ABCD'[q[0]['a']] + ' ✓;' + 'ABCD'[(q[1]['a'] + 1) % 4] + ' ✗' + ';-' * (len(q) - 2)) for r in csv):
+        if not csv[1].startswith('6;Ali Can;8-A;1;çözdü;90;9;0;1;1:01') or not csv[1].endswith(';' + 'ABCD'[q[0]['a']] + ' ✓;' + 'ABCD'[(q[1]['a'] + 1) % 4] + ' ✗' + ';-' * (len(q) - 2)):
             raise AssertionError(f'CSV Ali satırı hatalı: {csv}')
-        # şube filtresi
+        # şube seçilince yalnız o blok
         kart.locator('.s-sube').select_option('8-B')
         expect(kart.locator('.s-ozet')).to_have_text('1 / 1 öğrenci çözdü · ortalama 60')
         kart.locator('.s-sekme[data-k="sira"]').click()
+        expect(kart.locator('.s-blok-bas')).to_have_text(['8-B · 1/1 çözdü · ortalama 60'])
         expect(kart.locator('.s-sira li')).to_have_count(1)
-        expect(kart.locator('.s-hatirlat')).to_be_hidden()
+        expect(kart.locator('.s-hatirlat')).to_have_count(0)
+        expect(kart.locator('.s-wa')).to_have_count(1)
         if '· 8-B' not in unquote(kart.locator('.s-wa').get_attribute('href')).split('\n')[0]:
             raise AssertionError('şube sıralaması başlığında şube yok')
+        with page.expect_download() as d:
+            kart.locator('.s-indir').click()
+        eşit(len(pathlib.Path(d.value.path()).read_text(encoding='utf-8-sig').splitlines()), 2, 'yalnız 8-B CSV')
+        # tek şubeli ödev: görünüm sade (şube seçici yok, blok başlığı yok, tek WhatsApp/hatırlatma düğmesi)
+        o.uc.ogrenciler[:] = [x for x in o.uc.ogrenciler if x['sinif'] == '8-A']
+        o.uc.satirlar[:] = [x for x in o.uc.satirlar if x.get('sinif_sube') != '8-B']
+        page.reload()
+        kart = page.locator('#p-odev-ACIK1')
+        kart.locator('.p-sonuc').click()
+        expect(kart.locator('.s-ozet')).to_have_text('2 / 3 öğrenci çözdü · ortalama 80 · 1 öğrenci yapmadı')
+        expect(kart.locator('.s-sube')).to_have_count(0)
+        expect(kart.locator('.s-blok-bas')).to_have_count(0)
+        expect(kart.locator('.s-sira li')).to_have_count(3)
+        expect(kart.locator('.s-wa')).to_have_count(1)
+        expect(kart.locator('.s-wa')).to_have_text("Sıralamayı WhatsApp'ta paylaş")
+        expect(kart.locator('.s-hatirlat')).to_have_text('Yapmayanlara hatırlat (1 öğrenci)')
+        if '• Gelmeyen Öğrenci' not in unquote(kart.locator('.s-hatirlat').get_attribute('href')):
+            raise AssertionError('tek şubede hatırlatma mesajı hatalı')
         o.bitir(s)
-        return 'şube filtresi · sıralama + WhatsApp · öğrenci ayrıntısı (cevaplar, sonraki deneme, listede yok) · yapmayan + hatırlatma · soru analizi · CSV'
+        return 'şube şube sıralama (her şubenin WhatsApp + hatırlatması) · şube seçici · gruplu öğrenciler · soru analizi · şube sıralı CSV (Sıra) · tek şubede sade görünüm'
     finally:
         s.kapat()
 
@@ -1307,6 +1343,66 @@ def panel_ozel_hatalar(o):
         s.kapat()
 
 
+def panel_foto_kalibi(o):
+    """Fotoğraf kalıbı: iki düğme doğru metni panoya yazar; kalıba uyan çıktı (araclar/ornek_chatgpt_foto.txt) okunur,
+    "(emin değilim)" olan sorular sarı uyarı alır ve kayıtlı açıklamada o ifade kalmaz."""
+    o.uc.sifirla()
+    kaynak = (KOK / 'sablon.html').read_text(encoding='utf-8')
+    kalip = re.search(r'const KALIP = `(.*?)`;', kaynak, re.S).group(1)
+    foto = re.search(r'const KALIP_FOTO = `(.*?)`;', kaynak, re.S).group(1)
+    if 'emin değilim' not in foto or 'Sayfa hakkında not (isteğe bağlı):' not in foto or 'TEST: (' not in foto or 'fotoğraf' in kalip.lower():
+        raise AssertionError('kalıplar beklenen içerikte değil')
+    metin = (KOK / 'araclar' / 'ornek_chatgpt_foto.txt').read_text(encoding='utf-8')
+    s = o.sayfa()
+    page = s.page
+    try:
+        # gerçek pano yerine kayıt tutan sahte pano: hangi metnin kopyalandığı okunabilsin
+        page.add_init_script("window.__pano = []; Object.defineProperty(navigator, 'clipboard', {configurable: true, "
+                             "value: {writeText: t => { window.__pano.push(t); return Promise.resolve(); }}});")
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        page.click('#t-kart summary')
+        expect(page.locator('#t-kalip-foto')).to_have_text('Fotoğraf kalıbını kopyala')
+        expect(page.locator('#t-kart .adimlar')).to_contain_text("ChatGPT'de fotoğrafı ekle (📎 / +), fotoğraf kalıbını yapıştır, gönder.")
+        page.click('#t-kalip')
+        expect(page.locator('#t-kalip')).to_contain_text('Kopyalandı')
+        page.click('#t-kalip-foto')
+        expect(page.locator('#t-kalip-foto')).to_contain_text('Kopyalandı')
+        pano = page.evaluate('window.__pano')
+        eşit(len(pano), 2, 'pano yazımı')
+        if pano[0] != kalip or pano[1] != foto or pano[0] == pano[1]:
+            raise AssertionError('düğmeler panoya doğru kalıbı yazmadı')
+        # büyük harf / Türkçe İ ile yazılsa da uyarı çıkar ve ifade silinir
+        page.fill('#t-metin', metin.replace('(emin değilim)', '(EMİN DEĞİLİM)'))
+        page.click('#t-kontrol')
+        expect(page.locator('#t-onizleme > li.uyarili')).to_have_count(2)
+        expect(page.locator('#t-onizleme')).not_to_contain_text('EMİN')
+        expect(page.locator('#t-onizleme')).not_to_contain_text('DEĞİLİM')
+        # kalıba uyan çıktı: 8 soru, 2 sarı uyarı, açıklamada "(emin değilim)" yok
+        page.fill('#t-metin', metin)
+        page.click('#t-kontrol')
+        expect(page.locator('#t-hatalar')).to_be_hidden()
+        expect(page.locator('#t-ozet')).to_contain_text('8 soru bulundu')
+        expect(page.locator('#t-onizleme > li')).to_have_count(8)
+        expect(page.locator('#t-onizleme > li.uyarili')).to_have_count(2)
+        expect(page.locator('#t-uyarilar > li')).to_have_count(3)  # "Kontrol etmen iyi olur:" + 2 uyarı
+        expect(page.locator('#t-uyarilar')).to_contain_text('5. soru: ChatGPT cevaptan emin değil — kontrol et')
+        expect(page.locator('#t-uyarilar')).to_contain_text('8. soru: ChatGPT cevaptan emin değil — kontrol et')
+        expect(page.locator('#t-onizleme')).not_to_contain_text('emin değilim')
+        expect(page.locator('#t-ad')).to_have_value('Unit 7 Tourism')
+        page.click('#t-kaydet')
+        expect(page.locator('#t-tamam')).to_contain_text('kaydedildi')
+        slug, t = next(iter(o.uc.testler.items()))
+        eşit(len(t['sorular']), 8, 'kaydedilen soru')
+        if any('emin değilim' in q['tr'] for q in t['sorular']):
+            raise AssertionError('kayıtlı açıklamada "(emin değilim)" kalmış')
+        eşit(t['sorular'][4]['tr'], 'Crowded (kalabalık) kelimesinin zıttı empty (boş) kelimesidir.', '5. sorunun temiz açıklaması')
+        o.bitir(s)
+        return 'iki kalıp düğmesi panoya doğru metni yazdı · fotoğraf çıktısı: 8 soru, 2 "emin değilim" sarı uyarı, kayıtta ifade yok'
+    finally:
+        s.kapat()
+
+
 def odev_cors(o):
     """Ön-kontrol kanıtı. Playwright'ta route() açıkken CORS ön-kontrolünü Playwright kendisi karşılar,
     OPTIONS sunucuya ulaşmaz; bu yüzden bu senaryo HİÇ route olmayan bir bağlamda koşar. Sayfa,
@@ -1386,6 +1482,7 @@ def main():
         kos('panel  sonuçlar', panel_siralama, o)
         kos('panel  ChatGPT testi → ödev', panel_ozel_test, o)
         kos('panel  ChatGPT hatalı metin', panel_ozel_hatalar, o)
+        kos('panel  fotoğraf kalıbı', panel_foto_kalibi, o)
         kos('panel  hazır testi kontrol et', panel_hazir_kontrol, o)
         kos('panel  sınıf listesi', panel_sinif_listesi, o)
         kos('panel  sözlü notları', panel_sozlu, o)

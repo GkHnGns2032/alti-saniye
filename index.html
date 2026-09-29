@@ -289,6 +289,7 @@ a.btn.ghost{text-decoration:none}
 .s-sekmeler{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:12px;background:var(--paper)}
 .s-sekme{min-height:40px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:700 14px var(--f-body)}
 .s-sekme[aria-selected="true"]{background:var(--sheet);color:var(--ink);box-shadow:var(--shadow)}
+.s-blok-bas{margin:14px 0 6px;font:800 15px var(--f-body);color:var(--ink)}
 .s-ogr,.s-sorular,.s-cevaplar{margin:0;padding:0;list-style:none;display:grid;gap:6px}
 .s-kisi{border:1.5px solid var(--line);border-radius:10px;background:var(--sheet)}
 .s-kisi-bas{width:100%;display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border:0;background:none;color:var(--ink);font:600 15px var(--f-body);text-align:left}
@@ -450,8 +451,8 @@ details.pcard[open]>summary::after{content:"−"}
      <summary><h2>Kendi testini ekle (ChatGPT)</h2></summary>
      <div class="pcard-govde">
      <ol class="adimlar">
-      <li><span><b>1.</b> Kalıbı kopyala.</span><button class="btn ghost wide" id="t-kalip" type="button">Kalıbı kopyala</button></li>
-      <li><span><b>2.</b> ChatGPT'yi aç, kalıbı yapıştır, en alttaki “Konu:” satırına konuyu yaz, gönder.</span><a class="btn ghost wide" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT'yi aç</a></li>
+      <li><span><b>1.</b> Kalıbı kopyala. Kitap sayfasından test yapacaksan fotoğraf kalıbını kopyala.</span><button class="btn ghost wide" id="t-kalip" type="button">Kalıbı kopyala</button><button class="btn ghost wide" id="t-kalip-foto" type="button">Fotoğraf kalıbını kopyala</button></li>
+      <li><span><b>2.</b> ChatGPT'yi aç, kalıbı yapıştır, en alttaki “Konu:” satırına konuyu yaz, gönder. Kitap sayfasından test yapacaksan: ChatGPT'de fotoğrafı ekle (📎 / +), fotoğraf kalıbını yapıştır, gönder.</span><a class="btn ghost wide" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT'yi aç</a></li>
       <li><span><b>3.</b> Soruları oku. Beğenmediğini ChatGPT'ye değiştirt. Sonra cevabın altındaki <b>Kopyala</b>'ya dokun ve buraya yapıştır:</span></li>
      </ol>
      <textarea id="t-metin" placeholder="ChatGPT'nin cevabını buraya yapıştır" autocomplete="off" spellcheck="false"></textarea>
@@ -1154,7 +1155,7 @@ const sureYaz = ms => ms == null || !isFinite(ms) ? '' : Math.floor(ms / 60000) 
 function siraliSonuclar(satirlar){
  return satirlar.filter(s => s.r).sort((a, b) => b.r.puan - a.r.puan || (a.r.sure ?? 1e12) - (b.r.sure ?? 1e12));
 }
-function siralamaMetni(ad, sube, sirali){ // Kod.gs siralamaHazirla_ ile aynı biçim
+function siralamaMetni(ad, sube, sirali){ // Kod.gs siralamaHazirla_ ile aynı biçim; her şube için ayrı çağrılır (şubeler arası karışık sıralama yok)
  return ['🏆 Ödev sıralaması · ' + ad + (sube ? ' · ' + sube : ''), '(ilk denemeler, 100 üzerinden)', '']
   .concat(sirali.map((s, i) => (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + s.ad + (s.sinif ? ' (' + s.sinif + ')' : '') + ' — ' + siraOzeti(s.r)))
   .concat(['', sirali.length + ' öğrenci katıldı.']).join('\n');
@@ -1178,9 +1179,15 @@ async function panelSonuc(o, li){
  const ad = z ? z.name : j.odev.test_slug, sorular = z ? z.questions : [];
  const satirlar = sonucSatirlari(j), durum = {sube: '', sekme: 'sira'};
  const subeler = [...new Set(j.subeler.concat(satirlar.map(s => s.sinif).filter(Boolean)))].sort((a, b) => parseInt(a) - parseInt(b) || a.localeCompare(b, 'tr'));
+ // şube blokları: her şube kendi sıralamasıyla; şubesi olmayan eski kayıtlar en sonda ayrı blok
+ const YOK = 'Şube yazılmamış';
+ const bloklar = subeler.map(x => ({etiket: x, satirlar: satirlar.filter(s => s.sinif === x)}));
+ if (satirlar.some(s => !s.sinif)) bloklar.push({etiket: YOK, satirlar: satirlar.filter(s => !s.sinif)});
+ if (!bloklar.length) bloklar.push({etiket: '', satirlar: []});
+ const cok = bloklar.length > 1; // tek şubeli ödevde görünüm sade: tek blok, başlık yok
  b.hidden = true; kutu.hidden = false; kutu.replaceChildren();
  const secim = el('select', 's-sube'); secim.setAttribute('aria-label', 'Şube');
- secim.append(new Option('Bütün şubeler', ''), ...subeler.map(x => new Option(x, x)));
+ secim.append(new Option('Şube şube (hepsi)', ''), ...bloklar.map(x => new Option(x.etiket, x.etiket)));
  const ozet = el('p', 'pnote s-ozet'), sekmeler = el('div', 's-sekmeler'), icerik = el('div', 's-icerik');
  sekmeler.setAttribute('role', 'tablist');
  [['sira', 'Sıralama'], ['ogr', 'Öğrenciler'], ['soru', 'Sorular']].forEach(([k, t]) => {
@@ -1190,59 +1197,79 @@ async function panelSonuc(o, li){
  const wa = el('a', 'btn wa s-wa', 'Sıralamayı WhatsApp\'ta paylaş'); wa.target = '_blank'; wa.rel = 'noopener';
  const hatirlat = el('a', 'btn ghost wide s-hatirlat'); hatirlat.target = '_blank'; hatirlat.rel = 'noopener';
  const indir = el('button', 'btn ghost wide s-indir', 'Tabloyu indir (Excel)'); indir.type = 'button';
- if (subeler.length > 1) kutu.append(secim);
- kutu.append(ozet, sekmeler, icerik, wa, hatirlat, indir);
+ if (cok) kutu.append(secim);
+ kutu.append(ozet, sekmeler, icerik, ...(cok ? [] : [wa, hatirlat]), indir); // çok şubelide düğmeler bloklarda
  secim.addEventListener('change', () => { durum.sube = secim.value; ciz(); });
- const gorunen = () => satirlar.filter(s => !durum.sube || s.sinif === durum.sube);
+ const gorunenBloklar = () => bloklar.filter(x => !durum.sube || x.etiket === durum.sube);
+ const gorunen = () => gorunenBloklar().flatMap(x => x.satirlar);
+ const kisiSirasi = (a, b) => (a.listede === b.listede ? 0 : a.listede ? -1 : 1) || noNorm(a.numara) - noNorm(b.numara); // listedekiler numara sırasıyla, listede olmayanlar sonda
+ // özet sayıları tek yerde: çözen, listedeki çözen/listedeki, ortalama (blok başlığı ve üst özet aynı hesabı kullanır)
+ const ozetVeri = g => { const c = g.filter(s => s.r), lg = g.filter(s => s.listede), ort = c.length ? Math.round(10 * c.reduce((t, s) => t + s.r.puan, 0) / c.length) / 10 : null;
+  return {c, lg, cl: c.filter(s => s.listede).length, ortYazi: ort != null ? ' · ortalama ' + String(ort).replace('.', ',') : ''}; };
+ const blokOzeti = g => { const v = ozetVeri(g); return (v.lg.length ? v.cl + '/' + v.lg.length : String(v.c.length)) + ' çözdü' + v.ortYazi; };
+ const eksikSatirlar = g => g.filter(s => !s.r && s.listede);
+ const hatirlatMetni = (g, etiket) => '⏰ Hatırlatma: ' + ad + ' ödevini henüz yapmayanlar' + (etiket ? ' (' + etiket + ')' : '') + ':\n' +
+  eksikSatirlar(g).map(s => '• ' + s.ad).join('\n') + '\n\n' + odevMesaji(j.odev.kod, j.odev.test_slug, j.odev.bitis);
  indir.addEventListener('click', () => {
-  const bas = ['Numara', 'Ad Soyad', 'Şube', 'Durum', 'Puan', 'Doğru', 'Yanlış', 'Boş', 'Süre', 'Teslim'].concat(sorular.map((_, i) => 'S' + (i + 1)));
-  const veri = gorunen().map(s => {
+  const bas = ['Numara', 'Ad Soyad', 'Şube', 'Sıra', 'Durum', 'Puan', 'Doğru', 'Yanlış', 'Boş', 'Süre', 'Teslim'].concat(sorular.map((_, i) => 'S' + (i + 1)));
+  // önce şube, sonra şube içi sıra (çözmeyenler sırasız, numara sırasıyla sonda)
+  const veri = gorunenBloklar().flatMap(x => siraliSonuclar(x.satirlar).map((s, i) => [s, i + 1]).concat(x.satirlar.filter(s => !s.r).sort(kisiSirasi).map(s => [s, '']))).map(([s, sira]) => {
    const c = s.r ? cevapCoz(s.r.cevaplar) : {};
-   return [s.numara, s.ad, s.sinif, s.r ? (s.r.durum === 'süre dışı' ? 'süre dışı' : 'çözdü') + (s.listede ? '' : ' (listede yok)') : 'yapmadı',
+   return [s.numara, s.ad, s.sinif, sira, s.r ? (s.r.durum === 'süre dışı' ? 'süre dışı' : 'çözdü') + (s.listede ? '' : ' (listede yok)') : 'yapmadı',
     s.r ? String(s.r.puan).replace('.', ',') : '', s.r ? s.r.dogru : '', s.r ? s.r.yanlis : '', s.r ? s.r.bos : '', s.r ? sureYaz(s.r.sure) : '',
     s.r && s.r.zaman ? new Date(s.r.zaman).toLocaleString('tr-TR') : ''].concat(sorular.map((q, i) => !s.r || !s.r.cevaplar ? '' : c[i] == null || c[i] < 0 ? '-' : 'ABCD'[c[i]] + (c[i] === q.a ? ' ✓' : ' ✗')));
   });
-  csvIndir('sonuclar-' + j.odev.kod + (durum.sube ? '-' + durum.sube : '') + '.csv', [bas].concat(veri));
+  csvIndir('sonuclar-' + j.odev.kod + (durum.sube ? '-' + durum.sube.replace(/\s+/g, '-') : '') + '.csv', [bas].concat(veri));
  });
+ function ogrKisisi(s, subeYaz){
+  const x = el('li', 's-kisi' + (s.r ? '' : ' yapmadi'));
+  const dugme = el('button', 's-kisi-bas'); dugme.type = 'button';
+  dugme.append(el('span', 's-ad', s.numara + ' · ' + s.ad + (s.sinif && subeYaz ? ' (' + s.sinif + ')' : '')),
+   el('span', 's-not', !s.r ? 'Yapmadı' : String(s.r.puan).replace('.', ',') + (s.r.durum === 'süre dışı' ? ' · süre dışı' : '')));
+  x.append(dugme);
+  if (s.r) {
+   const d = el('div', 's-detay'); d.hidden = true;
+   d.append(el('p', 'pnote', s.r.dogru + ' doğru, ' + s.r.yanlis + ' yanlış' + (s.r.bos ? ', ' + s.r.bos + ' boş' : '') +
+    (s.r.sure != null ? ' · süre ' + sureYaz(s.r.sure) : '') + (s.r.zaman ? ' · ' + gunSaat(Date.parse(s.r.zaman)) : '') +
+    (s.sonraki ? ' · sonra ' + s.sonraki + ' kez daha çözdü (sayılmaz)' : '') + (s.listede ? '' : ' · sınıf listesinde bu numara yok')));
+   const c = cevapCoz(s.r.cevaplar), ol2 = el('ol', 's-cevaplar');
+   sorular.forEach((q, i) => {
+    const k = c[i], sat = el('li', k == null || k < 0 ? 'bos' : k === q.a ? 'dogru' : 'yanlis');
+    sat.append(el('span', 's-q', (i + 1) + '. ' + q.q.replace(/\n/g, ' ')),
+     el('span', null, k == null || k < 0 ? 'Boş · doğru: ' + 'ABCD'[q.a] + ') ' + q.o[q.a] : k === q.a ? '✓ ' + 'ABCD'[k] + ') ' + q.o[k] : '✗ ' + 'ABCD'[k] + ') ' + q.o[k] + ' · doğru: ' + 'ABCD'[q.a] + ') ' + q.o[q.a]));
+    ol2.append(sat);
+   });
+   d.append(ol2); x.append(d);
+   dugme.addEventListener('click', () => { d.hidden = !d.hidden; dugme.setAttribute('aria-expanded', String(!d.hidden)); });
+   dugme.setAttribute('aria-expanded', 'false');
+  }
+  return x;
+ }
  function ciz(){
-  const g = gorunen(), cozen = g.filter(s => s.r), yapmayan = g.filter(s => !s.r), sirali = siraliSonuclar(g);
-  const listeVar = g.some(s => s.listede);
-  const ort = cozen.length ? Math.round(10 * cozen.reduce((t, s) => t + s.r.puan, 0) / cozen.length) / 10 : null;
-  ozet.textContent = (listeVar ? cozen.filter(s => s.listede).length + ' / ' + g.filter(s => s.listede).length + ' öğrenci çözdü' : cozen.length + ' öğrenci çözdü') +
-   (ort != null ? ' · ortalama ' + String(ort).replace('.', ',') : '') + (listeVar && yapmayan.length ? ' · ' + yapmayan.length + ' öğrenci yapmadı' : '');
+  const gb = gorunenBloklar(), g = gorunen(), v = ozetVeri(g), cozen = v.c, yapmayan = g.filter(s => !s.r), listeVar = v.lg.length > 0;
+  ozet.textContent = (listeVar ? v.cl + ' / ' + v.lg.length + ' öğrenci çözdü' : v.c.length + ' öğrenci çözdü') + v.ortYazi + (listeVar && yapmayan.length ? ' · ' + yapmayan.length + ' öğrenci yapmadı' : '');
   sekmeler.querySelectorAll('.s-sekme').forEach(s => s.setAttribute('aria-selected', String(s.dataset.k === durum.sekme)));
   icerik.replaceChildren();
+  const acik = !j.odev.bitis || Date.parse(j.odev.bitis) >= Date.now();
   if (durum.sekme === 'sira') {
-   if (!sirali.length) icerik.append(el('p', 'pnote', 'Henüz kimse çözmedi.'));
-   else { const ol = el('ol', 'prank s-sira'); sirali.forEach((s, i) => ol.append(el('li', null, (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + s.ad + (s.sinif ? ' (' + s.sinif + ')' : '') + ' — ' + siraOzeti(s.r)))); icerik.append(ol); }
+   gb.forEach(x => {
+    const sb = siraliSonuclar(x.satirlar), eksik = eksikSatirlar(x.satirlar);
+    if (cok) icerik.append(el('h4', 's-blok-bas', x.etiket + ' · ' + blokOzeti(x.satirlar)));
+    if (!sb.length) icerik.append(el('p', 'pnote', 'Henüz kimse çözmedi.'));
+    else { const ol = el('ol', 'prank s-sira'); sb.forEach((s, i) => ol.append(el('li', null, (['🥇','🥈','🥉'][i] || (i + 1) + '.') + ' ' + s.ad + (s.sinif ? ' (' + s.sinif + ')' : '') + ' — ' + siraOzeti(s.r)))); icerik.append(ol); }
+    if (cok) { // her şubenin WhatsApp grubu ayrı: paylaşma ve hatırlatma düğmesi bloğun içinde
+     if (sb.length) { const w = el('a', 'btn wa s-wa', x.etiket + ' sıralamasını WhatsApp\'ta paylaş'); w.target = '_blank'; w.rel = 'noopener'; w.href = waLink(siralamaMetni(ad, x.etiket, sb)); icerik.append(w); }
+     if (acik && eksik.length) { const h = el('a', 'btn ghost wide s-hatirlat', x.etiket + ' · yapmayanlara hatırlat (' + eksik.length + ' öğrenci)'); h.target = '_blank'; h.rel = 'noopener'; h.href = waLink(hatirlatMetni(x.satirlar, x.etiket)); icerik.append(h); }
+    }
+   });
   } else if (durum.sekme === 'ogr') {
    if (!g.length) icerik.append(el('p', 'pnote', 'Henüz kimse çözmedi. Sınıf listesi eklersen yapmayanlar da burada görünür.'));
-   const ol = el('ol', 's-ogr');
-   g.slice().sort((a, b) => (a.listede === b.listede ? 0 : a.listede ? -1 : 1) || (a.sinif || '').localeCompare(b.sinif || '', 'tr') || noNorm(a.numara) - noNorm(b.numara)).forEach(s => {
-    const x = el('li', 's-kisi' + (s.r ? '' : ' yapmadi'));
-    const dugme = el('button', 's-kisi-bas'); dugme.type = 'button';
-    dugme.append(el('span', 's-ad', s.numara + ' · ' + s.ad + (s.sinif && !durum.sube ? ' (' + s.sinif + ')' : '')),
-     el('span', 's-not', !s.r ? 'Yapmadı' : String(s.r.puan).replace('.', ',') + (s.r.durum === 'süre dışı' ? ' · süre dışı' : '')));
-    x.append(dugme);
-    if (s.r) {
-     const d = el('div', 's-detay'); d.hidden = true;
-     d.append(el('p', 'pnote', s.r.dogru + ' doğru, ' + s.r.yanlis + ' yanlış' + (s.r.bos ? ', ' + s.r.bos + ' boş' : '') +
-      (s.r.sure != null ? ' · süre ' + sureYaz(s.r.sure) : '') + (s.r.zaman ? ' · ' + gunSaat(Date.parse(s.r.zaman)) : '') +
-      (s.sonraki ? ' · sonra ' + s.sonraki + ' kez daha çözdü (sayılmaz)' : '') + (s.listede ? '' : ' · sınıf listesinde bu numara yok')));
-     const c = cevapCoz(s.r.cevaplar), ol2 = el('ol', 's-cevaplar');
-     sorular.forEach((q, i) => {
-      const k = c[i], sat = el('li', k == null || k < 0 ? 'bos' : k === q.a ? 'dogru' : 'yanlis');
-      sat.append(el('span', 's-q', (i + 1) + '. ' + q.q.replace(/\n/g, ' ')),
-       el('span', null, k == null || k < 0 ? 'Boş · doğru: ' + 'ABCD'[q.a] + ') ' + q.o[q.a] : k === q.a ? '✓ ' + 'ABCD'[k] + ') ' + q.o[k] : '✗ ' + 'ABCD'[k] + ') ' + q.o[k] + ' · doğru: ' + 'ABCD'[q.a] + ') ' + q.o[q.a]));
-      ol2.append(sat);
-     });
-     d.append(ol2); x.append(d);
-     dugme.addEventListener('click', () => { d.hidden = !d.hidden; dugme.setAttribute('aria-expanded', String(!d.hidden)); });
-     dugme.setAttribute('aria-expanded', 'false');
-    }
-    ol.append(x);
+   gb.forEach(x => {
+    if (cok && x.satirlar.length) icerik.append(el('h4', 's-blok-bas', x.etiket));
+    const ol = el('ol', 's-ogr');
+    x.satirlar.slice().sort(kisiSirasi).forEach(s => ol.append(ogrKisisi(s, !cok)));
+    icerik.append(ol);
    });
-   icerik.append(ol);
   } else {
    if (!cozen.length || !sorular.length) icerik.append(el('p', 'pnote', cozen.length ? 'Bu testin soruları bu sayfada bulunamadı.' : 'Henüz kimse çözmedi.'));
    else {
@@ -1260,12 +1287,12 @@ async function panelSonuc(o, li){
     icerik.append(ol);
    }
   }
-  wa.hidden = !sirali.length || durum.sekme !== 'sira'; wa.href = waLink(siralamaMetni(ad, durum.sube, sirali));
-  const acik = !j.odev.bitis || Date.parse(j.odev.bitis) >= Date.now(), eksik = yapmayan.filter(s => s.listede);
-  hatirlat.hidden = !acik || !eksik.length;
+  // tek şubeli ödevde tek WhatsApp/hatırlatma düğmesi altta; çok şubelide her blok kendi düğmesini taşır (karışık sıralama yok)
+  const sirali = siraliSonuclar(g), eksik = eksikSatirlar(g);
+  wa.hidden = cok || !sirali.length || durum.sekme !== 'sira'; wa.href = waLink(siralamaMetni(ad, bloklar[0].etiket === YOK ? (j.odev.sinif || '') : bloklar[0].etiket, sirali)); // tek blok: Kod.gs ile aynı başlık kuralı
+  hatirlat.hidden = cok || !acik || !eksik.length;
   hatirlat.textContent = 'Yapmayanlara hatırlat (' + eksik.length + ' öğrenci)';
-  hatirlat.href = waLink('⏰ Hatırlatma: ' + ad + ' ödevini henüz yapmayanlar' + (durum.sube ? ' (' + durum.sube + ')' : '') + ':\n' +
-   eksik.map(s => '• ' + s.ad).join('\n') + '\n\n' + odevMesaji(j.odev.kod, j.odev.test_slug, j.odev.bitis));
+  hatirlat.href = waLink(hatirlatMetni(g, ''));
   indir.hidden = !g.length;
  }
  ciz();
@@ -1382,6 +1409,39 @@ Açıklama: (kısa Türkçe açıklama)
 2) ...
 
 Konu: `;
+const KALIP_FOTO = `Sen bir 8. sınıf İngilizce öğretmenisin. Ekteki fotoğraf bir 8. sınıf İngilizce ders kitabı ya da çalışma kitabı sayfası. Bu sayfadan LGS tarzında, çoktan seçmeli bir test hazırla.
+
+Sayfayı nasıl kullanacağın:
+- Sayfada çoktan seçmeli ya da boşluk doldurma soruları varsa onları AYNEN aktar. Şık sayısı 4'ten azsa 4'e tamamla; eklediğin şıklar kesinlikle yanlış olsun.
+- Sayfada soru yoksa ya da 5'ten az soru varsa, sayfadaki kelime ve cümlelerden yeni sorular üret. Toplam soru sayısı en az 5, en çok 20 olsun.
+- Paragrafa, diyaloğa ya da resme bağlı sorular ("according to the text", "look at the picture" gibi) tek başına anlaşılır olsun: gereken bilgiyi soru cümlesine yaz. Kısa yazamıyorsan o soruyu atla.
+- Eşleştirme, doğru/yanlış ve yazma sorularını 4 şıklı soruya çevir ya da atla.
+- Fotoğrafta okuyamadığın kısmı uydurma, o soruyu atla.
+- Kitapta cevap anahtarı yoksa soruyu kendin çöz. Cevabından emin olmadığın her sorunun "Açıklama:" satırının SONUNA "(emin değilim)" yaz.
+- "TEST:" satırına kitabın ünite ya da konu adını yaz.
+
+Kurallar:
+- Sorular İngilizce olsun, 8. sınıf MEB İngilizce ders kitabı seviyesinde olsun.
+- Her soru çok kısa olsun: en fazla 2 satır ve 15 kelime. Öğrenci her soruyu 12 saniyede okuyup cevaplayacak.
+- Her soruda ne sorulduğu belli olsun: ya bir boşluk (_____) ya da bir soru cümlesi (?) olsun.
+- Her sorunun 4 şıkkı olsun: A, B, C, D. Şıklar kısa olsun (1-4 kelime).
+- Her sorunun yalnızca BİR doğru cevabı olsun. Diğer şıklar kesinlikle yanlış olsun.
+- Her sorudan sonra "Cevap:" satırına doğru harfi, "Açıklama:" satırına tek cümlelik Türkçe açıklama yaz.
+- Giriş ya da kapanış cümlesi yazma. Kalın yazı, tablo, madde işareti kullanma.
+- Tam olarak aşağıdaki biçimi kullan:
+
+TEST: (kitabın ünite ya da konu adı)
+1) (soru)
+A) (şık)
+B) (şık)
+C) (şık)
+D) (şık)
+Cevap: (harf)
+Açıklama: (kısa Türkçe açıklama)
+
+2) ...
+
+Sayfa hakkında not (isteğe bağlı): `;
 function testSecenekleri(){
  const sec = $('p-test').value, grup = (etiket, liste) => { const g = document.createElement('optgroup'); g.label = etiket; liste.forEach(([slug, ad, n]) => { const o = document.createElement('option'); o.value = slug; o.textContent = ad + ' (' + n + ' soru)'; g.append(o); }); return g; };
  const on = onaylilar(), onayli = new Set(Object.values(on));
@@ -1393,6 +1453,8 @@ function testSecenekleri(){
  $('k-test').replaceChildren(...QUIZZES.map(z => { const o = document.createElement('option'); o.value = z.slug; o.textContent = z.name + (on[z.slug] ? ' ✓ onaylı' : ''); return o; }));
  if (ksec) $('k-test').value = ksec;
 }
+const EMIN_AD = '[eE][mM][iİıI][nN]\\s+[dD][eE][ğĞ][iİıI][lL][iİıI][mM]'; // büyük/küçük ve Türkçe İ/ı duyarsız ("EMİN DEĞİLİM" de)
+const EMIN = new RegExp(EMIN_AD), EMIN_SIL = new RegExp('\\s*\\(?\\s*' + EMIN_AD + '\\s*\\)?\\s*\\.?', 'g');
 function testCoz(metin){
  const satirlar = String(metin).replace(/\r/g, '').split('\n')
   .map(x => x.replace(/\*\*|`/g, '').replace(/^\s*(?:#+|[-•*])\s+/, '').trim());
@@ -1424,6 +1486,10 @@ function testCoz(metin){
   if (q.q && !/\?|_{2,}|…|\.\.\./.test(q.q)) q.uyari.push('ne sorulduğu belli değil (boşluk ____ ya da soru işareti yok)');
   if (q.q.length > 110) q.uyari.push('uzun, ' + SN + ' saniyede okunmayabilir');
   if (o.some(x => x.length > 40)) q.uyari.push('şıklardan biri uzun');
+  if (EMIN.test(q.tr)) { // fotoğraf kalıbı: cevap anahtarı yoksa ChatGPT kendi çözer ve şüphesini yazar
+   q.uyari.push('ChatGPT cevaptan emin değil — kontrol et');
+   q.tr = q.tr.replace(EMIN_SIL, '').trim(); // kayıtlı açıklamada "(emin değilim)" kalmaz
+  }
   q.o = o;
   if (q.uyari.length) uyarilar.push(n + '. soru: ' + q.uyari.join(', '));
  });
@@ -1671,12 +1737,13 @@ $('n-indir').addEventListener('click', () => {
  csvIndir('sozlu-notlari-' + NOTLAR.sube + '.csv', [bas].concat(h.ogrenciler.map(x => [x.s.numara, x.s.ad, x.not == null ? '' : x.not, x.sayi]
   .concat(x.hucre.map(c => c.puan == null ? (c.karar === 'ozurlu' ? 'özürlü' : 'sayılmıyor') : fmtPuan(c.puan) + (c.karar && c.puan === 0 ? ' (yapmadı)' : ''))))));
 });
-$('t-kalip').addEventListener('click', async () => {
- const b = $('t-kalip');
- try { await navigator.clipboard.writeText(KALIP); }
- catch { const t = document.createElement('textarea'); t.value = KALIP; document.body.append(t); t.select(); try { document.execCommand('copy'); } catch {} t.remove(); }
- b.textContent = 'Kopyalandı ✓ Şimdi ChatGPT\'ye yapıştır';
-});
+async function kalipKopyala(b, kalip, tamam){
+ try { await navigator.clipboard.writeText(kalip); }
+ catch { const t = document.createElement('textarea'); t.value = kalip; document.body.append(t); t.select(); try { document.execCommand('copy'); } catch {} t.remove(); }
+ b.textContent = tamam;
+}
+$('t-kalip').addEventListener('click', () => kalipKopyala($('t-kalip'), KALIP, 'Kopyalandı ✓ Şimdi ChatGPT\'ye yapıştır'));
+$('t-kalip-foto').addEventListener('click', () => kalipKopyala($('t-kalip-foto'), KALIP_FOTO, 'Kopyalandı ✓ Fotoğrafı ekle, sonra yapıştır'));
 $('t-kontrol').addEventListener('click', () => {
  if (!PANEL) return;
  const t = testCoz($('t-metin').value);

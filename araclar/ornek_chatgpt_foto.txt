@@ -1,0 +1,66 @@
+TEST: Unit 7 Tourism
+
+1) We stayed in a big hotel by the sea. It had a swimming pool and a spa. It was very ____.
+A) luxurious
+B) dangerous
+C) crowded
+D) boring
+Cevap: A
+Açıklama: Havuzu ve spası olan büyük bir otel lüks (luxurious) bir oteldir.
+
+2) “Could you tell me the way to the museum?”
+A) It’s next to the bank.
+B) I’m a tourist.
+C) I like museums a lot.
+D) It was closed yesterday.
+Cevap: A
+Açıklama: Yol tarifi soran birine “It’s next to the bank.” diye yol tarif edilir.
+
+3) Tourists usually buy ____ to remember the places they visit.
+A) souvenirs
+B) tickets
+C) suitcases
+D) passports
+Cevap: A
+Açıklama: Gezilen yeri hatırlamak için hediyelik eşya (souvenir) alınır.
+
+4) My parents want to go to Cappadocia ____ they love hot air balloons.
+A) because
+B) but
+C) so
+D) although
+Cevap: A
+Açıklama: Sebep bildirmek için “because” kullanılır.
+
+5) Which word is the opposite of “crowded”?
+A) empty
+B) noisy
+C) popular
+D) famous
+Cevap: A
+Açıklama: Crowded (kalabalık) kelimesinin zıttı empty (boş) kelimesidir. (emin değilim)
+
+6) A: What did you do on your holiday?
+B: I ____ a lot of photos of the old castle.
+A) took
+B) take
+C) taking
+D) will take
+Cevap: A
+Açıklama: Geçmişten bahsedildiği için fiilin ikinci hâli “took” kullanılır.
+
+7) You need a room for two nights. What do you ask the receptionist?
+A) Is there a room available?
+B) Where is the airport?
+C) Can I have the menu?
+D) How much is the bus ticket?
+Cevap: A
+Açıklama: Konaklama arayan kişiye uygun cevap oda olup olmadığını sormaktır.
+
+8) You should book your flight early ____ the tickets get more expensive later.
+A) since
+B) unless
+C) until
+D) or
+Cevap: A
+Açıklama: “since” burada sebep bildirir; sayfadaki cevap anahtarı okunamadı. (emin değilim)

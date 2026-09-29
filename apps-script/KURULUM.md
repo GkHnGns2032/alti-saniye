@@ -287,6 +287,8 @@ Kararlar e-tablonun **Kararlar** sekmesine kaydedilir (sekme kendiliğinden aç�
 
 `Kod.gs`'in yeni bir sürümü çıkarsa kodu yine yapıştır ve kaydet. Ardından **kurulum**'u bir kez **Çalıştır** (zamanlayıcı yeni kodla kurulsun). Yalnızca sıralama bölümü değiştiyse bu kadarı yeter. Aşağıdaki yeniden dağıtım yalnızca öğrencilerin kullandığı ödev tarafı değiştiğinde gerekir. Sonra **Dağıt > Dağıtımları yönet**'e gir, ✏️ simgesine bas, **Sürüm: Yeni sürüm** seç ve **Dağıt**'a bas. Bu yolla adres **aynı kalır**. "Yeni dağıtım" yaparsan adres değişir ve 5. adımı tekrarlaman gerekir.
 
+**Şube şube sıralama sürümü (yalnız sıralama bölümü değişti):** Kod.gs'i yeniden yapıştır, kaydet ve **kurulum**'u Çalıştır; yeni dağıtım gerekmez. Yapıştırmazsan "Sıralama <KOD>" sekmesi ve menü penceresi eski, şubeleri karışık metni üretmeye devam eder (bir sınıfın grubuna başka sınıfın isimleri gidebilir). Yeni sürümde çok şubeli ödevde her şubenin metni ayrı bloktadır ve menüde ayrı kutuda, ayrı Kopyala düğmesiyle gelir.
+
 ## Sorun giderme
 
 | öğrencinin gördüğü | sebep ve çözüm |
