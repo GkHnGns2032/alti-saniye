@@ -40,6 +40,9 @@
  * taşıdığı için sayfa JSON'u okuyabilir.
  */
 
+// Ödevde cevap anahtarı öğrenciye gitmez (sayfa doğru şıkkı soru sırasında yakmaz, puanı sunucu verir).
+// false → eski davranış: test cevaplı gelir, doğru şık her sorudan sonra yanar. Puanlama (S1) etkilenmez.
+const CEVAP_GIZLE = true;
 const ODEVLER = 'Ödevler';
 const SONUCLAR = 'Sonuçlar';
 const ODEV_BASLIK = ['kod', 'test_slug', 'baslangic', 'bitis', 'sinif', 'not'];
@@ -88,7 +91,7 @@ function doGet(e) {
       simdi: simdi.toISOString()
     };
     const ozel = odev.test_slug.indexOf('ozel-') === 0 ? ozelTest_(odev.test_slug) : null;
-    if (ozel) yanit.test = ozel;
+    if (ozel) { yanit.test = CEVAP_GIZLE ? gizliTest_(ozel) : ozel; if (CEVAP_GIZLE) yanit.gizli = true; }
     // öğrenci bilgisini yazınca sayfa sorar: bu ödevi daha önce çözmüş mü? (yalnız ilk deneme kaydedilir)
     if (p.numara && p.ad) {
       const kapi = listeKapisi_(odev.sinif, sinifSube_(p.sinif), String(p.numara).trim(), String(p.ad));
@@ -537,6 +540,12 @@ function testEkle_(b, simdi) {
   return {ok: true, test_slug: slug, ad: t.ad, n: t.sorular.length, kaynak: t.kaynak};
 }
 
+/** Öğrenciye giden test: doğru cevap (a) ve açıklama (tr) çıkarılır — açıklama cevabı ele verir. */
+function gizliTest_(t) {
+  return {ad: t.ad, kaynak: t.kaynak, puanlama: t.puanlama,
+    sorular: t.sorular.map(function (q) { const s = {q: q.q, o: q.o}; if (q.c) s.c = q.c; return s; })};
+}
+
 /** Kayıtlı test: {ad, sorular, kaynak, puanlama, oto} ya da null. */
 function ozelTest_(slug) {
   const satirlar = sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues();
@@ -561,12 +570,12 @@ function testListesi_() {
   return sayfa_(TESTLER, TEST_BASLIK).getDataRange().getValues().slice(1).reverse()
     .filter(function (r) { return String(r[0]).indexOf('ozel-') === 0; })
     .map(function (r) {
-      let kaynak = '';
-      try { kaynak = String(JSON.parse(String(r[4])).kaynak || ''); } catch (err) { /* bozuk içerik: kaynaksız say */ }
-      return {slug: String(r[0]), ad: String(r[1]).replace(/^'/, ''), n: Number(r[2]) || 0, kaynak: kaynak};
+      let kaynak = '', oto = false;
+      try { const ic = JSON.parse(String(r[4])); kaynak = String(ic.kaynak || ''); oto = ic.oto === true; } catch (err) { /* bozuk içerik: kaynaksız say */ }
+      return {slug: String(r[0]), ad: String(r[1]).replace(/^'/, ''), n: Number(r[2]) || 0, kaynak: kaynak, oto: oto};
     })
     .filter(function (t) {
-      if (!t.kaynak) return true;
+      if (t.oto || !t.kaynak) return true;
       if (gorulen[t.kaynak]) return false;
       return (gorulen[t.kaynak] = true);
     });

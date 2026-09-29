@@ -55,7 +55,7 @@ class Sayfa {
   }
 }
 
-function ortam({kilit = true, istem = null, site = {}} = {}) {
+function ortam({kilit = true, istem = null, site = {}, kod = KOD} = {}) {
   const sayfalar = {};
   const ui = {
     menuler: [], diyaloglar: [], uyarilar: [],
@@ -117,7 +117,7 @@ function ortam({kilit = true, istem = null, site = {}} = {}) {
     }
   };
   vm.createContext(ctx);
-  vm.runInContext(KOD, ctx, {filename: 'Kod.gs'});
+  vm.runInContext(kod, ctx, {filename: 'Kod.gs'});
   const cevap = o => { if (o.mime !== 'application/json') throw new Error('JSON mime yok'); return JSON.parse(o.t); };
   return {
     ctx, sayfalar, ui, tetikler, ozellikler, urlIstekleri, onbellek,
@@ -311,8 +311,8 @@ const VAKALAR = [
 // Sıralama süresi artık sunucu ölçümü (sütun 15): eski vakalar istemci süresini o sütuna yansıtır (beklentiler aynı kalır).
 const sureyiSunucuya = o => { const v = o.sayfalar['Sonuçlar'].v; v.forEach((r, i) => { if (i > 0 && typeof r[12] === 'number' && r[15] === '') r[15] = r[12]; }); };
 // Sıralama için sonuç tablosu: aynı ödevde birkaç öğrenci, tekrar denemeler, süre dışı, başka ödev.
-function siralamaOrtami(istem) {
-  const o = ortam({istem});
+function siralamaOrtami(istem, sec = {}) {
+  const o = ortam(Object.assign({istem}, sec));
   o.odev(['ACIK1', 'ingilizce-8', once, sonra, '8-A, 8-B', ''], ['GECTI', 'ingilizce-8', new Date(simdi - 3 * GUN), new Date(simdi - 2 * GUN), '', '']);
   const g = (numara, ad, dogru, puan, sure, ek = {}) => { const r = o.post(govde(Object.assign({numara, ad_soyad: ad, dogru, yanlis: 10 - dogru, bos: 0, puan, istemci_sure_ms: sure}, ek))); sureyiSunucuya(o); return r; };
   g('11', 'Ayşe Yılmaz', 8, 80, 90000);
@@ -499,8 +499,8 @@ VAKALAR.push(
 
 /* ---------- Öğretmen paneli ---------- */
 const ANAHTAR = 'a'.repeat(64);
-function panelOrtami() {
-  const o = siralamaOrtami();
+function panelOrtami(sec) {
+  const o = siralamaOrtami(undefined, sec);
   o.ozellikler.OGRETMEN_ANAHTARI = ANAHTAR;
   o.panel = (islem, ek = {}) => o.post(Object.assign({islem, anahtar: ANAHTAR}, ek));
   return o;
@@ -1056,6 +1056,33 @@ VAKALAR.push(
     o.sayfalar['Sonuçlar'].v[2][15] = 50000; // yalnız Ayşe'nin süresi var; Ali önce gelmişti
     const r = o.panel('siralama', {kod: k});
     return r.satirlar[0].ad === 'Ayşe Nur Yılmaz' && r.satirlar[1].ad === 'Ali Veli';
+  }]
+);
+
+VAKALAR.push(
+  ['S6: öğrenciye giden testte doğru cevap ve açıklama yok; gizli:true', () => {
+    const o = panelOrtami();
+    const t = o.panel('test_ekle', {ad: 'Gizli', sorular: ozelSorular(6)});
+    const od = o.panel('odev_ekle', {test_slug: t.test_slug, bitis: gelecek()});
+    const g = o.get({odev: od.kod});
+    return g.gizli === true && g.test.sorular.length === 6 && g.test.sorular.every(q => !('a' in q) && !('tr' in q) && q.o.length === 4);
+  }],
+  ['S6: CEVAP_GIZLE=false → eski yanıt (cevaplı, gizli yok)', () => {
+    const kod = KOD.replace('const CEVAP_GIZLE = true;', 'const CEVAP_GIZLE = false;');
+    if (kod === KOD) return false;
+    const o = panelOrtami({kod});
+    const t = o.panel('test_ekle', {ad: 'Açık', sorular: ozelSorular(6)});
+    const od = o.panel('odev_ekle', {test_slug: t.test_slug, bitis: gelecek()});
+    const g = o.get({odev: od.kod});
+    return g.gizli === undefined && g.test.sorular.every(q => Number.isInteger(q.a));
+  }],
+  ['S6: oto kopya öğretmenin onaylı sürümünü ezmez, listede oto:true ile gelir', () => {
+    const o = panelOrtami();
+    o.panel('test_ekle', {ad: 'Onaylı', kaynak: 'ingilizce-8', sorular: ozelSorular(6)});
+    o.panel('test_ekle', {ad: 'Oto', kaynak: 'ingilizce-8', oto: true, puanlama: 'lgs', sorular: ozelSorular(6)});
+    const l = o.panel('odevler').testler;
+    const onayli = l.filter(x => x.kaynak === 'ingilizce-8' && !x.oto), oto = l.filter(x => x.oto);
+    return onayli.length === 1 && onayli[0].ad === 'Onaylı' && oto.length === 1 && oto[0].ad === 'Oto';
   }]
 );
 
