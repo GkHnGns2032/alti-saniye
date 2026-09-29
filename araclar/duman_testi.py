@@ -290,6 +290,8 @@ class SahteUcNokta:
                 kisi = next((x for x in liste if x['numara'].lstrip('0') == q['numara'][0].lstrip('0')), None)
                 yazilan = ' '.join(q['ad'][0].lower().split()).split()
                 yanit['liste'] = 'listede_yok' if not kisi else ('tamam' if len(yazilan) >= 2 and all(k in kisi['ad'].lower().split() for k in yazilan) else 'ad_uyusmuyor')
+            elif self.ogrenciler and not o[3].get('sinif'):
+                yanit['liste'] = 'listede_yok'  # Kod.gs I1: şubesiz ödevde listesiz şube kapıdan kaçamaz
             else:
                 yanit['liste'] = 'liste_yok'
             if yanit['liste'] in ('tamam', 'liste_yok'):
@@ -319,9 +321,10 @@ class SahteUcNokta:
             if puan is None:
                 return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
             g.update({k: puan[k] for k in ('dogru', 'yanlis', 'bos', 'puan')})
-        for r in self.satirlar:
-            if r['gonderim_id'] == g['gonderim_id']:
-                return {'ok': True, 'durum': r['durum'], 'deneme_no': r['deneme_no'], 'tekrar': True, **(puan or {})}
+        for r in self.satirlar:  # Kod.gs sonucYaz_: tekrar yalnız aynı ödev + numarada, kayıtlı puanla
+            if r['gonderim_id'] == g['gonderim_id'] and r['kod'] == g['kod'] and r['numara'].lstrip('0') == str(g['numara']).lstrip('0'):
+                return {'ok': True, 'durum': r['durum'], 'deneme_no': r['deneme_no'], 'tekrar': True,
+                        **({k: r[k] for k in ('dogru', 'yanlis', 'bos', 'puan')} if puan else {})}
         simdi = time.time()
         durum = 'zamanında' if o[1] <= simdi <= o[2] and not o[3].get('post_sure_disi') else 'süre dışı'
         deneme = 1 + sum(1 for r in self.satirlar if r['kod'] == g['kod'] and r['numara'] == g['numara'])
@@ -1682,6 +1685,9 @@ def odev_liste_hatalari(o):
         expect(page.locator('#who-err')).to_contain_text('Bu numara 8-A listesinde yok')
         expect(page.locator('#who')).to_be_visible()
         expect(page.locator('#intro')).to_be_hidden()
+        dene('50', 'Uydurma Ad', '8-Z')  # şubesiz ödev + listesi olmayan şube: kapıdan kaçılmaz (I1)
+        expect(page.locator('#who-err')).to_contain_text('Bu numara 8-Z listesinde yok')
+        expect(page.locator('#intro')).to_be_hidden()
         dene('123', 'Biri Başka')
         expect(page.locator('#who-err')).to_contain_text('Adın sınıf listesindekiyle uyuşmuyor')
         expect(page.locator('#intro')).to_be_hidden()
@@ -1693,7 +1699,7 @@ def odev_liste_hatalari(o):
         expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
         eşit(str(o.uc.son_damga).endswith('|sahte') and str(o.uc.son_damga).startswith('PGIZLI|123|'), True, 'POST damgası')
         o.bitir(s)
-        return 'listede yok / ad uyuşmuyor → form hatası, test başlamadı · doğru bilgi → başladı, POST damgası "|sahte"'
+        return 'listede yok / listesiz şube (8-Z) / ad uyuşmuyor → form hatası, test başlamadı · doğru bilgi → başladı, POST damgası "|sahte"'
     finally:
         s.kapat()
 

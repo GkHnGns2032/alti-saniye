@@ -148,7 +148,8 @@ function doPost(e) {
     if (!kilit.tryLock(25000)) return json_({ok: false, hata: 'mesgul'});
     try {
       const sonuc = sonucYaz_(odev, g, simdi, ek);
-      if (ta && sonuc.ok) Object.assign(sonuc, {dogru: g.dogru, yanlis: g.yanlis, bos: g.bos, puan: g.puan, anahtar: ta.anahtar, aciklamalar: ta.aciklamalar});
+      if (ta && sonuc.ok) Object.assign(sonuc, sonuc.tekrar ? {} : {dogru: g.dogru, yanlis: g.yanlis, bos: g.bos, puan: g.puan}, {anahtar: ta.anahtar, aciklamalar: ta.aciklamalar});
+      else if (sonuc.tekrar) ['dogru', 'yanlis', 'bos', 'puan'].forEach(function (k) { delete sonuc[k]; }); // istemci puanlı ödevde eski yanıt biçimi
       return json_(sonuc);
     } finally {
       kilit.releaseLock();
@@ -300,7 +301,8 @@ function adUyar_(yazilan, listedeki) {
 const noNorm_ = n => String(n == null ? '' : n).trim().replace(/^0+(?=\d)/, '');
 
 /** Sınıf listesi kapısı. Listesi olan şubede numara listede ve ad eşleşmeli; kayda listedeki ad girer.
- *  Liste hiç yoksa bugünkü davranış (serbest ad, "liste_yok"). Listeler varken şubesiz gönderim reddedilir. */
+ *  Liste hiç yoksa bugünkü davranış (serbest ad, "liste_yok"). Listeler varken şubesiz gönderim reddedilir;
+ *  şubesiz ödevde listesi olmayan şube de ("listede_yok"). */
 function listeKapisi_(odevSinif, sube, numara, ad) {
   const subeler = subeListesi_(odevSinif), liste = ogrenciListesi_();
   if (!liste.length && !sube) return {durum: 'liste_yok'};
@@ -308,7 +310,8 @@ function listeKapisi_(odevSinif, sube, numara, ad) {
   if (!liste.length) return {durum: 'liste_yok'};
   if (!sube) return {hata: 'sube_gerekli'};
   const sinif = liste.filter(function (o) { return o.sinif === sube; });
-  if (!sinif.length) return {durum: 'liste_yok'};
+  // şubesiz ödevde listesiz şube yazılarak kapıdan kaçılmasın; ödevde adı yazılmış listesiz şube serbest kalır
+  if (!sinif.length) return subeler.length ? {durum: 'liste_yok'} : {hata: 'listede_yok'};
   const kisi = sinif.filter(function (o) { return noNorm_(o.numara) === noNorm_(numara); })[0];
   if (!kisi) return {hata: 'listede_yok'};
   if (!adUyar_(ad, kisi.ad)) return {hata: 'ad_uyusmuyor'};
@@ -908,7 +911,7 @@ function hazirTest_(slug) {
       !t.questions.every(q => q && Number.isInteger(q.a) && q.a >= 0 && q.a <= 3)) return null;
     const kucuk = {scoring: t.scoring, questions: t.questions.map(q => ({a: q.a, tr: typeof q.tr === 'string' ? q.tr : ''}))};
     const s = JSON.stringify(kucuk);
-    if (c && s.length < 90000) c.put(k, s, QUIZ_ONBELLEK_SN);
+    if (c && s.length < 90000) { try { c.put(k, s, QUIZ_ONBELLEK_SN); } catch (e) { /* yazılamazsa da puan sunucudan */ } }
     return kucuk;
   } catch (e) {
     console.error('hazır test okunamadı: ' + slug + ' · ' + e);
@@ -937,10 +940,13 @@ function sonucYaz_(odev, g, simdi, ek) {
     const satirlar = sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues();
     for (let i = 0; i < satirlar.length; i++) {
       const s = satirlar[i];
-      if (String(s[13]) === g.gonderim_id) {
-        return {ok: true, durum: String(s[9]), deneme_no: Number(s[10]), tekrar: true};
-      }
       if (normKod_(s[1]) === odev.anahtar && noNorm_(s[3]) === noNorm_(g.numara)) {
+        // ağ tekrarı yalnız aynı ödev + aynı numarada tanınır ve KAYITLI sonucu döndürür; başka ödevin/kişinin
+        // gonderim_id'si kısa devre yapmaz (yeni gönderim sayılır): anahtar ancak öğrencinin kendi kaydından sonra gider
+        if (String(s[13]) === g.gonderim_id) {
+          return {ok: true, durum: String(s[9]), deneme_no: Number(s[10]), tekrar: true,
+            dogru: Number(s[5]), yanlis: Number(s[6]), bos: Number(s[7]), puan: Number(s[8])};
+        }
         deneme++;
         if (!gecersizMi_(s) && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisiAdi_(g.ad_soyad)) onceki = true;
       }

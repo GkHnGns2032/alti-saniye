@@ -871,9 +871,10 @@ VAKALAR.push(
     const r = o.post(govde({kod: o.odevSubesiz.kod, numara: '7', ad_soyad: 'Ali Veli'}));
     return r.ok === false && r.hata === 'sube_gerekli' && o.sonuclar().length === 0;
   }],
-  ['S2: şubenin listesi yoksa serbest ad yazılır, liste_yok işaretlenir', () => {
+  ['S2: ödevde adı yazılmış şubenin listesi yoksa serbest ad yazılır, liste_yok işaretlenir', () => {
     const o = listeli();
-    const r = o.post(govde({kod: o.odevSubesiz.kod, numara: '50', ad_soyad: 'Serbest Ad', sinif_sube: '8-C'}));
+    const od = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8-C'});
+    const r = o.post(govde({kod: od.kod, numara: '50', ad_soyad: 'Serbest Ad', sinif_sube: '8-C'}));
     const s = o.sonuclar()[0];
     return r.ok && s[4] === 'Serbest Ad' && isaret(s, 'liste_yok');
   }],
@@ -1083,6 +1084,59 @@ VAKALAR.push(
     const l = o.panel('odevler').testler;
     const onayli = l.filter(x => x.kaynak === 'ingilizce-8' && !x.oto), oto = l.filter(x => x.oto);
     return onayli.length === 1 && onayli[0].ad === 'Onaylı' && oto.length === 1 && oto[0].ad === 'Oto';
+  }]
+);
+
+/* ---------- Son denetim düzeltmeleri (C1 · I1 · M4) ---------- */
+const bosCevap = cevapMetni(ANAHTAR_25, 'B'.repeat(25)), tamCevap = cevapMetni(ANAHTAR_25, 'D'.repeat(25));
+VAKALAR.push(
+  ['C1: eski ödevin gonderim_id\'si yeni ödevde kayıt açmadan anahtar vermez (3 adımlı saldırı tutmaz)', () => {
+    const o = ortam({site: SITE});
+    o.odev(['YENI01', 'ingilizce-8', once, sonra, '', ''], ['ESKI01', 'ingilizce-8', new Date(simdi - 3 * GUN), new Date(simdi - 2 * GUN), '', '']);
+    const kim = {numara: '55', ad_soyad: 'Hileci Öğrenci'};
+    const a = o.post(govde(Object.assign({kod: 'ESKI01', gonderim_id: 'SALDIRI-X-123', cevaplar: bosCevap}, kim)));
+    const b = o.post(govde(Object.assign({kod: 'YENI01', gonderim_id: 'SALDIRI-X-123', cevaplar: bosCevap}, kim)));
+    const yeniSatir = o.sonuclar().filter(s => s[1] === 'YENI01');
+    const c = o.post(govde(Object.assign({kod: 'YENI01', cevaplar: tamCevap}, kim)));
+    const yeniler = o.sonuclar().filter(s => s[1] === 'YENI01');
+    return a.ok && b.ok && b.tekrar !== true && (!b.anahtar || yeniSatir.length === 1) &&
+      c.kaydedilmedi === true && yeniler.length === 1 && yeniler[0][8] === 0 && !yeniler.some(s => s[8] === 100);
+  }],
+  ['C1: aynı ödevde başkasının gonderim_id\'si onun kaydını döndürmez; yeni satır açılır', () => {
+    const o = siteli();
+    const a = o.post(govde({numara: '11', gonderim_id: 'ORTAK-ID-999', cevaplar: tamCevap}));
+    const b = o.post(govde({numara: '12', gonderim_id: 'ORTAK-ID-999', cevaplar: bosCevap}));
+    return a.ok && a.puan === 100 && b.ok && b.tekrar !== true && b.puan === 0 && o.sonuclar().length === 2;
+  }],
+  ['C1: gerçek ağ tekrarı → ok, KAYITLI puan + anahtar, ikinci satır yok', () => {
+    const o = siteli();
+    const g = govde({cevaplar: tamCevap});
+    const a = o.post(g);
+    const b = o.post(Object.assign({}, g, {cevaplar: bosCevap})); // aynı kimlik; gövde değişse de kayıtlı sonuç döner
+    return a.ok && a.puan === 100 && b.ok && b.tekrar === true && b.deneme_no === 1 && b.durum === 'zamanında' &&
+      b.dogru === 25 && b.yanlis === 0 && b.bos === 0 && b.puan === 100 &&
+      b.anahtar.join() === ANAHTAR_25.join() && b.aciklamalar[0] === 'açıklama 1' && o.sonuclar().length === 1;
+  }],
+  ['I1: liste varken şubesiz ödevde listesi olmayan şube ("8-Z") GET ve POST\'ta reddedilir, satır/damga yok', () => {
+    const o = listeli(), k = o.odevSubesiz.kod;
+    const g = o.get({odev: k, numara: '50', ad: 'Uydurma Ad', sinif: '8-Z'});
+    const r = o.post(govde({kod: k, numara: '50', ad_soyad: 'Uydurma Ad', sinif_sube: '8-Z'}));
+    return g.liste === 'listede_yok' && g.damga === undefined && g.onceki === false &&
+      r.ok === false && r.hata === 'listede_yok' && r.kalici === true && o.sonuclar().length === 0;
+  }],
+  ['I1: liste varken şubesiz ödevde listeli şube çalışır (listedeki ad kayda girer)', () => {
+    const o = listeli(), k = o.odevSubesiz.kod;
+    const g = o.get({odev: k, numara: '9', ad: 'Can Demir', sinif: '8-B'});
+    const r = o.post(govde({kod: k, numara: '9', ad_soyad: 'can demir', sinif_sube: '8b'}));
+    const s = o.sonuclar()[0];
+    return g.liste === 'tamam' && r.ok && s[4] === 'Can Demir' && !isaret(s, 'liste_yok');
+  }],
+  ['M4: önbelleğe yazılamasa da puan sunucudan (put hatası puanlama yolunu değiştirmez)', () => {
+    const o = siteli();
+    o.ctx.CacheService.getScriptCache = () => ({get: () => null, put: () => { throw new Error('önbellek dolu'); }});
+    const r = o.post(govde({puan: 9999, cevaplar: tamCevap}));
+    const s = o.sonuclar()[0];
+    return r.ok && r.puan === 100 && s[16] === 'sunucu' && r.anahtar.join() === ANAHTAR_25.join();
   }]
 );
 
