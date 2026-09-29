@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const kripto = require('crypto');
 
 const KOD = fs.readFileSync(path.join(__dirname, '..', 'apps-script', 'Kod.gs'), 'utf8');
 const TZ_DK = {'Europe/Istanbul': 180}; // Türkiye 2016'dan beri sabit UTC+3
@@ -54,7 +55,7 @@ class Sayfa {
   }
 }
 
-function ortam({kilit = true, istem = null} = {}) {
+function ortam({kilit = true, istem = null, site = {}} = {}) {
   const sayfalar = {};
   const ui = {
     menuler: [], diyaloglar: [], uyarilar: [],
@@ -71,6 +72,7 @@ function ortam({kilit = true, istem = null} = {}) {
   };
   const tetikler = [];
   const ozellikler = {};
+  const onbellek = {}, urlIstekleri = [];
   let uuid = 0;
   const ctx = {
     PropertiesService: {getScriptProperties: () => ({
@@ -92,7 +94,14 @@ function ortam({kilit = true, istem = null} = {}) {
       MimeType: {JSON: 'application/json'},
       createTextOutput: t => ({t, mime: null, setMimeType(m) { this.mime = m; return this; }})
     },
+    UrlFetchApp: {fetch(url) {
+      urlIstekleri.push(url);
+      const m = String(url).match(/quizler\/([a-z0-9-]+)\.json$/), t = m && site[m[1]];
+      return {getResponseCode: () => (t ? 200 : 404), getContentText: () => (t ? JSON.stringify(t) : 'Not Found')};
+    }},
+    CacheService: {getScriptCache: () => ({get: k => (k in onbellek ? onbellek[k] : null), put: (k, v) => { onbellek[k] = String(v); }})},
     Utilities: {
+      computeHmacSha256Signature: (v, k) => Array.from(kripto.createHmac('sha256', k).update(v, 'utf8').digest()).map(b => (b > 127 ? b - 256 : b)),
       getUuid: () => ('0000000' + (++uuid)).slice(-8) + '-aaaa-bbbb-cccc-' + ('00000000000' + uuid).slice(-12),
       parseDate(s, tz, bicim) {
         if (bicim !== 'yyyy-MM-dd HH:mm:ss') throw new Error('taklit: desteklenmeyen biçim ' + bicim);
@@ -111,7 +120,7 @@ function ortam({kilit = true, istem = null} = {}) {
   vm.runInContext(KOD, ctx, {filename: 'Kod.gs'});
   const cevap = o => { if (o.mime !== 'application/json') throw new Error('JSON mime yok'); return JSON.parse(o.t); };
   return {
-    ctx, sayfalar, ui, tetikler, ozellikler,
+    ctx, sayfalar, ui, tetikler, ozellikler, urlIstekleri, onbellek,
     odev: (...satirlar) => {
       const sh = ss.insertSheet('Ödevler');
       sh.v = [['kod', 'test_slug', 'baslangic', 'bitis', 'sinif', 'not'], ...satirlar];
@@ -177,9 +186,9 @@ const VAKALAR = [
     const r = o.post(govde({sinif_sube: '8a'}));
     const s = o.sonuclar();
     const sh = o.sayfalar['Sonuçlar'];
-    return r.ok && r.durum === 'zamanında' && r.deneme_no === 1 && s.length === 1 && s[0].length === 15 &&
-      s[0][1] === 'ACIK1' && s[0][3] === '0123' && s[0][9] === 'zamanında' && s[0][10] === 1 && s[0][14] === '8-A' &&
-      sh.v[0].join() === 'sunucu_zamani,kod,test_slug,numara,ad_soyad,dogru,yanlis,bos,puan,durum,deneme_no,cevaplar,istemci_sure_ms,gonderim_id,sinif_sube' &&
+    return r.ok && r.durum === 'zamanında' && r.deneme_no === 1 && s.length === 1 && s[0].length === 19 &&
+      s[0][1] === 'ACIK1' && s[0][3] === '0123' && s[0][9] === 'zamanında' && s[0][10] === 1 && s[0][14] === '8-A' && s[0][16] === 'istemci' && s[0][18] === 'Deneme Öğrenci' &&
+      sh.v[0].join() === 'sunucu_zamani,kod,test_slug,numara,ad_soyad,dogru,yanlis,bos,puan,durum,deneme_no,cevaplar,istemci_sure_ms,gonderim_id,sinif_sube,sure_sunucu_ms,puan_kaynagi,isaretler,yazilan_ad' &&
       sh.bicim['2:4'] === '@' && sh.bicim['2:15'] === '@';
   }],
   ['sınıf/şube yazımları 8-A biçimine çevrilir; geçersiz ya da eksikse boş kalır ama sonuç kaybolmaz', () => {
@@ -269,7 +278,7 @@ const VAKALAR = [
     const o = ortam();
     o.ctx.kurulum();
     return o.sayfalar['Ödevler'].v[0].join() === 'kod,test_slug,baslangic,bitis,sinif,not' &&
-      o.sayfalar['Sonuçlar'].v[0].length === 15;
+      o.sayfalar['Sonuçlar'].v[0].length === 19;
   }],
   ['eski Sonuçlar sekmesine (13 sütun) gonderim_id başlığı eklenir', () => {
     const o = standart();

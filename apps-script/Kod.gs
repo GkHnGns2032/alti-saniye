@@ -44,8 +44,10 @@ const ODEVLER = 'Ödevler';
 const SONUCLAR = 'Sonuçlar';
 const ODEV_BASLIK = ['kod', 'test_slug', 'baslangic', 'bitis', 'sinif', 'not'];
 const SONUC_BASLIK = ['sunucu_zamani', 'kod', 'test_slug', 'numara', 'ad_soyad', 'dogru', 'yanlis', 'bos',
-  'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms', 'gonderim_id', 'sinif_sube'];
-// sinif_sube sonradan eklendi; eski tablolarda sayfa_() başlığını en sağa kendisi yazar, eski satırlarda boş kalır.
+  'puan', 'durum', 'deneme_no', 'cevaplar', 'istemci_sure_ms', 'gonderim_id', 'sinif_sube',
+  'sure_sunucu_ms', 'puan_kaynagi', 'isaretler', 'yazilan_ad'];
+// sinif_sube ve sonraki dört sütun sonradan eklendi; eski tablolarda sayfa_() başlıkları en sağa kendisi yazar, eski satırlarda boş kalır.
+const SUT = {sure_sunucu: 15, puan_kaynagi: 16, isaretler: 17, yazilan_ad: 18};
 const ZAMANINDA = 'zamanında';
 const SURE_DISI = 'süre dışı';
 const GUN_MS = 24 * 60 * 60 * 1000;
@@ -112,7 +114,7 @@ function doPost(e) {
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return json_({ok: false, hata: 'mesgul'});
     try {
-      return json_(sonucYaz_(odev, g, simdi));
+      return json_(sonucYaz_(odev, g, simdi, {}));
     } finally {
       kilit.releaseLock();
     }
@@ -713,7 +715,7 @@ function oncekiVar_(anahtar, numara, ad) {
   });
 }
 
-function sonucYaz_(odev, g, simdi) {
+function sonucYaz_(odev, g, simdi, ek) {
   const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
   const son = sh.getLastRow();
   let deneme = 0, onceki = false;
@@ -733,8 +735,10 @@ function sonucYaz_(odev, g, simdi) {
   const durum = pencereIcinde_(odev, simdi) ? ZAMANINDA : SURE_DISI;
   // yalnız ilk deneme kaydedilir; sonrakiler alıştırmadır (sayfa öğrenciyi önceden uyarır, eski sayfa gönderse de yazılmaz)
   if (onceki) return {ok: true, kaydedilmedi: true, durum: durum, deneme_no: deneme + 1, sunucu_zamani: simdi.toISOString()};
+  const e = ek || {};
   const satir = [simdi, odev.kod, odev.test_slug, g.numara, metin_(g.ad_soyad), g.dogru, g.yanlis, g.bos,
-    g.puan, durum, deneme + 1, metin_(g.cevaplar), g.istemci_sure_ms, g.gonderim_id, g.sinif_sube];
+    g.puan, durum, deneme + 1, metin_(g.cevaplar), g.istemci_sure_ms, g.gonderim_id, g.sinif_sube,
+    e.sure_sunucu == null ? '' : e.sure_sunucu, e.puan_kaynagi || 'istemci', (e.isaretler || []).join(','), metin_(e.yazilan_ad || g.ad_soyad)];
   const r = son + 1;
   sh.getRange(r, 4).setNumberFormat('@'); // numara metin kalsın (baştaki sıfırlar silinmesin)
   sh.getRange(r, 15).setNumberFormat('@'); // sınıf/şube metin kalsın (e-tablo tarihe çevirmesin)
