@@ -204,6 +204,11 @@ def sinif_sube(v):
     return f"{int(m[1])}-{m[2].replace('i', 'İ').replace('ı', 'I').upper()}"
 
 
+def gecersiz_mi(r):
+    """Kod.gs gecersizMi_: öğretmen bu denemeyi geçersiz saymış mı (isaretler içinde "gecersiz")."""
+    return 'gecersiz' in str(r.get('isaretler', '')).split(',')
+
+
 class SahteUcNokta:
     """apps-script/Kod.gs sözleşmesini taklit eden yerel Apps Script uç noktası (Google'a istek yok).
 
@@ -232,6 +237,7 @@ class SahteUcNokta:
         self.hiz_get = False  # True: GET → {gecerli: False, hata: 'yavas'}
         self.son_damga = None  # son POST'un damga alanı
         self.eski_sunucu = False  # True: Task 1-7 öncesi sunucu (test cevaplı gider, POST puanlamaz)
+        self.test_ekle_yaniti = None  # dolu: test_ekle bu yanıtı döner (korumalı kopya başarısız senaryosu)
         self.hazir_puanlama = {c['slug']: c.get('scoring') for c in quizleri_oku()}  # Kod.gs hazirTest_(kaynak).scoring
         self.kilit = threading.Lock()
 
@@ -244,6 +250,7 @@ class SahteUcNokta:
             self.hiz_modu = self.hiz_get = False
             self.son_damga = None
             self.eski_sunucu = False
+            self.test_ekle_yaniti = None
             for k in [k for k in self.odevler if k.startswith('P')]:
                 del self.odevler[k]  # panelden eklenenler
             self.testler.clear()
@@ -275,7 +282,7 @@ class SahteUcNokta:
                 yanit['test'] = t
         if 'numara' in q and 'ad' in q:  # Kod.gs oncekiVar_: aynı ödevde aynı numara + ad
             ad = ' '.join(q['ad'][0].lower().split())
-            yanit['onceki'] = any(r['kod'].upper() == q['odev'][0].strip().upper() and r['numara'] == q['numara'][0]
+            yanit['onceki'] = any(not gecersiz_mi(r) and r['kod'].upper() == q['odev'][0].strip().upper() and r['numara'] == q['numara'][0]
                                   and ' '.join(r['ad_soyad'].lower().split()) == ad for r in self.satirlar)
             sube = sinif_sube(q.get('sinif', [''])[0])  # Kod.gs listeKapisi_ taklidi
             liste = [x for x in self.ogrenciler if x['sinif'] == sube]
@@ -318,7 +325,7 @@ class SahteUcNokta:
         simdi = time.time()
         durum = 'zamanında' if o[1] <= simdi <= o[2] and not o[3].get('post_sure_disi') else 'süre dışı'
         deneme = 1 + sum(1 for r in self.satirlar if r['kod'] == g['kod'] and r['numara'] == g['numara'])
-        if any(r['kod'] == g['kod'] and r['numara'] == g['numara'] and r['ad_soyad'].lower().split() == g['ad_soyad'].lower().split()
+        if any(not gecersiz_mi(r) and r['kod'] == g['kod'] and r['numara'] == g['numara'] and r['ad_soyad'].lower().split() == g['ad_soyad'].lower().split()
                for r in self.satirlar):  # Kod.gs: yalnız ilk deneme kaydedilir
             return {'ok': True, 'kaydedilmedi': True, 'durum': durum, 'deneme_no': deneme, **(puan or {})}
         self.satirlar.append(dict(g, durum=durum, deneme_no=deneme))
@@ -357,11 +364,11 @@ class SahteUcNokta:
                               'sinif': sec.get('sinif', ''), 'katilan': katilan})
             testler, gorulen = [], set()
             for k, t in reversed(list(self.testler.items())):  # Kod.gs gibi: aynı hazır testin yalnız en yeni onayı
-                if t.get('kaynak'):
+                if t.get('kaynak') and not t.get('oto'):  # Kod.gs testListesi_: korumalı kopyalar (oto) ayıklanmaz
                     if t['kaynak'] in gorulen:
                         continue
                     gorulen.add(t['kaynak'])
-                testler.append({'slug': k, 'ad': t['ad'], 'n': len(t['sorular']), 'kaynak': t.get('kaynak', '')})
+                testler.append({'slug': k, 'ad': t['ad'], 'n': len(t['sorular']), 'kaynak': t.get('kaynak', ''), 'oto': bool(t.get('oto'))})
             say = {}
             for x in self.ogrenciler:
                 say[x['sinif']] = say.get(x['sinif'], 0) + 1
@@ -414,34 +421,59 @@ class SahteUcNokta:
             if kod not in self.odevler:
                 return {'ok': False, 'hata': 'yok', 'kalici': True}
             slug, _, bit, sec = self.odevler[kod]
-            ilk, sira = {}, []
-            for r in self.satirlar:  # Kod.gs odevSonuclari_ gibi: ilk deneme (numara + ad), sonrakiler sayılır
+            ilk, sira, gecersizler = {}, [], []
+            for r in self.satirlar:  # Kod.gs odevSonuclari_ gibi: ilk deneme (numara + ad), sonrakiler sayılır; geçersizler ayrı
                 if r['kod'].upper() != kod:
+                    continue
+                if gecersiz_mi(r):
+                    gecersizler.append({'numara': r['numara'], 'ad': r['ad_soyad'], 'puan': r['puan'], 'zaman': iso(time.time())})
                     continue
                 if kisi(r) in ilk:
                     ilk[kisi(r)]['sonraki'] += 1
                     continue
                 ilk[kisi(r)] = {'numara': r['numara'], 'ad': r['ad_soyad'], 'sinif': sinif_sube(r.get('sinif_sube')),
                                 'dogru': r.get('dogru'), 'yanlis': r.get('yanlis'), 'bos': r.get('bos'), 'puan': r['puan'],
-                                'durum': r['durum'], 'cevaplar': r.get('cevaplar', ''), 'sure': r.get('istemci_sure_ms'),
-                                'zaman': iso(time.time()), 'sonraki': 0}
+                                'durum': r['durum'], 'cevaplar': r.get('cevaplar', ''), 'sure': r.get('sure_sunucu'),
+                                'istemci_sure': r.get('istemci_sure_ms'), 'zaman': iso(time.time()), 'sonraki': 0,
+                                'puan_kaynagi': r.get('puan_kaynagi', ''), 'isaretler': r.get('isaretler', '')}
                 sira.append(ilk[kisi(r)])
             subeler = [x for x in (sinif_sube(t) for t in re.split('[,;]', sec.get('sinif', ''))) if x]
             if not subeler:
                 subeler = sorted({x['sinif'] for x in sira if x['sinif']})
             yanit = {'ok': True, 'odev': {'kod': kod, 'test_slug': slug, 'sinif': sec.get('sinif', ''), 'bitis': iso(bit)},
-                     'sonuclar': sira, 'subeler': subeler, 'liste': [x for x in self.ogrenciler if x['sinif'] in subeler]}
+                     'sonuclar': sira, 'subeler': subeler, 'gecersizler': gecersizler, 'liste': [x for x in self.ogrenciler if x['sinif'] in subeler]}
             if slug in self.testler:
                 yanit['test'] = self.testler[slug]
             return yanit
+        if g['islem'] == 'deneme_gecersiz':  # Kod.gs denemeGecersiz_: satır silinmez, isaretler'e "gecersiz" yazılır
+            kod, no = str(g.get('kod', '')).upper(), str(g.get('numara', '')).lstrip('0') or '0'
+            if kod not in self.odevler:
+                return {'ok': False, 'hata': 'yok', 'kalici': True}
+            if not re.match(r'^\d{1,12}$', no):
+                return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
+            satir = [r for r in self.satirlar if r['kod'].upper() == kod and (r['numara'].lstrip('0') or '0') == no]
+            if not satir:
+                return {'ok': False, 'hata': 'yok', 'kalici': True}
+            gecerli = [r for r in satir if not gecersiz_mi(r)]
+            if g.get('geri') and gecerli:
+                return {'ok': False, 'hata': 'yeni_deneme_var', 'kalici': True}
+            hedef = satir if g.get('geri') else gecerli
+            for r in hedef:
+                l = [x for x in str(r.get('isaretler', '')).split(',') if x.strip() and x.strip() != 'gecersiz']
+                r['isaretler'] = ','.join(l if g.get('geri') else l + ['gecersiz'])
+            return {'ok': True, 'kod': kod, 'numara': no, 'gecersiz': not g.get('geri'), 'n': len(hedef)}
         if g['islem'] == 'test_ekle':
+            if self.test_ekle_yaniti is not None:
+                return self.test_ekle_yaniti
             sor = g.get('sorular') or []
             if not g.get('ad') or not 5 <= len(sor) <= 40 or not all(len(q['o']) == 4 and 0 <= q['a'] <= 3 for q in sor):
                 return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
             if g.get('kaynak') and (not re.match(r'^[a-z0-9][a-z0-9-]{0,59}$', g['kaynak']) or g['kaynak'].startswith('ozel-')):
                 return {'ok': False, 'hata': 'kaynak', 'kalici': True}
             slug = f'ozel-test-{len(self.testler):04d}'
-            self.testler[slug] = {'ad': g['ad'], 'sorular': sor, 'kaynak': g.get('kaynak') or ''}
+            self.testler[slug] = {'ad': g['ad'], 'sorular': sor, 'kaynak': g.get('kaynak') or '',
+                                  **({'puanlama': g['puanlama']} if g.get('puanlama') in ('lgs', 'plain') else {}),
+                                  **({'oto': True} if g.get('oto') is True else {})}
             return {'ok': True, 'test_slug': slug, 'ad': g['ad'], 'n': len(sor), 'kaynak': g.get('kaynak') or ''}
         if g['islem'] == 'test_getir':
             t = self.testler.get(g.get('slug'))
@@ -921,7 +953,7 @@ def panel_odev_olustur(o):
             raise AssertionError(f'WhatsApp linki değil: {href}')
         mesaj = unquote(href.split('text=', 1)[1])
         for parca in ('📚 Ödev: 8. Sınıf İngilizce · Unit 1 Friendship (20 soru', '⏰ Son teslim:', '23:59',
-                      '?odev=P', '#ingilizce-8-friendship'):
+                      '?odev=P', '#ozel-'):  # hazır test korumalı kopyayla gider (anahtar sunucuda)
             if parca not in mesaj:
                 raise AssertionError(f'mesajda yok: {parca!r} · {mesaj!r}')
         kod = [k for k in o.uc.odevler if k.startswith('P')]
@@ -1752,6 +1784,158 @@ def odev_cors(o):
         ctx.close()
 
 
+def panel_istekleri(o, islem):
+    """Sahte uca gelen panel isteklerinin gövdeleri (sırayla), yalnız bu işlem."""
+    govdeler = [json.loads(g) for m, y, _, g in o.uc.istekler if m == 'POST' and g]
+    return [g for g in govdeler if g.get('islem') == islem]
+
+
+def panel_gecersiz_say(o):
+    """Öğretmen bir denemeyi iki adımda geçersiz sayar (sayfa içi onay, confirm() yok) → öğrenci sıralamadan düşer,
+    "yeniden çözebilir" görünür → "Geri al" ile döner."""
+    o.uc.sifirla()
+    o.uc.ogrenciler[:] = [{'sinif': '8-A', 'numara': '5', 'ad': 'Ayşe Kaya'}, {'sinif': '8-A', 'numara': '6', 'ad': 'Ali Can'}]
+    for no, ad, puan in (('5', 'Ayşe Kaya', 70), ('6', 'Ali Can', 90)):
+        o.uc.dopost(json.dumps({'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': no, 'ad_soyad': ad, 'puan': puan,
+                                'dogru': puan // 10, 'yanlis': 0, 'bos': 10 - puan // 10, 'sinif_sube': '8-A',
+                                'istemci_sure_ms': 61000, 'gonderim_id': f'g-{no}'}))
+    s = o.sayfa()
+    page = s.page
+    diyaloglar = []
+    page.on('dialog', lambda d: (diyaloglar.append(d.message), d.dismiss()))
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        kart = page.locator('#p-odev-ACIK1')
+        kart.locator('.p-sonuc').click()
+        expect(kart.locator('.s-sira li')).to_have_count(2)
+        kart.locator('.s-sekme[data-k="ogr"]').click()
+        ayse = kart.locator('.s-kisi').nth(0)
+        ayse.locator('.s-kisi-bas').click()
+        gb = ayse.locator('.s-gecersiz')
+        expect(gb).to_have_text('Bu denemeyi geçersiz say (öğrenci yeniden çözebilir)')
+        gb.click()
+        expect(gb).to_have_text('Emin misin? Geçersiz say')
+        eşit(panel_istekleri(o, 'deneme_gecersiz'), [], 'ilk dokunuşta istek gitmemeli')
+        gb.click()
+        g = kart.locator('.s-kisi.gecersiz')
+        expect(g).to_have_count(1)
+        expect(g.locator('.s-ad')).to_have_text('5 · Ayşe Kaya (8-A)')
+        expect(g).to_contain_text('Geçersiz sayıldı · yeniden çözebilir')
+        expect(kart.locator('.s-sekme[data-k="ogr"]')).to_have_attribute('aria-selected', 'true')  # sekme korunur
+        istek = panel_istekleri(o, 'deneme_gecersiz')
+        eşit([(x['kod'], x['numara'], x.get('geri')) for x in istek], [('ACIK1', '5', None)], 'geçersiz say isteği')
+        expect(kart.locator('.s-kisi')).to_have_count(2)  # Ayşe listede tek satır (ayrıca "Yapmadı" satırı yok)
+        kart.locator('.s-sekme[data-k="sira"]').click()
+        expect(kart.locator('.s-sira li')).to_have_text(['🥇 Ali Can (8-A) — 90 puan · 9 doğru, 0 yanlış, 1 boş'])
+        expect(kart.locator('.s-ozet')).to_contain_text('1 / 2 öğrenci çözdü')
+        # geri al
+        kart.locator('.s-sekme[data-k="ogr"]').click()
+        kart.locator('.s-kisi.gecersiz .s-geri').click()
+        expect(kart.locator('.s-kisi.gecersiz')).to_have_count(0)
+        expect(kart.locator('.s-kisi').nth(0).locator('.s-not')).to_have_text('70')
+        eşit([x.get('geri') for x in panel_istekleri(o, 'deneme_gecersiz')], [None, True], 'geri al isteği')
+        eşit(diyaloglar, [], 'tarayıcı diyaloğu açılmamalı')
+        o.bitir(s)
+        return 'iki adımlı onay (1. dokunuşta 0 istek) → geçersiz → sıralamadan düştü, "yeniden çözebilir" → geri al → 70 · 0 diyalog'
+    finally:
+        s.kapat()
+
+
+def panel_korumali_kopya(o):
+    """Hazır testle ödev: önce doğru şıkları karıştırılmış korumalı kopya (oto) kaydedilir, ödev onunla gider;
+    WhatsApp mesajında hazır testin adı; kopya "Kendi testlerin"de görünmez."""
+    from urllib.parse import unquote
+    o.uc.sifirla()
+    z = o.quiz['ingilizce-8-friendship']
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        page.select_option('#p-test', 'ingilizce-8-friendship')
+        page.fill('#p-gun', time.strftime('%Y-%m-%d', time.localtime(time.time() + 5 * GUN)))
+        page.click('#p-olustur')
+        expect(page.locator('#p-sonuc')).to_be_visible()
+        islemler = [json.loads(g)['islem'] for m, y, _, g in o.uc.istekler if m == 'POST' and g]
+        if 'test_ekle' not in islemler or islemler.index('test_ekle') > islemler.index('odev_ekle'):
+            raise AssertionError(f'önce test_ekle, sonra odev_ekle gitmeli: {islemler}')
+        te = panel_istekleri(o, 'test_ekle')[0]
+        eşit((te['oto'], te['kaynak'], te['puanlama'], te['ad'], len(te['sorular'])),
+             (True, 'ingilizce-8-friendship', 'lgs', z['name'], 20), 'test_ekle gövdesi')
+        eşit([q['o'][q['a']] for q in te['sorular']], [q['o'][q['a']] for q in z['questions']], 'doğru cevaplar aynı (yalnız yerleri)')
+        eşit([q['q'] for q in te['sorular']], [q['q'] for q in z['questions']], 'sorular aynı')
+        oe = panel_istekleri(o, 'odev_ekle')[0]
+        if not oe['test_slug'].startswith('ozel-'):
+            raise AssertionError(f"ödev korumalı kopyayla gitmeli: {oe['test_slug']}")
+        mesaj = unquote(page.get_attribute('#p-wa', 'href').split('text=', 1)[1])
+        for parca in (f'📚 Ödev: {z["name"]} (20 soru', f"#{oe['test_slug']}"):
+            if parca not in mesaj:
+                raise AssertionError(f'mesajda yok: {parca!r} · {mesaj!r}')
+        expect(page.locator('#p-err')).to_have_text('')
+        kod = next(k for k in o.uc.odevler if k.startswith('P'))
+        expect(page.locator(f'#p-odev-{kod} strong')).to_have_text(z['name'])  # liste yenilendi, ad görünür
+        expect(page.locator('#p-test optgroup[label="Kendi testlerin"]')).to_have_count(0)
+        expect(page.locator('#p-test option[value="ingilizce-8-friendship"]')).to_have_text(z['name'] + ' (20 soru)')  # "✓ onaylı" değil
+        o.bitir(s)
+        return f"test_ekle(oto, lgs, 20) → odev_ekle({oe['test_slug']}) · mesajda hazır adı · Kendi testlerin'de yok"
+    finally:
+        s.kapat()
+
+
+def panel_kopya_basarisiz(o):
+    """Korumalı kopya kaydedilemezse ödev hazır slug'la yine oluşur, öğretmen uyarılır."""
+    o.uc.sifirla()
+    o.uc.test_ekle_yaniti = {'ok': False, 'hata': 'soru', 'no': 3, 'kalici': True}
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        expect(page.locator('#p-odev-ACIK1')).to_be_visible()
+        page.select_option('#p-test', 'ingilizce-8-friendship')
+        page.fill('#p-gun', time.strftime('%Y-%m-%d', time.localtime(time.time() + 5 * GUN)))
+        page.click('#p-olustur')
+        expect(page.locator('#p-sonuc')).to_be_visible()
+        eşit(panel_istekleri(o, 'odev_ekle')[0]['test_slug'], 'ingilizce-8-friendship', 'yedek: hazır slug')
+        expect(page.locator('#p-err')).to_contain_text('korumalı kopyaya çevrilemedi')
+        o.bitir(s)
+        return 'test_ekle reddetti → ödev hazır slug\'la oluştu + #p-err uyarısı'
+    finally:
+        s.kapat()
+
+
+def panel_uyarilar(o):
+    """Sunucunun puanlayamadığı sonuç öğrenci ayrıntısında uyarılır; listesiz şube özet altında uyarılır;
+    süre sunucu ölçümüyle (yoksa sayfanınki) yazılır, sıra sunucu süresiyle."""
+    import re as _re
+    o.uc.sifirla()
+    for no, ad, ek in (('5', 'Ayşe Kaya', {'puan_kaynagi': 'istemci', 'isaretler': 'liste_yok,sure_dogrulanmadi', 'istemci_sure_ms': 30000}),
+                       ('6', 'Ali Can', {'puan_kaynagi': 'sunucu', 'isaretler': 'liste_yok', 'sure_sunucu': 45000, 'istemci_sure_ms': 50000})):
+        o.uc.satirlar.append({'kod': 'ACIK1', 'test_slug': 'do-you-know-me', 'numara': no, 'ad_soyad': ad, 'puan': 70,
+                              'dogru': 7, 'yanlis': 0, 'bos': 3, 'sinif_sube': '8-A', 'gonderim_id': f'u-{no}',
+                              'durum': 'zamanında', 'deneme_no': 1, **ek})
+    s = o.sayfa()
+    page = s.page
+    try:
+        page.goto(f'{o.taban}/index.html?panel#{PANEL_ANAHTAR}')
+        kart = page.locator('#p-odev-ACIK1')
+        kart.locator('.p-sonuc').click()
+        expect(kart.locator('.s-ozet')).to_contain_text('Bu şubenin listesi yok — isimler denetlenmiyor')
+        # eşit puanda sunucu süresi ölçülen önde (Ayşe'nin sayfa süresi kısa ama doğrulanmadı)
+        expect(kart.locator('.s-sira li')).to_have_text([_re.compile('^🥇 Ali Can'), _re.compile('^🥈 Ayşe Kaya')])
+        kart.locator('.s-sekme[data-k="ogr"]').click()
+        ayse, ali = kart.locator('.s-kisi').nth(0), kart.locator('.s-kisi').nth(1)
+        ayse.locator('.s-kisi-bas').click()
+        ali.locator('.s-kisi-bas').click()
+        expect(ayse.locator('.s-detay')).to_contain_text(_re.compile('⚠ puan doğrulanamadı', _re.I))
+        expect(ayse.locator('.s-detay')).to_contain_text('süre 0:30')
+        expect(ali.locator('.s-detay')).not_to_contain_text(_re.compile('doğrulanamadı', _re.I))
+        expect(ali.locator('.s-detay')).to_contain_text('süre 0:45')
+        o.bitir(s)
+        return 'istemci puanı → "⚠ puan doğrulanamadı" · liste_yok → özet uyarısı · süre sunucudan (yoksa sayfadan), sıra sunucu süresiyle'
+    finally:
+        s.kapat()
+
+
 def main():
     if not (KOK / 'index.html').exists():
         sys.exit('index.html yok — önce python3 yap.py')
@@ -1807,6 +1991,10 @@ def main():
         kos('panel  hazır testi kontrol et', panel_hazir_kontrol, o)
         kos('panel  sınıf listesi', panel_sinif_listesi, o)
         kos('panel  sözlü notları', panel_sozlu, o)
+        kos('panel  denemeyi geçersiz say', panel_gecersiz_say, o)
+        kos('panel  hazır test → korumalı kopya', panel_korumali_kopya, o)
+        kos('panel  korumalı kopya başarısız', panel_kopya_basarisiz, o)
+        kos('panel  puan/liste uyarıları', panel_uyarilar, o)
         browser.close()
     print(f'duman testi: {gecen} geçti · {kalan} kaldı')
     return 1 if kalan else 0
