@@ -202,12 +202,12 @@ function panelIslem_(b, simdi) {
     return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
       satirlar: s.satirlar.map(function (o) { return {ad: o.ad, sinif: o.sinif, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; })};
   }
-  if (b.islem === 'odev_ekle' || b.islem === 'test_ekle' || b.islem === 'liste_kaydet' || b.islem === 'karar') {
+  if (b.islem === 'odev_ekle' || b.islem === 'test_ekle' || b.islem === 'liste_kaydet' || b.islem === 'karar' || b.islem === 'deneme_gecersiz') {
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return {ok: false, hata: 'mesgul'};
     try {
       return b.islem === 'odev_ekle' ? odevEkle_(b, simdi) : b.islem === 'test_ekle' ? testEkle_(b, simdi) :
-        b.islem === 'karar' ? kararYaz_(b, simdi) : listeKaydet_(b);
+        b.islem === 'karar' ? kararYaz_(b, simdi) : b.islem === 'deneme_gecersiz' ? denemeGecersiz_(b) : listeKaydet_(b);
     } finally {
       kilit.releaseLock();
     }
@@ -327,15 +327,18 @@ function odevSonuclari_(kodGirdisi) {
   const sh = sayfa_(SONUCLAR, SONUC_BASLIK);
   const son = sh.getLastRow();
   const veri = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
-  const ilk = {}, sira = [];
+  const ilk = {}, sira = [], gecersizler = [];
   veri.forEach(function (r) {
     if (normKod_(r[1]) !== kod) return;
     const ad = String(r[4]).replace(/^'/, '').trim(), numara = String(r[3]).trim();
+    if (gecersizMi_(r)) { gecersizler.push({numara: numara, ad: ad, puan: Number(r[8]) || 0, zaman: iso_(r[0] instanceof Date ? r[0] : null)}); return; }
     const anahtar = numara + '|' + kisiAdi_(ad);
     if (ilk[anahtar]) { ilk[anahtar].sonraki++; return; }
     ilk[anahtar] = {numara: numara, ad: ad, sinif: sinifSube_(r[14]), dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0,
       bos: Number(r[7]) || 0, puan: Number(r[8]) || 0, durum: String(r[9]), cevaplar: String(r[11]).replace(/^'/, ''),
-      sure: r[12] === '' || r[12] == null ? null : Number(r[12]), zaman: iso_(r[0] instanceof Date ? r[0] : null), sonraki: 0};
+      sure: r[12] === '' || r[12] == null ? null : Number(r[12]), zaman: iso_(r[0] instanceof Date ? r[0] : null), sonraki: 0,
+      puan_kaynagi: String(r[SUT.puan_kaynagi] || ''), isaretler: String(r[SUT.isaretler] || ''),
+      sure_sunucu: r[SUT.sure_sunucu] === '' || r[SUT.sure_sunucu] == null ? null : Number(r[SUT.sure_sunucu])};
     sira.push(ilk[anahtar]);
   });
   const subeler = subeListesi_(odev.sinif);
@@ -344,7 +347,35 @@ function odevSonuclari_(kodGirdisi) {
   const ilgili = subeler.filter(function (x) { return !tek[x] && (tek[x] = true); });
   const liste = ogrenciListesi_().filter(function (o) { return ilgili.indexOf(o.sinif) >= 0; });
   const test = odev.test_slug.indexOf('ozel-') === 0 ? ozelTest_(odev.test_slug) : null;
-  return {ok: true, odev: odev, sonuclar: sira, liste: liste, subeler: ilgili.sort(subeSirala_), test: test || undefined};
+  return {ok: true, odev: odev, sonuclar: sira, liste: liste, subeler: ilgili.sort(subeSirala_), gecersizler: gecersizler, test: test || undefined};
+}
+
+/* ---------- Geçersiz deneme (öğretmen) ----------
+   Arkadaşının numarasıyla önce çözen olursa öğretmen o denemeyi geçersiz sayar: satır SİLİNMEZ,
+   "isaretler" sütununa "gecersiz" yazılır; ilk-deneme kuralı onu yok sayar, öğrenci yeniden çözer.
+   Geri alma yalnız o numarada yeni geçerli deneme yokken (yoksa iki "ilk deneme" olurdu). */
+const GECERSIZ = 'gecersiz';
+function gecersizMi_(r) { return String(r[SUT.isaretler] == null ? '' : r[SUT.isaretler]).split(',').indexOf(GECERSIZ) >= 0; }
+function isaretDegistir_(metin, isaret, ekle) {
+  const l = String(metin == null ? '' : metin).split(',').map(x => x.trim()).filter(x => x && x !== isaret);
+  if (ekle) l.push(isaret);
+  return l.join(',');
+}
+function denemeGecersiz_(b) {
+  const kod = normKod_(b.kod), no = noNorm_(b.numara);
+  if (!odevBul_(kod)) return {ok: false, hata: 'yok', kalici: true};
+  if (!/^\d{1,12}$/.test(no)) return {ok: false, hata: 'gecersiz', kalici: true};
+  const sh = sayfa_(SONUCLAR, SONUC_BASLIK), son = sh.getLastRow();
+  const v = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
+  const satir = [];
+  v.forEach(function (r, i) { if (normKod_(r[1]) === kod && noNorm_(r[3]) === no) satir.push(i); });
+  if (!satir.length) return {ok: false, hata: 'yok', kalici: true};
+  const gecerli = satir.filter(i => !gecersizMi_(v[i]));
+  if (b.geri && gecerli.length) return {ok: false, hata: 'yeni_deneme_var', kalici: true};
+  const hedef = b.geri ? satir : gecerli;
+  hedef.forEach(i => sh.getRange(i + 2, SUT.isaretler + 1).setValue(isaretDegistir_(v[i][SUT.isaretler], GECERSIZ, !b.geri)));
+  SpreadsheetApp.flush();
+  return {ok: true, kod: kod, numara: no, gecersiz: !b.geri, n: hedef.length};
 }
 
 /* ---------- Sözlü notları ---------- */
@@ -386,6 +417,7 @@ function notCizelgesi_(subeGirdisi) {
   const veri = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
   const ilk = {}, sonuclar = [], cozulen = {};
   veri.forEach(function (r) {
+    if (gecersizMi_(r)) return;
     const kod = normKod_(r[1]), numara = String(r[3]).trim(), sinif = sinifSube_(r[14]);
     if (!kod || !listede[noNorm(numara)] || (sinif && sinif !== sube)) return;
     const anahtar = kod + '|' + numara + '|' + kisiAdi_(String(r[4]).replace(/^'/, ''));
@@ -518,7 +550,8 @@ function odevListesi_() {
   const son = sh.getLastRow();
   const kisiler = {};
   if (son >= 2) {
-    sh.getRange(2, 1, son - 1, 5).getValues().forEach(function (r) {
+    sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues().forEach(function (r) {
+      if (gecersizMi_(r)) return;
       const k = normKod_(r[1]);
       (kisiler[k] = kisiler[k] || {})[String(r[3]).trim() + '|' + kisiAdi_(String(r[4]).replace(/^'/, ''))] = true;
     });
@@ -658,7 +691,7 @@ function siralamaHazirla_(kodGirdisi) {
   const veriler = son >= 2 ? sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues() : [];
   const ilk = {}; // numara|ad → ilk deneme (en eski satır)
   veriler.forEach(function (r, i) {
-    if (!kod || normKod_(r[1]) !== kod) return;
+    if (!kod || normKod_(r[1]) !== kod || gecersizMi_(r)) return;
     const numara = String(r[3]).trim();
     const o = {sira_no: i, test_slug: String(r[2]), numara: numara, ad: String(r[4]).replace(/^'/, '').trim(),
       dogru: Number(r[5]) || 0, yanlis: Number(r[6]) || 0, bos: Number(r[7]) || 0, puan: Number(r[8]) || 0,
@@ -839,8 +872,8 @@ function oncekiVar_(anahtar, numara, ad) {
   const son = sh.getLastRow();
   if (son < 2) return false;
   const kisi = kisiAdi_(ad);
-  return sh.getRange(2, 1, son - 1, 5).getValues().some(function (s) {
-    return normKod_(s[1]) === anahtar && noNorm_(s[3]) === noNorm_(numara) && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisi;
+  return sh.getRange(2, 1, son - 1, SONUC_BASLIK.length).getValues().some(function (s) {
+    return !gecersizMi_(s) && normKod_(s[1]) === anahtar && noNorm_(s[3]) === noNorm_(numara) && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisi;
   });
 }
 
@@ -857,7 +890,7 @@ function sonucYaz_(odev, g, simdi, ek) {
       }
       if (normKod_(s[1]) === odev.anahtar && noNorm_(s[3]) === noNorm_(g.numara)) {
         deneme++;
-        if (kisiAdi_(String(s[4]).replace(/^'/, '')) === kisiAdi_(g.ad_soyad)) onceki = true;
+        if (!gecersizMi_(s) && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisiAdi_(g.ad_soyad)) onceki = true;
       }
     }
   }

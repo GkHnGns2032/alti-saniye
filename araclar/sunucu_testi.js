@@ -911,6 +911,43 @@ VAKALAR.push(
 );
 
 
+VAKALAR.push(
+  ['S3: geçersiz sayılan deneme ilk-deneme kuralından çıkar; öğrenci yeniden çözünce kaydedilir; durum korunur', () => {
+    const o = listeli(), k = o.odevA.kod;
+    o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A', puan: 10})); // arkadaşı yerine çözen
+    const g = o.panel('deneme_gecersiz', {kod: k, numara: '007'});
+    const onceki = o.get({odev: k, numara: '7', ad: 'Ali Veli', sinif: '8-A'}).onceki;
+    const r = o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A', puan: 90}));
+    const s = o.sonuclar();
+    const sr = o.panel('sonuclar', {kod: k});
+    return g.ok && g.gecersiz === true && g.n === 1 && onceki === false && r.ok && !r.kaydedilmedi && s.length === 2 &&
+      isaret(s[0], 'gecersiz') && s[0][9] === 'zamanında' && sr.sonuclar.length === 1 && sr.sonuclar[0].puan === 90 &&
+      sr.gecersizler.length === 1 && sr.gecersizler[0].puan === 10;
+  }],
+  ['S3: geri al yalnız yeni deneme yokken; varsa yeni_deneme_var', () => {
+    const o = listeli(), k = o.odevA.kod;
+    o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A'}));
+    o.panel('deneme_gecersiz', {kod: k, numara: '7'});
+    const geri = o.panel('deneme_gecersiz', {kod: k, numara: '7', geri: true});
+    const s1 = isaret(o.sonuclar()[0], 'gecersiz');
+    o.panel('deneme_gecersiz', {kod: k, numara: '7'});
+    o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A'}));
+    const red = o.panel('deneme_gecersiz', {kod: k, numara: '7', geri: true});
+    return geri.ok && geri.gecersiz === false && s1 === false && red.ok === false && red.hata === 'yeni_deneme_var';
+  }],
+  ['S3: sıralama, katılım sayısı ve not çizelgesi geçersiz satırı saymaz; anahtarsız istek reddedilir', () => {
+    const o = listeli(), k = o.odevA.kod;
+    o.post(govde({kod: k, numara: '7', ad_soyad: 'Ali Veli', sinif_sube: '8-A'}));
+    o.panel('deneme_gecersiz', {kod: k, numara: '7'});
+    const sira = o.panel('siralama', {kod: k});
+    const liste = o.panel('odevler').odevler.filter(x => x.kod === k)[0];
+    const notlar = o.panel('notlar', {sinif_sube: '8-A'});
+    const yetkisiz = o.post({islem: 'deneme_gecersiz', anahtar: 'x'.repeat(64), kod: k, numara: '7'});
+    return sira.katilan === 0 && liste.katilan === 0 && !notlar.sonuclar.some(x => x.kod === k) && yetkisiz.hata === 'yetkisiz';
+  }]
+);
+
+
 let gecen = 0, kalan = 0;
 for (const [ad, fn] of VAKALAR) {
   let ok, neden = '';
