@@ -71,7 +71,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   if (!('odev' in p)) return json_({ok: true, servis: 'alti-saniye', surum: 1});
   try {
-    if (hizDenetle_(normKod_(p.odev), p.numara)) return json_({gecerli: false, hata: 'yavas'});
+    if (hizDenetle_(normKod_(p.odev))) return json_({gecerli: false, hata: 'yavas'});
     const odev = odevBul_(normKod_(p.odev));
     if (!odev) return json_({gecerli: false});
     if (odev.hata) return json_({gecerli: false, hata: odev.hata});
@@ -110,7 +110,7 @@ function doPost(e) {
       return json_({ok: false, hata: 'gecersiz', kalici: true});
     }
     if (govde && typeof govde === 'object' && 'islem' in govde) return json_(panelIslem_(govde, simdi));
-    if (govde && typeof govde === 'object' && hizDenetle_(normKod_(govde.kod), govde.numara)) return json_({ok: false, hata: 'yavas'});
+    if (govde && typeof govde === 'object' && hizDenetle_(normKod_(govde.kod))) return json_({ok: false, hata: 'yavas'});
     const g = gonderimDenetle_(govde);
     if (g.hata) return json_({ok: false, hata: g.hata, kalici: true});
 
@@ -1001,10 +1001,11 @@ function zaman_(v, bitisMi) {
 
 /* ---------- Yardımcılar ---------- */
 
-/* Hız sınırı: tavan (davranış eşiği değil). 30 kişilik şube aynı dakikada bitirse bile altında kalır.
+/* Hız sınırı: tavan (davranış eşiği değil); 30 kişilik şube yenilemeler ve yeniden denemelerle bile altında kalır.
    İstekler Google'a ulaşmayı sürdürür; sınır onları e-tabloya dokunmadan, ucuzca geri çevirir.
+   Kişi başı sayaç YOK: kod+numara bilen biri gerçek öğrenciyi kilitleyebilirdi.
    Önbellek çalışmazsa sınır uygulanmaz (fail-open): gerçek öğrencinin sonucu kaybolmasın. */
-const HIZ = {kod: [120, 60], kisi: [6, 600]}; // [en çok istek, saniye]
+const HIZ = {kod: [240, 60]}; // [en çok istek, saniye]
 function sinirAsildi_(anahtar, tavan, sn) {
   try {
     const c = CacheService.getScriptCache(), k = 'hiz:' + anahtar, simdi = Date.now();
@@ -1018,9 +1019,8 @@ function sinirAsildi_(anahtar, tavan, sn) {
     return false;
   }
 }
-function hizDenetle_(kod, numara) {
-  if (sinirAsildi_('k:' + kod, HIZ.kod[0], HIZ.kod[1])) return true;
-  return !!numara && sinirAsildi_('n:' + kod + ':' + noNorm_(numara), HIZ.kisi[0], HIZ.kisi[1]);
+function hizDenetle_(kod) {
+  return sinirAsildi_('k:' + String(kod).slice(0, 40), HIZ.kod[0], HIZ.kod[1]);
 }
 
 function tablo_() {

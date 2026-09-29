@@ -949,23 +949,40 @@ VAKALAR.push(
 
 
 VAKALAR.push(
-  ['S4: aynı kod+numara 10 dakikada 6 istekten sonra "yavas" (kalici DEĞİL); e-tabloya yazılmaz', () => {
+  ['S4: aynı kişi art arda 8 kez gönderse de kişi başı sınır yok (hedefli kilitleme olmasın)', () => {
     const o = standart();
-    const r = Array.from({length: 7}, () => o.post(govde({numara: '42'})));
-    return r.slice(0, 6).every(x => x.ok) && r[6].ok === false && r[6].hata === 'yavas' && !r[6].kalici && o.sonuclar().length === 1;
+    const r = Array.from({length: 8}, () => o.post(govde({numara: '42'})));
+    return r.every(x => x.hata !== 'yavas') && r[0].ok && o.sonuclar().length === 1;
   }],
-  ['S4: ödev kodu başına dakikada 120 istek; başka kod etkilenmez', () => {
+  ['S4: ödev kodu başına dakikada 240 istek; başka kod etkilenmez; "yavas" kalıcı değil, e-tabloya yazmaz', () => {
     const o = standart();
-    const r = Array.from({length: 121}, (_, i) => o.post(govde({numara: String(1000 + i)})));
+    const r = Array.from({length: 241}, (_, i) => o.post(govde({numara: String(1000 + i)})));
     const baska = o.post(govde({kod: '4521', test_slug: 'do-you-know-me', numara: '1'}));
-    return r.slice(0, 120).every(x => x.ok) && r[120].hata === 'yavas' && baska.ok;
+    return r.slice(0, 240).every(x => x.ok) && r[240].ok === false && r[240].hata === 'yavas' && !r[240].kalici && baska.ok && o.sonuclar().length === 241;
   }],
   ['S4: panel istekleri sınırlanmaz; önbellek hatasında sınır uygulanmaz (öğrenci kaybolmasın)', () => {
     const o = panelOrtami();
-    const p = Array.from({length: 130}, () => o.panel('odevler'));
+    const p = Array.from({length: 250}, () => o.panel('odevler'));
+    return p.every(x => x.ok);
+  }],
+  ['S4: sınır aşıldıktan sonra önbellek çökerse istek geçer (fail-open)', () => {
+    const o = standart();
+    const r = Array.from({length: 241}, (_, i) => o.post(govde({numara: String(1000 + i)})));
     o.ctx.CacheService.getScriptCache = () => { throw new Error('önbellek yok'); };
-    const r = Array.from({length: 8}, () => o.post(govde({numara: '43'})));
-    return p.every(x => x.ok) && r.every(x => x.ok);
+    const sonra = o.post(govde({numara: '2000'}));
+    return r[240].hata === 'yavas' && sonra.ok;
+  }],
+  ['S4: bozuk sayaç sıfırlanır, istek geçer', () => {
+    const o = standart();
+    o.post(govde({numara: '1'}));
+    Object.keys(o.onbellek).forEach(k => { o.onbellek[k] = '{bozuk'; });
+    const r = o.post(govde({numara: '2'}));
+    return Object.keys(o.onbellek).length > 0 && r.ok;
+  }],
+  ['S4: çok uzun kod önbellek anahtarını patlatmaz (sayaç işler)', () => {
+    const o = standart();
+    o.post(govde({kod: 'x'.repeat(300)}));
+    return Object.keys(o.onbellek).every(k => k.length < 60);
   }]
 );
 
