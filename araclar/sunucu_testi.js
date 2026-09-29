@@ -760,7 +760,7 @@ VAKALAR.push(
     const ikiSube = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8-A, 8-B'});
     const sadeceB = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8-B'});
     const subesiz = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek()});
-    o.post(govde({kod: subesiz.kod, numara: '11', ad_soyad: 'Ayşe Yılmaz', puan: 55}));
+    o.post(govde({kod: subesiz.kod, numara: '11', ad_soyad: 'Ayşe Yılmaz', puan: 55, sinif_sube: '8-A'}));
     o.panel('karar', {kod: 'ACIK1', numara: '20', karar: 'ozurlu'});
     o.panel('karar', {kod: sadeceB.kod, numara: '13', karar: 'sifir'});
     const r = o.panel('notlar', {sinif_sube: '8a'});
@@ -830,6 +830,70 @@ VAKALAR.push(
     return t.ok && r.ok && r.dogru === 7 && r.yanlis === 2 && r.puan === 70 && o.urlIstekleri.length === sayi;
   }]
 );
+
+/* ---------- S2: sınıf listesi kapısı ---------- */
+const isaret = (s, x) => String(s[17]).split(',').indexOf(x) >= 0;
+const listeli = () => {
+  const o = panelOrtami();
+  o.sayfalar['Sonuçlar'].v.splice(1); // hazır örnek sonuçlar silinir: bu vakalar boş sekmeden başlar
+  o.panel('liste_kaydet', {sinif_sube: '8-A', ogrenciler: [ogr('123', 'Ayşe Nur Yılmaz'), ogr('7', 'Ali Veli')]});
+  o.panel('liste_kaydet', {sinif_sube: '8-B', ogrenciler: [ogr('9', 'Can Demir')]});
+  o.odevA = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8-A'});
+  o.odevAB = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek(), sinif: '8-A, 8-B'});
+  o.odevSubesiz = o.panel('odev_ekle', {test_slug: 'ingilizce-8', bitis: gelecek()});
+  return o;
+};
+VAKALAR.push(
+  ['S2: listedeki ad kayda girer; ikinci ad eksik, Türkçe harfsiz, büyük harf, baştaki 0 kabul', () => {
+    const o = listeli();
+    const r = o.post(govde({kod: o.odevA.kod, numara: '0123', ad_soyad: 'AYSE yilmaz', sinif_sube: '8a'}));
+    const s = o.sonuclar()[0];
+    return r.ok && s[3] === '123' && s[4] === 'Ayşe Nur Yılmaz' && s[18] === 'AYSE yilmaz' && !isaret(s, 'liste_yok');
+  }],
+  ['S2: tek kelime ad, yanlış soyad, listede olmayan numara, yanlış şube reddedilir; satır yazılmaz', () => {
+    const o = listeli(), k = o.odevA.kod;
+    const r = [
+      o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe', sinif_sube: '8-A'})),
+      o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Kaya', sinif_sube: '8-A'})),
+      o.post(govde({kod: k, numara: '999', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A'})),
+      o.post(govde({kod: k, numara: '9', ad_soyad: 'Can Demir', sinif_sube: '8-B'}))
+    ];
+    return r[0].hata === 'ad_uyusmuyor' && r[1].hata === 'ad_uyusmuyor' && r[2].hata === 'listede_yok' &&
+      r[3].hata === 'sube_disi' && r[3].subeler.join() === '8-A' && r.every(x => x.ok === false && x.kalici) && o.sonuclar().length === 0;
+  }],
+  ['S2: liste varken şubesiz gönderim reddedilir (şube alanını silerek kapıdan kaçılmaz)', () => {
+    const o = listeli();
+    const r = o.post(govde({kod: o.odevSubesiz.kod, numara: '7', ad_soyad: 'Ali Veli'}));
+    return r.ok === false && r.hata === 'sube_gerekli' && o.sonuclar().length === 0;
+  }],
+  ['S2: şubenin listesi yoksa serbest ad yazılır, liste_yok işaretlenir', () => {
+    const o = listeli();
+    const r = o.post(govde({kod: o.odevSubesiz.kod, numara: '50', ad_soyad: 'Serbest Ad', sinif_sube: '8-C'}));
+    const s = o.sonuclar()[0];
+    return r.ok && s[4] === 'Serbest Ad' && isaret(s, 'liste_yok');
+  }],
+  ['S2: hiç liste yoksa bugünkü davranış (şubesiz de kabul)', () => {
+    const o = standart();
+    const r = o.post(govde());
+    return r.ok && isaret(o.sonuclar()[0], 'liste_yok');
+  }],
+  ['S2: GET liste durumunu söyler ama listedeki adı ASLA vermez', () => {
+    const o = listeli(), k = o.odevA.kod;
+    const a = o.get({odev: k, numara: '123', ad: 'Ayşe Yılmaz', sinif: '8-A'});
+    const b = o.get({odev: k, numara: '123', ad: 'Biri Başka', sinif: '8-A'});
+    const c = o.get({odev: k, numara: '555', ad: 'Biri Başka', sinif: '8-A'});
+    return a.liste === 'tamam' && b.liste === 'ad_uyusmuyor' && c.liste === 'listede_yok' &&
+      ![a, b, c].some(x => JSON.stringify(x).indexOf('Nur') >= 0);
+  }],
+  ['S2: ilk deneme listedeki adla tanınır: farklı yazılışla ikinci gönderim kaydedilmez', () => {
+    const o = listeli(), k = o.odevA.kod;
+    o.post(govde({kod: k, numara: '123', ad_soyad: 'Ayşe Yılmaz', sinif_sube: '8-A'}));
+    const r = o.post(govde({kod: k, numara: '0123', ad_soyad: 'ayse nur yilmaz', sinif_sube: '8-A'}));
+    const g = o.get({odev: k, numara: '123', ad: 'Ayse Yilmaz', sinif: '8-A'});
+    return r.kaydedilmedi === true && o.sonuclar().length === 1 && g.onceki === true;
+  }]
+);
+
 
 let gecen = 0, kalan = 0;
 for (const [ad, fn] of VAKALAR) {

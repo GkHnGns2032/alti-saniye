@@ -86,7 +86,12 @@ function doGet(e) {
     const ozel = odev.test_slug.indexOf('ozel-') === 0 ? ozelTest_(odev.test_slug) : null;
     if (ozel) yanit.test = ozel;
     // öğrenci bilgisini yazınca sayfa sorar: bu ödevi daha önce çözmüş mü? (yalnız ilk deneme kaydedilir)
-    if (p.numara && p.ad) yanit.onceki = oncekiVar_(odev.anahtar, String(p.numara).trim(), String(p.ad));
+    if (p.numara && p.ad) {
+      const kapi = listeKapisi_(odev.sinif, sinifSube_(p.sinif), String(p.numara).trim(), String(p.ad));
+      yanit.liste = kapi.hata || kapi.durum;
+      const no = kapi.durum === 'tamam' ? kapi.numara : String(p.numara).trim();
+      yanit.onceki = !kapi.hata && oncekiVar_(odev.anahtar, no, kapi.durum === 'tamam' ? kapi.ad : String(p.ad));
+    }
     return json_(yanit);
   } catch (err) {
     console.error(err);
@@ -122,6 +127,11 @@ function doPost(e) {
       g.puan = Math.min(100, Math.max(0, g.puan));
       ek.puan_kaynagi = 'istemci';
     }
+
+    const kapi = listeKapisi_(odev.sinif, g.sinif_sube, g.numara, g.ad_soyad);
+    if (kapi.hata) return json_({ok: false, hata: kapi.hata, subeler: kapi.subeler, kalici: true});
+    ek.yazilan_ad = g.ad_soyad;
+    if (kapi.durum === 'tamam') { g.ad_soyad = kapi.ad; g.numara = kapi.numara; } else ek.isaretler.push('liste_yok');
 
     const kilit = LockService.getScriptLock();
     if (!kilit.tryLock(25000)) return json_({ok: false, hata: 'mesgul'});
@@ -227,6 +237,35 @@ function ogrenciListesi_() {
   return sh.getRange(2, 1, sh.getLastRow() - 1, OGRENCI_BASLIK.length).getValues()
     .map(function (r) { return {sinif: sinifSube_(r[0]), numara: String(r[1]).trim(), ad: String(r[2]).replace(/^'/, '').trim()}; })
     .filter(function (o) { return o.sinif && o.numara; });
+}
+
+/** Türkçe harf, büyük/küçük ve boşluk duyarsız kelimeler: "Ayşe  YILMAZ" → ["ayse", "yilmaz"]. */
+function adKelimeleri_(ad) {
+  const tr = {'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'â': 'a', 'î': 'i', 'û': 'u'};
+  return kisiAdi_(ad).replace(/[çğıöşüâîû]/g, function (h) { return tr[h]; }).split(' ').filter(Boolean);
+}
+
+/** Yazılan her kelime listedeki adda geçmeli, en az 2 kelime (ikinci adını yazmayan reddedilmesin). */
+function adUyar_(yazilan, listedeki) {
+  const y = adKelimeleri_(yazilan), l = adKelimeleri_(listedeki);
+  return y.length >= 2 && y.every(function (k) { return l.indexOf(k) >= 0; });
+}
+
+const noNorm_ = n => String(n == null ? '' : n).trim().replace(/^0+(?=\d)/, '');
+
+/** Sınıf listesi kapısı. Listesi olan şubede numara listede ve ad eşleşmeli; kayda listedeki ad girer.
+ *  Liste hiç yoksa bugünkü davranış (serbest ad, "liste_yok"). Listeler varken şubesiz gönderim reddedilir. */
+function listeKapisi_(odevSinif, sube, numara, ad) {
+  const subeler = subeListesi_(odevSinif), liste = ogrenciListesi_();
+  if (!liste.length) return {durum: 'liste_yok'};
+  if (!sube) return {hata: 'sube_gerekli'};
+  if (subeler.length && subeler.indexOf(sube) < 0) return {hata: 'sube_disi', subeler: subeler};
+  const sinif = liste.filter(function (o) { return o.sinif === sube; });
+  if (!sinif.length) return {durum: 'liste_yok'};
+  const kisi = sinif.filter(function (o) { return noNorm_(o.numara) === noNorm_(numara); })[0];
+  if (!kisi) return {hata: 'listede_yok'};
+  if (!adUyar_(ad, kisi.ad)) return {hata: 'ad_uyusmuyor'};
+  return {durum: 'tamam', ad: kisi.ad, numara: kisi.numara};
 }
 
 /** Panelde şube seçimi için: [{sinif, n}], şube sırasıyla. */
@@ -800,7 +839,7 @@ function oncekiVar_(anahtar, numara, ad) {
   if (son < 2) return false;
   const kisi = kisiAdi_(ad);
   return sh.getRange(2, 1, son - 1, 5).getValues().some(function (s) {
-    return normKod_(s[1]) === anahtar && String(s[3]).trim() === numara && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisi;
+    return normKod_(s[1]) === anahtar && noNorm_(s[3]) === noNorm_(numara) && kisiAdi_(String(s[4]).replace(/^'/, '')) === kisi;
   });
 }
 
@@ -815,7 +854,7 @@ function sonucYaz_(odev, g, simdi, ek) {
       if (String(s[13]) === g.gonderim_id) {
         return {ok: true, durum: String(s[9]), deneme_no: Number(s[10]), tekrar: true};
       }
-      if (normKod_(s[1]) === odev.anahtar && String(s[3]).trim() === g.numara) {
+      if (normKod_(s[1]) === odev.anahtar && noNorm_(s[3]) === noNorm_(g.numara)) {
         deneme++;
         if (kisiAdi_(String(s[4]).replace(/^'/, '')) === kisiAdi_(g.ad_soyad)) onceki = true;
       }
@@ -875,7 +914,7 @@ function odevBul_(anahtar) {
   for (let i = 1; i < satirlar.length; i++) {
     const s = satirlar[i];
     if (normKod_(s[0]) !== anahtar) continue;
-    const odev = {anahtar: anahtar, kod: String(s[0]).trim(), test_slug: String(s[1]).trim()};
+    const odev = {anahtar: anahtar, kod: String(s[0]).trim(), test_slug: String(s[1]).trim(), sinif: String(s[4] == null ? '' : s[4]).trim()};
     try {
       odev.baslangic = zaman_(s[2], false);
       odev.bitis = zaman_(s[3], true);
