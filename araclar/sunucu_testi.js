@@ -948,6 +948,27 @@ VAKALAR.push(
 );
 
 
+VAKALAR.push(
+  ['S4: aynı kod+numara 10 dakikada 6 istekten sonra "yavas" (kalici DEĞİL); e-tabloya yazılmaz', () => {
+    const o = standart();
+    const r = Array.from({length: 7}, () => o.post(govde({numara: '42'})));
+    return r.slice(0, 6).every(x => x.ok) && r[6].ok === false && r[6].hata === 'yavas' && !r[6].kalici && o.sonuclar().length === 1;
+  }],
+  ['S4: ödev kodu başına dakikada 120 istek; başka kod etkilenmez', () => {
+    const o = standart();
+    const r = Array.from({length: 121}, (_, i) => o.post(govde({numara: String(1000 + i)})));
+    const baska = o.post(govde({kod: '4521', test_slug: 'do-you-know-me', numara: '1'}));
+    return r.slice(0, 120).every(x => x.ok) && r[120].hata === 'yavas' && baska.ok;
+  }],
+  ['S4: panel istekleri sınırlanmaz; önbellek hatasında sınır uygulanmaz (öğrenci kaybolmasın)', () => {
+    const o = panelOrtami();
+    const p = Array.from({length: 130}, () => o.panel('odevler'));
+    o.ctx.CacheService.getScriptCache = () => { throw new Error('önbellek yok'); };
+    const r = Array.from({length: 8}, () => o.post(govde({numara: '43'})));
+    return p.every(x => x.ok) && r.every(x => x.ok);
+  }]
+);
+
 let gecen = 0, kalan = 0;
 for (const [ad, fn] of VAKALAR) {
   let ok, neden = '';

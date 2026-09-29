@@ -71,6 +71,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   if (!('odev' in p)) return json_({ok: true, servis: 'alti-saniye', surum: 1});
   try {
+    if (hizDenetle_(normKod_(p.odev), p.numara)) return json_({gecerli: false, hata: 'yavas'});
     const odev = odevBul_(normKod_(p.odev));
     if (!odev) return json_({gecerli: false});
     if (odev.hata) return json_({gecerli: false, hata: odev.hata});
@@ -109,6 +110,7 @@ function doPost(e) {
       return json_({ok: false, hata: 'gecersiz', kalici: true});
     }
     if (govde && typeof govde === 'object' && 'islem' in govde) return json_(panelIslem_(govde, simdi));
+    if (govde && typeof govde === 'object' && hizDenetle_(normKod_(govde.kod), govde.numara)) return json_({ok: false, hata: 'yavas'});
     const g = gonderimDenetle_(govde);
     if (g.hata) return json_({ok: false, hata: g.hata, kalici: true});
 
@@ -998,6 +1000,28 @@ function zaman_(v, bitisMi) {
 }
 
 /* ---------- Yardımcılar ---------- */
+
+/* Hız sınırı: tavan (davranış eşiği değil). 30 kişilik şube aynı dakikada bitirse bile altında kalır.
+   İstekler Google'a ulaşmayı sürdürür; sınır onları e-tabloya dokunmadan, ucuzca geri çevirir.
+   Önbellek çalışmazsa sınır uygulanmaz (fail-open): gerçek öğrencinin sonucu kaybolmasın. */
+const HIZ = {kod: [120, 60], kisi: [6, 600]}; // [en çok istek, saniye]
+function sinirAsildi_(anahtar, tavan, sn) {
+  try {
+    const c = CacheService.getScriptCache(), k = 'hiz:' + anahtar, simdi = Date.now();
+    let s = null;
+    try { s = JSON.parse(c.get(k) || 'null'); } catch (e) { /* bozuk sayaç: sıfırla */ }
+    if (!s || typeof s.b !== 'number' || simdi - s.b > sn * 1000) s = {b: simdi, n: 0};
+    s.n++;
+    c.put(k, JSON.stringify(s), sn + 5);
+    return s.n > tavan;
+  } catch (e) {
+    return false;
+  }
+}
+function hizDenetle_(kod, numara) {
+  if (sinirAsildi_('k:' + kod, HIZ.kod[0], HIZ.kod[1])) return true;
+  return !!numara && sinirAsildi_('n:' + kod + ':' + noNorm_(numara), HIZ.kisi[0], HIZ.kisi[1]);
+}
 
 function tablo_() {
   return SpreadsheetApp.getActiveSpreadsheet();
