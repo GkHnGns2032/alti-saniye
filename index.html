@@ -1203,8 +1203,10 @@ async function panelSonuc(o, li){
  const gorunenBloklar = () => bloklar.filter(x => !durum.sube || x.etiket === durum.sube);
  const gorunen = () => gorunenBloklar().flatMap(x => x.satirlar);
  const kisiSirasi = (a, b) => (a.listede === b.listede ? 0 : a.listede ? -1 : 1) || noNorm(a.numara) - noNorm(b.numara); // listedekiler numara sırasıyla, listede olmayanlar sonda
- const blokOzeti = g => { const c = g.filter(s => s.r), lg = g.filter(s => s.listede), ort = c.length ? Math.round(10 * c.reduce((t, s) => t + s.r.puan, 0) / c.length) / 10 : null;
-  return (lg.length ? c.filter(s => s.listede).length + '/' + lg.length : String(c.length)) + ' çözdü' + (ort != null ? ' · ortalama ' + String(ort).replace('.', ',') : ''); };
+ // özet sayıları tek yerde: çözen, listedeki çözen/listedeki, ortalama (blok başlığı ve üst özet aynı hesabı kullanır)
+ const ozetVeri = g => { const c = g.filter(s => s.r), lg = g.filter(s => s.listede), ort = c.length ? Math.round(10 * c.reduce((t, s) => t + s.r.puan, 0) / c.length) / 10 : null;
+  return {c, lg, cl: c.filter(s => s.listede).length, ortYazi: ort != null ? ' · ortalama ' + String(ort).replace('.', ',') : ''}; };
+ const blokOzeti = g => { const v = ozetVeri(g); return (v.lg.length ? v.cl + '/' + v.lg.length : String(v.c.length)) + ' çözdü' + v.ortYazi; };
  const eksikSatirlar = g => g.filter(s => !s.r && s.listede);
  const hatirlatMetni = (g, etiket) => '⏰ Hatırlatma: ' + ad + ' ödevini henüz yapmayanlar' + (etiket ? ' (' + etiket + ')' : '') + ':\n' +
   eksikSatirlar(g).map(s => '• ' + s.ad).join('\n') + '\n\n' + odevMesaji(j.odev.kod, j.odev.test_slug, j.odev.bitis);
@@ -1244,11 +1246,8 @@ async function panelSonuc(o, li){
   return x;
  }
  function ciz(){
-  const gb = gorunenBloklar(), g = gorunen(), cozen = g.filter(s => s.r), yapmayan = g.filter(s => !s.r);
-  const listeVar = g.some(s => s.listede);
-  const ort = cozen.length ? Math.round(10 * cozen.reduce((t, s) => t + s.r.puan, 0) / cozen.length) / 10 : null;
-  ozet.textContent = (listeVar ? cozen.filter(s => s.listede).length + ' / ' + g.filter(s => s.listede).length + ' öğrenci çözdü' : cozen.length + ' öğrenci çözdü') +
-   (ort != null ? ' · ortalama ' + String(ort).replace('.', ',') : '') + (listeVar && yapmayan.length ? ' · ' + yapmayan.length + ' öğrenci yapmadı' : '');
+  const gb = gorunenBloklar(), g = gorunen(), v = ozetVeri(g), cozen = v.c, yapmayan = g.filter(s => !s.r), listeVar = v.lg.length > 0;
+  ozet.textContent = (listeVar ? v.cl + ' / ' + v.lg.length + ' öğrenci çözdü' : v.c.length + ' öğrenci çözdü') + v.ortYazi + (listeVar && yapmayan.length ? ' · ' + yapmayan.length + ' öğrenci yapmadı' : '');
   sekmeler.querySelectorAll('.s-sekme').forEach(s => s.setAttribute('aria-selected', String(s.dataset.k === durum.sekme)));
   icerik.replaceChildren();
   const acik = !j.odev.bitis || Date.parse(j.odev.bitis) >= Date.now();
@@ -1290,7 +1289,7 @@ async function panelSonuc(o, li){
   }
   // tek şubeli ödevde tek WhatsApp/hatırlatma düğmesi altta; çok şubelide her blok kendi düğmesini taşır (karışık sıralama yok)
   const sirali = siraliSonuclar(g), eksik = eksikSatirlar(g);
-  wa.hidden = cok || !sirali.length || durum.sekme !== 'sira'; wa.href = waLink(siralamaMetni(ad, '', sirali));
+  wa.hidden = cok || !sirali.length || durum.sekme !== 'sira'; wa.href = waLink(siralamaMetni(ad, bloklar[0].etiket === YOK ? (j.odev.sinif || '') : bloklar[0].etiket, sirali)); // tek blok: Kod.gs ile aynı başlık kuralı
   hatirlat.hidden = cok || !acik || !eksik.length;
   hatirlat.textContent = 'Yapmayanlara hatırlat (' + eksik.length + ' öğrenci)';
   hatirlat.href = waLink(hatirlatMetni(g, ''));
@@ -1454,6 +1453,8 @@ function testSecenekleri(){
  $('k-test').replaceChildren(...QUIZZES.map(z => { const o = document.createElement('option'); o.value = z.slug; o.textContent = z.name + (on[z.slug] ? ' ✓ onaylı' : ''); return o; }));
  if (ksec) $('k-test').value = ksec;
 }
+const EMIN_AD = '[eE][mM][iİıI][nN]\\s+[dD][eE][ğĞ][iİıI][lL][iİıI][mM]'; // büyük/küçük ve Türkçe İ/ı duyarsız ("EMİN DEĞİLİM" de)
+const EMIN = new RegExp(EMIN_AD), EMIN_SIL = new RegExp('\\s*\\(?\\s*' + EMIN_AD + '\\s*\\)?\\s*\\.?', 'g');
 function testCoz(metin){
  const satirlar = String(metin).replace(/\r/g, '').split('\n')
   .map(x => x.replace(/\*\*|`/g, '').replace(/^\s*(?:#+|[-•*])\s+/, '').trim());
@@ -1485,9 +1486,9 @@ function testCoz(metin){
   if (q.q && !/\?|_{2,}|…|\.\.\./.test(q.q)) q.uyari.push('ne sorulduğu belli değil (boşluk ____ ya da soru işareti yok)');
   if (q.q.length > 110) q.uyari.push('uzun, ' + SN + ' saniyede okunmayabilir');
   if (o.some(x => x.length > 40)) q.uyari.push('şıklardan biri uzun');
-  if (/emin\s+değilim/.test(q.tr.toLocaleLowerCase('tr'))) { // fotoğraf kalıbı: cevap anahtarı yoksa ChatGPT kendi çözer ve şüphesini yazar
+  if (EMIN.test(q.tr)) { // fotoğraf kalıbı: cevap anahtarı yoksa ChatGPT kendi çözer ve şüphesini yazar
    q.uyari.push('ChatGPT cevaptan emin değil — kontrol et');
-   q.tr = q.tr.replace(/\s*\(?\s*emin\s+değilim\s*\)?\.?/gi, '').trim(); // kayıtlı açıklamada "(emin değilim)" kalmaz
+   q.tr = q.tr.replace(EMIN_SIL, '').trim(); // kayıtlı açıklamada "(emin değilim)" kalmaz
   }
   q.o = o;
   if (q.uyari.length) uyarilar.push(n + '. soru: ' + q.uyari.join(', '));

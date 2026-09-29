@@ -1372,6 +1372,12 @@ def panel_foto_kalibi(o):
         eşit(len(pano), 2, 'pano yazımı')
         if pano[0] != kalip or pano[1] != foto or pano[0] == pano[1]:
             raise AssertionError('düğmeler panoya doğru kalıbı yazmadı')
+        # büyük harf / Türkçe İ ile yazılsa da uyarı çıkar ve ifade silinir
+        page.fill('#t-metin', metin.replace('(emin değilim)', '(EMİN DEĞİLİM)'))
+        page.click('#t-kontrol')
+        expect(page.locator('#t-onizleme > li.uyarili')).to_have_count(2)
+        expect(page.locator('#t-onizleme')).not_to_contain_text('EMİN')
+        expect(page.locator('#t-onizleme')).not_to_contain_text('DEĞİLİM')
         # kalıba uyan çıktı: 8 soru, 2 sarı uyarı, açıklamada "(emin değilim)" yok
         page.fill('#t-metin', metin)
         page.click('#t-kontrol')

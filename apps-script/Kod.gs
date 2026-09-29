@@ -173,10 +173,8 @@ function panelIslem_(b, simdi) {
   }
   if (b.islem === 'siralama') {
     const s = siralamaHazirla_(b.kod);
-    const sat = function (o) { return {sira: o.sira, ad: o.ad, sinif: o.sinif, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; };
-    // metin/satirlar eskisi gibi kalır (satirlar artık şube sırasıyla, sira şube içi); subeler yeni: şube şube blok
-    return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '', satirlar: s.satirlar.map(sat),
-      subeler: s.subeler.map(function (b) { return {sube: b.sube, metin: b.metin, satirlar: b.satirlar.map(sat)}; })};
+    return {ok: true, kod: s.kod, katilan: s.satirlar.length, metin: s.satirlar.length ? s.metin : '',
+      satirlar: s.satirlar.map(function (o) { return {ad: o.ad, sinif: o.sinif, puan: o.puan, dogru: o.dogru, yanlis: o.yanlis, bos: o.bos, durum: o.durum}; })};
   }
   if (b.islem === 'odev_ekle' || b.islem === 'test_ekle' || b.islem === 'liste_kaydet' || b.islem === 'karar') {
     const kilit = LockService.getScriptLock();
@@ -541,14 +539,20 @@ function siralamaMenusu() {
     ui.alert('Sıralama', '"' + s.kod + '" kodlu ödev için henüz sonuç yok.', ui.ButtonSet.OK);
     return;
   }
+  // Çok şubeli ödevde her şubenin metni AYRI kutuda ve AYRI Kopyala düğmesiyle: bir sınıfın grubuna başka sınıfın isimleri gitmesin.
+  const cok = s.subeler.length > 1;
+  const kutular = s.subeler.map(function (b, i) {
+    return (cok ? '<h4 style="margin:12px 0 4px;font:bold 14px sans-serif">' + html_(b.sube || SUBESIZ) + ' grubu için</h4>' : '') +
+      '<textarea id="t' + i + '" readonly style="width:100%;height:' + (cok ? 170 : 300) + 'px;font:14px sans-serif;box-sizing:border-box">' +
+      html_(b.metin) + '</textarea>' +
+      '<button style="margin-top:8px;padding:8px 16px;font:bold 14px sans-serif" ' +
+      'onclick="var t=document.getElementById(\'t' + i + '\');t.select();document.execCommand(\'copy\');this.textContent=\'Kopyalandı ✓\'">Kopyala</button>';
+  }).join('');
   const html = HtmlService.createHtmlOutput(
     '<div style="font:14px sans-serif">' +
-    '<p style="margin:0 0 8px">"' + html_(s.sekme) + '" sekmesi güncellendi. Aşağıdaki metni WhatsApp\'a yapıştır:</p>' +
-    '<textarea id="t" readonly style="width:100%;height:300px;font:14px sans-serif;box-sizing:border-box">' +
-    html_(s.metin) + '</textarea>' +
-    '<button style="margin-top:8px;padding:8px 16px;font:bold 14px sans-serif" ' +
-    'onclick="var t=document.getElementById(\'t\');t.select();document.execCommand(\'copy\');this.textContent=\'Kopyalandı ✓\'">Kopyala</button>' +
-    '</div>').setWidth(480).setHeight(420);
+    '<p style="margin:0 0 8px">"' + html_(s.sekme) + '" sekmesi güncellendi. ' +
+    (cok ? 'Her şubenin metnini yalnız kendi WhatsApp grubuna yapıştır:' : 'Aşağıdaki metni WhatsApp\'a yapıştır:') + '</p>' +
+    kutular + '</div>').setWidth(480).setHeight(cok ? Math.min(600, 90 + 260 * s.subeler.length) : 420);
   ui.showModalDialog(html, 'WhatsApp sıralama metni');
 }
 
@@ -619,7 +623,7 @@ function siralamaHazirla_(kodGirdisi) {
   const bloklar = (anahtarlar.length ? anahtarlar : ['']).map(function (k) {
     const liste = gruplar[k] || [];
     liste.forEach(function (o, i) { o.sira = i + 1; }); // şube içi sıra
-    const etiket = cok ? (k || SUBESIZ) : sinif;
+    const etiket = cok ? (k || SUBESIZ) : (k || sinif); // tek blokta sonucun şubesi (yoksa ödevin şubesi): sayfayla aynı kural
     return {sube: k, metin: siralamaMetni_(test, etiket, liste), satirlar: liste};
   });
   const satirlar = [].concat.apply([], bloklar.map(function (b) { return b.satirlar; })); // şube sırasıyla, şube içinde sıralı
@@ -648,6 +652,9 @@ function siralamaHazirla_(kodGirdisi) {
   let hedef = tablo_().getSheetByName(sekme);
   if (!hedef) hedef = tablo_().insertSheet(sekme);
   hedef.clear();
+  // clear() birleşik hücreleri ayırmaz, satır yüksekliklerini sıfırlamaz: bloklar kayınca eski birleştirme bir öğrenci satırını gizlerdi
+  hedef.getRange(1, 1, hedef.getMaxRows(), hedef.getMaxColumns()).breakApart();
+  hedef.setRowHeights(1, hedef.getMaxRows(), 21);
   hedef.getRange(1, 1, izgara.length, genislik).setValues(izgara);
   metinSatirlari.forEach(function (m, i) {
     hedef.getRange(m.satir, 1, 1, genislik).merge().setWrap(true).setVerticalAlignment('top');

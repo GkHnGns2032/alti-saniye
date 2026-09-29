@@ -21,8 +21,11 @@ const GUN = 864e5;
 /* ---------- Taklitler ---------- */
 class Sayfa {
   constructor() { this.v = []; this.bicim = {}; this.birlesik = []; this.yukseklik = {}; }
-  clear() { this.v = []; }
+  clear() { this.v = []; } // gerçek e-tablo gibi: birleşik hücreleri ve satır yüksekliklerini SIFIRLAMAZ
   setRowHeight(r, h) { this.yukseklik[r] = h; }
+  setRowHeights(r, n, h) { for (let i = 0; i < n; i++) this.yukseklik[r + i] = h; }
+  getMaxRows() { return Math.max(1000, this.v.length); }
+  getMaxColumns() { return 26; }
   getLastRow() { return this.v.length; }
   getDataRange() { return this.getRange(1, 1, Math.max(1, this.v.length), Math.max(1, ...this.v.map(r => r.length))); }
   setFrozenRows() {}
@@ -44,6 +47,7 @@ class Sayfa {
         return this;
       },
       merge() { s.birlesik.push([r, c, nr, nc]); return this; },
+      breakApart() { s.birlesik = s.birlesik.filter(([r2, c2, nr2, nc2]) => r2 > r + nr - 1 || r2 + nr2 - 1 < r || c2 > c + nc - 1 || c2 + nc2 - 1 < c); return this; },
       setWrap() { return this; },
       setVerticalAlignment() { return this; }
     };
@@ -342,7 +346,7 @@ VAKALAR.push(
       // sayfa: blok başına metin (birleşik, sarılı), bilgi yalnız ilk bloktan sonra, bloklar boş satırla ayrılı
       v[0][0] === a.metin && /^↑ Her şubenin kendi bloğunun üstündeki metni.*güncellendi/.test(v[1][0]) && v[2][0] === 'sira' &&
       v[3].join().startsWith('1,Elif Şen,8-A,22,90,9,') && v[3][8] === '1:30' && v[5].every(h => h === '') && v[6][0] === b.metin && v[7][0] === 'sira' &&
-      v[8][1] === 'Zeynep Kara' && v[11][0] === yok.metin && v[13][0] === 1 && v.length === 16 &&
+      v[8][1] === 'Zeynep Kara' && v[11][0] === yok.metin && v[13][0] === 1 && v.length === 16 && v[15][1] === "'=Kötü Ad" && // formül enjeksiyonu kaçışı
       JSON.stringify(sh.birlesik) === '[[1,1,1,10],[2,1,1,10],[7,1,1,10],[12,1,1,10]]' &&
       sh.yukseklik[7] === 21 * b.metin.split('\n').length + 8;
   }],
@@ -422,6 +426,46 @@ VAKALAR.push(
       d.html.includes('🥇 Ali Veli — 90') && d.html.includes('Kopyala') &&
       d.html.includes('Ece &lt;b&gt;Kaya&lt;/b&gt;') && !d.html.includes('<b>Kaya') && d.html.includes('"Sıralama ACIK1" sekmesi');
   }],
+  ['menü: çok şubeli ödevde her şubenin metni AYRI kutuda ve ayrı Kopyala düğmesiyle; hiçbir kutu iki şubenin adını birlikte taşımaz', () => {
+    const o = siralamaOrtami('acik1');
+    o.post(govde({numara: '15', ad_soyad: 'Ece <b>Kaya</b>', puan: 10, dogru: 1, sinif_sube: '8-A'}));
+    o.ctx.siralamaMenusu();
+    const h = o.ui.diyaloglar[0].html;
+    const kutular = [...h.matchAll(/<textarea[^>]*>([\s\S]*?)<\/textarea>/g)].map(m => m[1]);
+    const ad = ['Ece &lt;b&gt;Kaya', 'Can Demir', 'Ali Veli']; // 8-A, 8-B, şubesiz
+    return kutular.length === 3 && (h.match(/>Kopyala</g) || []).length === 3 && new Set(kutular.map(k => ad.findIndex(a => k.includes(a)))).size === 3 &&
+      kutular.every(k => ad.filter(a => k.includes(a)).length === 1) && h.includes('8-A grubu için') && h.includes('Şube yazılmamış grubu için') &&
+      !h.includes('<b>Kaya') && /id="t2"/.test(h);
+  }],
+  ['sıralama: ödevin iki şubesinden yalnız biri çözmüşse başlık o şubenin adını taşır (sayfayla aynı kural)', () => {
+    const o = ortam();
+    o.odev(['IKI1', 'ingilizce-8', once, sonra, '8-A, 8-B', '']);
+    o.post(govde({kod: 'IKI1', numara: '41', ad_soyad: 'Tek Şube', dogru: 9, puan: 90, sinif_sube: '8-B'}));
+    const m = o.ctx.siralamaHazirla_('IKI1').metin.split('\n');
+    return m[0] === '🏆 Ödev sıralaması · ingilizce-8 · 8-B' && m[3].startsWith('🥇 Tek Şube (8-B) — 90 puan');
+  }],
+  ['menü: tek şubeli ödevde tek kutu, tek Kopyala (bugünkü görünüm)', () => {
+    const o = siralamaOrtami('gecti');
+    o.ctx.siralamaMenusu();
+    const h = o.ui.diyaloglar[0].html;
+    return (h.match(/<textarea/g) || []).length === 1 && (h.match(/>Kopyala</g) || []).length === 1 && !h.includes('grubu için');
+  }],
+  ['sıralama sekmesi: bloklar kayınca eski birleştirme ve satır yüksekliği kalmaz (clear() ayırmaz)', () => {
+    const o = siralamaOrtami();
+    o.ctx.siralamaHazirla_('ACIK1');
+    const sh = o.sayfalar['Sıralama ACIK1'];
+    const once = JSON.stringify(sh.birlesik);
+    // 8-B büyür: şubesiz bloğun metin satırı aşağı kayar
+    o.post(govde({numara: '31', ad_soyad: 'Ada Bir', dogru: 6, puan: 60, sinif_sube: '8-B'}));
+    o.post(govde({numara: '32', ad_soyad: 'Bora İki', dogru: 5, puan: 50, sinif_sube: '8-B'}));
+    o.post(govde({numara: '33', ad_soyad: 'Ceren Üç', dogru: 4, puan: 40, sinif_sube: '8-B'}));
+    o.ctx.siralamaHazirla_('ACIK1');
+    const v = sh.v, metinSatir = v.map((r, i) => /^(🏆 |↑ )/.test(String(r[0])) ? i + 1 : 0).filter(Boolean);
+    const yuk = Object.keys(sh.yukseklik).map(Number);
+    return once !== JSON.stringify(sh.birlesik) && sh.birlesik.length === 3 && sh.birlesik.every(m => metinSatir.includes(m[0])) &&
+      yuk.filter(r => !metinSatir.includes(r) && sh.yukseklik[r] !== 21).length === 0 && metinSatir.filter(r => sh.yukseklik[r] > 21).length === 2 &&
+      v.length === 13 && v[10][1] === 'Ali Veli' && !sh.birlesik.some(m => m[0] === 6);
+  }],
   ['menü: sonucu olmayan kodda uyarı, pencere yok; iptalde hiçbir şey olmaz', () => {
     const a = siralamaOrtami('YOK');
     a.ctx.siralamaMenusu();
@@ -497,10 +541,7 @@ VAKALAR.push(
     const ali = r.satirlar.find(x => x.ad === 'Ali Veli');
     return r.ok && r.katilan === 4 && r.metin.startsWith('🏆 ') && r.metin.includes('🥇 Ali Veli — 90') &&
       r.satirlar[0].sinif === '8-B' && r.satirlar[1].ad === 'Ali Veli' && r.satirlar[1].sinif === '' && ali.dogru === 9 && ali.yanlis === 1 &&
-      ali.bos === 0 && ali.sira === 1 && bos.ok && bos.katilan === 0 && bos.metin === '' && bos.subeler.length === 0 &&
-      // geriye uyumlu metin + yeni şube şube bloklar (sıra her şubede 1'den)
-      r.metin.includes('🥇 Can Demir (8-B) — 80') && r.subeler.length === 2 && r.subeler[0].sube === '8-B' && r.subeler[0].satirlar.length === 1 &&
-      r.subeler[1].sube === '' && r.subeler[1].metin.includes('Şube yazılmamış') && r.subeler[1].satirlar[0].sira === 1;
+      ali.bos === 0 && bos.ok && bos.katilan === 0 && bos.metin === '' && r.metin.includes('🥇 Can Demir (8-B) — 80') && !('subeler' in r) && !('sira' in ali);
   }],
   ['kurulum: öğretmen anahtarı bir kez üretilir, ikinci kurulumda değişmez; anahtariYenile değiştirir', () => {
     const o = siralamaOrtami();
