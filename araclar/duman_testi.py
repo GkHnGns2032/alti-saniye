@@ -39,6 +39,7 @@ import functools
 import http.server
 import io
 import json
+import math
 import pathlib
 import re
 import shutil
@@ -100,8 +101,9 @@ class Sayfa:
         self.ctx.close()
 
 
-def cevapla(page, c):
-    """#start tıklanmış olmalı. Bütün soruları desenle cevaplar, (doğru, yanlış, boş) döndürür."""
+def cevapla(page, c, gizli=False):
+    """#start tıklanmış olmalı. Bütün soruları desenle cevaplar, (doğru, yanlış, boş) döndürür.
+    gizli: ödevde anahtar sayfada yok — doğru şık YANMAZ, yalnız seçilen işaretlenir."""
     dogru = yanlis = bos = 0
     for p, q in enumerate(c['questions']):
         expect(page.locator('#play')).to_be_visible()
@@ -117,7 +119,11 @@ def cevapla(page, c):
         else:
             page.clock.run_for(ASK_MS + 50)  # süre dolsun → reveal(-1)
             bos += 1
-        expect(page.locator(f'#ans-{q["a"]}')).to_have_class('ans is-lit')
+        if gizli:
+            expect(page.locator('#answers .ans.is-lit')).to_have_count(0)
+            expect(page.locator('#answers .ans.is-sel')).to_have_count(0 if p % 3 == 2 else 1)
+        else:
+            expect(page.locator(f'#ans-{q["a"]}')).to_have_class('ans is-lit')
         page.clock.run_for(2100)  # cevap gösterim aralığı (varsayılan 1,5 sn) → sonraki soru / bitiş
     return dogru, yanlis, bos
 
@@ -221,6 +227,9 @@ class SahteUcNokta:
         self.ogrenciler = []  # sınıf listesi: [{sinif, numara, ad}]
         self.kararlar = {}  # (kod, numara | '*') → karar
         self.post_modu = 'normal'  # 'normal' | 'sunucu_hatasi'
+        self.gizli = True  # Kod.gs CEVAP_GIZLE: öğretmen testi öğrenciye cevapsız gider
+        self.eski_sunucu = False  # True: Task 1-7 öncesi sunucu (test cevaplı gider, POST puanlamaz)
+        self.hazir_puanlama = {c['slug']: c.get('scoring') for c in quizleri_oku()}  # Kod.gs hazirTest_(kaynak).scoring
         self.kilit = threading.Lock()
 
     def sifirla(self, post_modu='normal'):
@@ -228,6 +237,8 @@ class SahteUcNokta:
             self.satirlar.clear()
             self.istekler.clear()
             self.post_modu = post_modu
+            self.gizli = True
+            self.eski_sunucu = False
             for k in [k for k in self.odevler if k.startswith('P')]:
                 del self.odevler[k]  # panelden eklenenler
             self.testler.clear()
@@ -248,7 +259,13 @@ class SahteUcNokta:
         yanit = {'gecerli': True, 'test_slug': slug, 'baslangic': iso(bas), 'bitis': iso(bit),
                  'acik': bas <= simdi <= bit, 'simdi': iso(simdi)}
         if slug in self.testler:
-            yanit['test'] = self.testler[slug]
+            t = self.testler[slug]
+            if self.gizli and not self.eski_sunucu:  # Kod.gs gizliTest_
+                yanit['test'] = {'ad': t['ad'], 'kaynak': t.get('kaynak', ''), 'puanlama': t.get('puanlama', ''),
+                                 'sorular': [{k: v for k, v in q.items() if k in ('q', 'o', 'c')} for q in t['sorular']]}
+                yanit['gizli'] = True
+            else:
+                yanit['test'] = t
         if 'numara' in q and 'ad' in q:  # Kod.gs oncekiVar_: aynı ödevde aynı numara + ad
             ad = ' '.join(q['ad'][0].lower().split())
             yanit['onceki'] = any(r['kod'].upper() == q['odev'][0].strip().upper() and r['numara'] == q['numara'][0]
@@ -269,17 +286,43 @@ class SahteUcNokta:
             return {'ok': False, 'hata': 'bilinmeyen_kod', 'kalici': True}
         if o[0] != g.get('test_slug'):
             return {'ok': False, 'hata': 'test_uyusmuyor', 'kalici': True}
+        puan = None
+        if not self.eski_sunucu and o[0] in self.testler:  # Kod.gs S1 taklidi; hazır testler sahte uçta "istemci" yolunda
+            puan = self.puanla(g.get('cevaplar', ''), self.testler[o[0]])
+            if puan is None:
+                return {'ok': False, 'hata': 'gecersiz', 'kalici': True}
+            g.update({k: puan[k] for k in ('dogru', 'yanlis', 'bos', 'puan')})
         for r in self.satirlar:
             if r['gonderim_id'] == g['gonderim_id']:
-                return {'ok': True, 'durum': r['durum'], 'deneme_no': r['deneme_no'], 'tekrar': True}
+                return {'ok': True, 'durum': r['durum'], 'deneme_no': r['deneme_no'], 'tekrar': True, **(puan or {})}
         simdi = time.time()
         durum = 'zamanında' if o[1] <= simdi <= o[2] and not o[3].get('post_sure_disi') else 'süre dışı'
         deneme = 1 + sum(1 for r in self.satirlar if r['kod'] == g['kod'] and r['numara'] == g['numara'])
         if any(r['kod'] == g['kod'] and r['numara'] == g['numara'] and r['ad_soyad'].lower().split() == g['ad_soyad'].lower().split()
                for r in self.satirlar):  # Kod.gs: yalnız ilk deneme kaydedilir
-            return {'ok': True, 'kaydedilmedi': True, 'durum': durum, 'deneme_no': deneme}
+            return {'ok': True, 'kaydedilmedi': True, 'durum': durum, 'deneme_no': deneme, **(puan or {})}
         self.satirlar.append(dict(g, durum=durum, deneme_no=deneme))
-        return {'ok': True, 'durum': durum, 'deneme_no': deneme, 'sunucu_zamani': iso(simdi)}
+        return {'ok': True, 'durum': durum, 'deneme_no': deneme, 'sunucu_zamani': iso(simdi), **(puan or {})}
+
+    def puanla(self, cevaplar, t):
+        """Kod.gs cevapCoz_ + puanla_: "1A✓ 2B 3-" → özgün soru/şık sırasıyla puan; ✓/✗ yok sayılır. Bozuksa None."""
+        anahtar = [q['a'] for q in t['sorular']]
+        parca = str(cevaplar).lstrip("'").split()
+        if len(parca) != len(anahtar):
+            return None
+        sec = [None] * len(anahtar)
+        for p in parca:
+            m = re.match(r'^(\d{1,2})([A-D-])[✓✗]?$', p)
+            if not m or not 1 <= int(m[1]) <= len(anahtar) or sec[int(m[1]) - 1] is not None:
+                return None
+            sec[int(m[1]) - 1] = -1 if m[2] == '-' else 'ABCD'.index(m[2])
+        d = sum(1 for s, a in zip(sec, anahtar) if s == a)
+        b = sec.count(-1)
+        y = len(sec) - d - b
+        pl = t.get('puanlama') or ('plain' if self.hazir_puanlama.get(t.get('kaynak')) == 'plain' else 'lgs')
+        ham = d if pl == 'plain' else max(0, d - y / 3)
+        return {'dogru': d, 'yanlis': y, 'bos': b, 'puan': math.floor(1000 * ham / len(sec) + 0.5) / 10,  # JS Math.round
+                'anahtar': anahtar, 'aciklamalar': [q.get('tr', '') for q in t['sorular']]}
 
     def panel(self, g):
         """Kod.gs panelIslem_ sözleşmesi: odevler / odev_ekle / siralama, anahtarla."""
@@ -1189,7 +1232,7 @@ def panel_ozel_test(o):
             o.bilgi_gir(p2)
             c = {'questions': t['sorular']}
             p2.click('#start')
-            d, y, b = cevapla(p2, c)
+            d, y, b = cevapla(p2, c, gizli=True)
             sonuc_denetle(p2, c, d, y, b)
             expect(p2.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
             eşit([r['test_slug'] for r in o.uc.satirlar], [slug], 'kaydedilen sonuç')
@@ -1293,7 +1336,7 @@ def panel_hazir_kontrol(o):
             p2.click('#start')
             expect(p2.locator('#unit')).to_have_text('Unit 1 · Friendship')
             c = {'questions': t['sorular']}
-            d, y, b = cevapla(p2, c)
+            d, y, b = cevapla(p2, c, gizli=True)
             sonuc_denetle(p2, c, d, y, b)
             expect(p2.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
             eşit([r['test_slug'] for r in o.uc.satirlar], [slug], 'kaydedilen sonuç')
@@ -1403,6 +1446,166 @@ def panel_foto_kalibi(o):
         s.kapat()
 
 
+GIZLI_SLUG = 'ozel-deneme-abcd'
+
+
+def gizli_hazirla(o, kod='PGIZLI'):
+    """Sahte uca 6 soruluk öğretmen testi + açık ödev koyar (doğru şık i. soruda (i + 2) % 4)."""
+    o.uc.sifirla()
+    sorular = [{'q': f'Soru {i + 1} ____?', 'o': [f'w{i}', f'x{i}', f'y{i}', f'z{i}'], 'a': (i + 2) % 4, 'tr': f'tr {i}'} for i in range(6)]
+    o.uc.testler[GIZLI_SLUG] = {'ad': 'Gizli Deneme', 'sorular': sorular}
+    simdi = time.time()
+    o.uc.odevler[kod] = (GIZLI_SLUG, simdi - GUN, simdi + GUN, {})
+    return sorular
+
+
+def sonuc_kaydi(page, kod='PGIZLI'):
+    return json.loads(page.evaluate(f"localStorage.getItem('alti-saniye:sonuc:{kod}')") or 'null')
+
+
+def odev_gizli(o):
+    """Ödevde doğru şık soru sırasında YANMAZ (yanlışta da doğruda da); sonuç ekranı sunucu yanıtından çizilir."""
+    gizli_hazirla(o)
+    s = o.sayfa()
+    page = s.page
+    try:
+        o.ac(page, 'PGIZLI', '#' + GIZLI_SLUG)
+        o.bilgi_gir(page)
+        expect(page.locator('#lead')).to_contain_text('test bitince')
+        page.click('#start')
+        page.click('#ans-0')  # 1. soru: doğru şık 2 (C) — A seçildi (yanlış)
+        expect(page.locator('#ans-0')).to_have_class('ans is-sel')
+        eşit(page.locator('.ans.is-lit').count(), 0, 'gizli modda doğru şık yanmamalı (yanlış seçim)')
+        eşit(page.locator('#status-text').text_content(), 'Cevabın alındı', 'durum metni')
+        eşit(page.locator('#row-0 .bub.lit, #row-0 .bub.ghost, #row-0 .bub.miss').count(), 0, 'optik kâğıtta anahtar yok')
+        eşit(page.locator('#row-0 .bub.sel').count(), 1, 'optik kâğıtta seçilen işaretli')
+        page.clock.run_for(2100)
+        expect(page.locator('#num')).to_have_text('02')
+        page.click('#ans-3')  # 2. soru: doğru şık 3 (D) — doğru seçildi
+        expect(page.locator('#ans-3')).to_have_class('ans is-sel')
+        eşit(page.locator('.ans.is-lit').count(), 0, 'gizli modda doğru şık yanmamalı (doğru seçim)')
+        for _ in range(4):
+            page.clock.run_for(20_000)
+        expect(page.locator('#finish')).to_be_visible()
+        expect(page.locator('#finish-title')).to_have_text(re.compile(r'^1'))
+        expect(page.locator('#stats')).to_be_visible()
+        expect(page.locator('#stats .ok b')).to_have_text('1')
+        expect(page.locator('#stats .no b')).to_have_text('1')
+        expect(page.locator('#stats > div:nth-child(3) b')).to_have_text('4')
+        expect(page.locator('#minisheet > div')).to_have_count(6)
+        expect(page.locator('#review-list .rv')).to_have_count(5)  # doğru olan 2. soru listede yok
+        expect(page.locator('#review-list .rv-a b').first).to_have_text('y0')  # doğru cevap sunucudan: C) y0
+        expect(page.locator('#review-list .rv-tr').first).to_have_text('tr 0')  # açıklama sunucudan
+        expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
+        r = o.uc.satirlar[0]
+        eşit(r['cevaplar'], '1A 2D 3- 4- 5- 6-', 'gizli modda ✓/✗ işareti yok')
+        eşit((r['dogru'], r['yanlis'], r['bos'], r['puan']), (1, 1, 4, 11.1), 'sunucunun puanı (LGS: 1 - 1/3)')
+        eşit(sonuc_kaydi(page) and {k: sonuc_kaydi(page)[k] for k in ('dogru', 'yanlis', 'bos', 'puan')},
+             {'dogru': 1, 'yanlis': 1, 'bos': 4, 'puan': 11.1}, 'saklanan sonuç')
+        sizan = [q for y in list(o.uc.yanitlar.values()) if isinstance(y, dict) and 'test' in y for q in y['test']['sorular'] if 'a' in q or 'tr' in q]
+        eşit(sizan, [], 'GET yanıtında anahtar/açıklama')
+        # yeniden çözerken anahtar yine görünmez
+        page.click('#again')
+        page.click('#ans-2')
+        eşit(page.locator('.ans.is-lit').count(), 0, '2. denemede de doğru şık yanmamalı')
+        o.bitir(s)
+        return '2 cevap (yanlış + doğru), hiçbirinde doğru şık yanmadı → sonuç sunucudan: 1 D / 1 Y / 4 B, 11,1 puan · 2. denemede de gizli'
+    finally:
+        s.kapat()
+
+
+def odev_gizli_cevrimdisi(o):
+    """Gizli modda gönderim başarısız → sonuç ekranı "bekliyor"; yeniden açılışta gider, sunucunun puanı gösterilir."""
+    gizli_hazirla(o)
+    o.uc.post_modu = 'sunucu_hatasi'
+    s = o.sayfa()
+    page = s.page
+    try:
+        o.ac(page, 'PGIZLI', '#' + GIZLI_SLUG)
+        o.bilgi_gir(page)
+        page.click('#start')
+        for _ in range(5):
+            page.clock.run_for(20_000)
+        expect(page.locator('#finish')).to_be_visible()
+        expect(page.locator('#send-title')).to_have_text('Gönderilemedi — tekrar dene')
+        expect(page.locator('#finish-msg')).to_contain_text('Sonucun bu cihazda bekliyor')
+        expect(page.locator('#finish-title')).to_have_text('⌛')
+        expect(page.locator('#stats')).to_be_hidden()
+        expect(page.locator('#review-list .rv')).to_have_count(0)
+        eşit(len(o.kuyruk(page)), 1, 'kuyruk')
+        eşit(sonuc_kaydi(page), None, 'sonuç yokken saklanan')
+        o.uc.post_modu = 'normal'
+        page.reload()
+        expect(page.locator('#queue-note')).to_contain_text('sonucun: 0 doğru, 0 yanlış, 6 boş · 0 puan')
+        expect(page.locator('#queue-note')).to_contain_text('öğretmenine gönderildi ✓')
+        eşit(o.kuyruk(page), [], 'kuyruk')
+        eşit(len(o.uc.satirlar), 1, 'kaydedilen')
+        eşit(sonuc_kaydi(page)['bos'], 6, 'saklanan sonuç')
+        page.reload()  # kuyruk boş: not saklanan sonuçtan gelir
+        expect(page.locator('#queue-note')).to_have_text('Son gönderilen sonucun: 0 doğru, 0 yanlış, 6 boş · 0 puan')
+        expect(page.locator('#who')).to_be_visible()
+        o.bitir(s)
+        return 'sunucu hatası → "⌛ bekliyor", istatistik yok → yeniden açılış gönderdi → "sonucun: 0 doğru…" (kuyruktan + kayıttan)'
+    finally:
+        s.kapat()
+
+
+def odev_eski_sunucu(o):
+    """Eski sunucu: öğretmen testi cevaplı gelir, POST puanlamaz → eski davranış (doğru şık yanar, yerel hesap)."""
+    sorular = gizli_hazirla(o)
+    o.uc.eski_sunucu = True
+    s = o.sayfa()
+    page = s.page
+    c = {'questions': sorular}
+    try:
+        o.ac(page, 'PGIZLI', '#' + GIZLI_SLUG)
+        o.bilgi_gir(page)
+        page.click('#start')
+        d, y, b = cevapla(page, c)
+        sonuc_denetle(page, c, d, y, b)
+        expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
+        r = o.uc.satirlar[0]
+        eşit((r['dogru'], r['yanlis'], r['bos'], r['puan']), (d, y, b, math.floor(1000 * max(0, d - y / 3) / 6 + 0.5) / 10), 'istemci puanı')
+        if '✓' not in r['cevaplar'] or '✗' not in r['cevaplar']:
+            raise AssertionError(f'eski sunucuda cevaplar işaretli gitmeli: {r["cevaplar"]}')
+        eşit(sonuc_kaydi(page), None, 'puansız yanıtta saklanan sonuç')
+        o.bitir(s)
+        return f'test cevaplı geldi → doğru şık yandı → yerel sonuç {d} D / {y} Y / {b} B, gönderildi ✓'
+    finally:
+        s.kapat()
+
+
+def odev_gizli_tekrar(o):
+    """Gizli modda 2. deneme (alıştırma) de gönderilir, sunucu kaydetmez ama puanlar; sonuç ekranı yanıttan."""
+    sorular = gizli_hazirla(o)
+    s = o.sayfa()
+    page = s.page
+    c = {'questions': sorular}
+    try:
+        o.ac(page, 'PGIZLI', '#' + GIZLI_SLUG)
+        o.bilgi_gir(page)
+        page.click('#start')
+        d, y, b = cevapla(page, c, gizli=True)
+        sonuc_denetle(page, c, d, y, b)
+        expect(page.locator('#send-title')).to_have_text('Öğretmene gönderildi ✓')
+        post_once = o.uc.istek_say('POST')
+        page.click('#again')  # 2. deneme: hepsi boş
+        for _ in range(5):
+            page.clock.run_for(20_000)
+        expect(page.locator('#finish-title')).to_have_text(re.compile(r'^0'))
+        expect(page.locator('#stats > div:nth-child(3) b')).to_have_text('6')
+        expect(page.locator('#review-list .rv')).to_have_count(6)
+        expect(page.locator('#review-list .rv-a b').first).to_have_text('y0')
+        expect(page.locator('#send-title')).to_have_text('Kaydedilmedi')
+        eşit(o.uc.istek_say('POST'), post_once + 1, '2. denemede POST (puanlama için)')
+        eşit(len(o.uc.satirlar), 1, 'yalnız ilk deneme kayıtlı')
+        eşit(sonuc_kaydi(page)['dogru'], d, 'saklanan sonuç ilk (kaydedilen) deneme')
+        o.bitir(s)
+        return f'1. deneme {d} D kaydedildi · 2. deneme gönderildi → "Kaydedilmedi", sonuç sunucudan (0 D / 6 B)'
+    finally:
+        s.kapat()
+
+
 def odev_cors(o):
     """Ön-kontrol kanıtı. Playwright'ta route() açıkken CORS ön-kontrolünü Playwright kendisi karşılar,
     OPTIONS sunucuya ulaşmaz; bu yüzden bu senaryo HİÇ route olmayan bir bağlamda koşar. Sayfa,
@@ -1477,6 +1680,10 @@ def main():
         kos('ödev   adres kurulmamış', odev_kurulmamis, browser, bos_taban)
         kos('ödev   ?odev yok → 0 istek', odev_parametresiz, o)
         kos('ödev   CORS: text/plain', odev_cors, o)
+        kos('ödev   gizli: doğru şık yanmaz', odev_gizli, o)
+        kos('ödev   gizli: çevrimdışı sonuç', odev_gizli_cevrimdisi, o)
+        kos('ödev   eski sunucu (cevaplı test)', odev_eski_sunucu, o)
+        kos('ödev   gizli: 2. deneme puanlanır', odev_gizli_tekrar, o)
         kos('panel  anahtarsız / yanlış', panel_anahtarsiz, o)
         kos('panel  ödev oluştur → WhatsApp', panel_odev_olustur, o)
         kos('panel  sonuçlar', panel_siralama, o)

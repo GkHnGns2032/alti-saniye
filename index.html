@@ -68,6 +68,7 @@ button{cursor:pointer;touch-action:manipulation}
 .row.now{background:var(--form-soft)}
 .bub{--s:17px;width:var(--s);height:var(--s);border-radius:50%;border:1.4px solid var(--form);display:grid;place-items:center;font-family:var(--f-mono);font-size:9px;line-height:1;color:var(--form);flex-shrink:0;transition:background-color .25s,border-color .25s,color .25s,box-shadow .25s}
 .bub.lit{background:var(--lit);border-color:var(--lit);color:var(--sheet)}
+.bub.sel{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
 .bub.miss{background:var(--miss);border-color:var(--miss);color:var(--sheet)}
 .bub.ghost{border-color:var(--lit);border-width:2px;color:var(--lit-text);border-style:dashed}
 .sheet-foot{margin-top:8px;padding-top:8px;border-top:1.5px solid var(--form);display:flex;justify-content:space-between;color:var(--muted);font-size:10.5px}
@@ -171,6 +172,7 @@ button{cursor:pointer;touch-action:manipulation}
 .dots i.ok{background:var(--lit)}
 .dots i.no{background:var(--miss)}
 .dots i.skip{background:var(--muted);opacity:.55}
+.dots i.sel{background:var(--ink)}
 @media (min-width:900px){.dots{display:none}}
 .ask{display:flex;gap:14px;align-items:flex-start;padding-block:10px 4px;margin-top:auto}
 .ask .ring{--r:62px}
@@ -185,6 +187,8 @@ button{cursor:pointer;touch-action:manipulation}
 .ans:disabled{cursor:default}
 .ans.is-lit{border-color:var(--lit);background:var(--lit-soft);color:var(--lit-text);opacity:1}
 .ans.is-lit .bub{background:var(--lit);border-color:var(--lit);color:var(--sheet);animation:light .7s ease-out}
+.ans.is-sel{border-color:var(--ink);background:var(--paper);color:var(--ink);opacity:1}
+.ans.is-sel .bub{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
 .ans.is-miss{border-color:var(--miss);background:var(--miss-soft);color:var(--miss-text)}
 .ans.is-miss .bub{background:var(--miss);border-color:var(--miss);color:var(--sheet)}
 .ans.is-miss{animation:nudge .32s ease-in-out}
@@ -664,6 +668,7 @@ function paintSheet(){
   const qi = order[p]; if (qi === undefined || !shown[p]) continue;
   const q = Q[qi], m = marks[qi]; filled++;
   if (S.mode === 'watch'){ bubs[q.a].classList.add('lit'); if (p !== pos || phase === 'done') dot.className = 'ok'; continue; }
+  if (q.a < 0){ if (m && m.c >= 0){ bubs[m.c].classList.add('sel'); dot.className = 'sel'; } else dot.className = 'skip'; continue; } // gizli ödev: anahtar yok
   if (m && m.c === q.a){ bubs[q.a].classList.add('lit'); dot.className = 'ok'; }
   else if (m && m.c >= 0){ bubs[m.c].classList.add('miss'); bubs[q.a].classList.add('ghost'); dot.className = 'no'; }
   else { bubs[q.a].classList.add('ghost'); dot.className = 'skip'; }
@@ -747,6 +752,13 @@ function reveal(choice){
  const qi = order[pos], q = Q[qi];
  shown[pos] = true;
  if (S.mode === 'play') marks[qi] = {c: choice, t: choice >= 0 ? took : null};
+ if (ODEV && ODEV.gizli){ // ödevde anahtar yok: yalnız seçilen işaretlenir, doğru şık sonuç ekranında
+  document.querySelectorAll('.ans').forEach((b, i) => { b.disabled = true; if (i === choice){ b.classList.add('is-sel'); b.querySelector('.mark').textContent = 'senin'; } else b.classList.add('is-dim'); });
+  const ring = $('ring'); ring.classList.remove('run', 'hurry'); ring.classList.add('done'); rakam('✓');
+  const st = $('status-text'); st.className = ''; st.textContent = choice >= 0 ? 'Cevabın alındı' : 'Süre doldu'; choice >= 0 ? buzz(25) : (sfx.time(), buzz(120));
+  restartAnim($('gap-fill'), 'run', S.gap); paintSheet(); schedule(next, S.gap * 1000);
+  return;
+ }
  document.querySelectorAll('.ans').forEach((b, i) => {
   b.disabled = true;
   if (i === q.a){ b.classList.add('is-lit'); b.querySelector('.mark').textContent = 'doğru'; }
@@ -783,6 +795,15 @@ function setPaused(on){
 }
 
 function finish(){
+ if (ODEV && ODEV.gizli && !ODEV.sonuc){ // anahtar sunucuda: önce gönder, sonucu yanıttan çiz (sonucUygula)
+  clearTimers(); clearInterval(ticker); phase = 'done'; setPaused(false); unlockScreen(); ODEV.bekliyor = true;
+  $('finish-eyebrow').textContent = lgs ? 'Sınav bitti' : 'Test bitti'; $('stats').hidden = true; $('net-note').hidden = true;
+  $('finish-title').textContent = '…'; $('finish-msg').textContent = 'Sonucun hesaplanıyor…';
+  $('minisheet').replaceChildren(); $('review-title').textContent = ''; $('review-list').replaceChildren();
+  show('finish'); paintSheet(); syncForm();
+  odevGonder(0, 0, 0, 0);
+  return;
+ }
  clearTimers(); clearInterval(ticker); phase = 'done'; setPaused(false); unlockScreen();
  const rows = order.map((qi, p) => ({p, qi, q: Q[qi], m: marks[qi]}));
  const watch = S.mode === 'watch';
@@ -833,7 +854,7 @@ function finish(){
   ol.append(li);
  });
  show('finish'); paintSheet(); syncForm();
- if (ODEV && !watch) odevGonder(ok.length, no.length, empty, net);
+ if (ODEV && !watch && !ODEV.sonuc) odevGonder(ok.length, no.length, empty, net);
 }
 
 function home(){ clearTimers(); clearInterval(ticker); phase = 'intro'; setPaused(false); unlockScreen(); order = []; shown = {}; show('intro'); paintSheet(); syncForm(); }
@@ -934,9 +955,11 @@ async function odevAc(){
   ? odevNot('Ödevin tarihi okunamadı', 'Öğretmeninin tablosundaki başlangıç ya da bitiş tarihi okunamadı. Öğretmenine haber ver.', 'no')
   : odevNot('Ödev bulunamadı', 'Bu ödev kodu tanınmadı. Linki öğretmeninden yeniden iste.', 'no');
  let z = QUIZZES.find(q => q.slug === b.test_slug);
- if (!z && b.test) { z = ozelQuiz(b.test_slug, b.test); if (z) QUIZZES.push(z); }
+ if (!z && b.test) { z = ozelQuiz(b.test_slug, b.test, !!b.gizli); if (z) QUIZZES.push(z); }
  if (!z) return odevNot('Test bulunamadı', 'Bu ödevin testi bu sayfada yok. Öğretmenine haber ver.', 'no');
+ ODEV.gizli = !!b.gizli && !!z && z.questions.every(q => q.a < 0);
  selectQuiz(z.slug);
+ if (ODEV.gizli) $('lead').replaceChildren('Her soruda ', kalin(SN + ' saniye'), ' var. Cevabını seç; doğru cevaplar test bitince sonucunla birlikte görünür.');
  dilli($('odev-eyebrow'), {tr: 'Ödev'}, z.name);
  dilli($('odev-top'), z.heroTop); dilli($('odev-bottom'), z.heroBottom);
  const bas = Date.parse(b.baslangic), bit = Date.parse(b.bitis), simdi = Date.parse(b.simdi) || Date.now();
@@ -951,6 +974,8 @@ async function odevAc(){
  $('who-no').value = typeof og.numara === 'string' ? og.numara : '';
  $('who-name').value = typeof og.ad === 'string' ? og.ad : '';
  $('who-sinif').value = typeof og.sinif === 'string' ? og.sinif : '';
+ const onceki = store.get('sonuc:' + ODEV.kod), qn = $('queue-note');
+ if (onceki && typeof onceki.puan === 'number' && qn.hidden) { qn.hidden = false; qn.className = 'queue-note ok'; qn.textContent = 'Son gönderilen sonucun: ' + sonucMetni(onceki); }
  $('who').hidden = false;
 }
 // "8a", "8 A", "8/a", "8.A", "8-A" → "8-A". Geçersizse ''. (Kod.gs sinifSube_ ile aynı kural.)
@@ -1005,22 +1030,23 @@ async function postEt(p){ // → {sonuc: 'ok'|'kalici'|'gecici'|'ucusta', j}
   if (j && j.ok) r = {sonuc: 'ok', j}; else if (j && j.kalici) r = {sonuc: 'kalici', j};
  } catch {}
  clearTimeout(t); ucusta.delete(p.gonderim_id);
+ if (r.sonuc === 'ok' && typeof r.j.dogru === 'number' && !r.j.kaydedilmedi) store.set('sonuc:' + p.kod, {dogru: r.j.dogru, yanlis: r.j.yanlis, bos: r.j.bos, puan: r.j.puan, at: Date.now()});
  if (r.sonuc !== 'gecici') kuyrukYaz(kuyruk().filter(x => x.gonderim_id !== p.gonderim_id));
  return r;
 }
 async function kuyruguGonder(){
  const k = kuyruk(); if (!k.length) return;
- let ok = 0, red = 0;
- for (const p of k){ const r = await postEt(p); if (r.sonuc === 'ok') ok++; else if (r.sonuc === 'kalici') red++; }
+ let ok = 0, red = 0, puanli = null;
+ for (const p of k){ const r = await postEt(p); if (r.sonuc === 'ok'){ ok++; if (typeof r.j.dogru === 'number' && String(p.kod).toUpperCase() === String(ODEV.kod).toUpperCase()) puanli = r.j; } else if (r.sonuc === 'kalici') red++; }
  const kalan = kuyruk().length, n = $('queue-note'), parca = [];
- if (ok) parca.push('Daha önce gönderilemeyen ' + ok + ' sonucun öğretmenine gönderildi ✓');
+ if (ok) parca.push('Daha önce gönderilemeyen ' + ok + ' sonucun öğretmenine gönderildi ✓' + (puanli ? ' (sonucun: ' + sonucMetni(puanli) + ')' : ''));
  if (kalan) parca.push('Gönderilemeyen ' + kalan + ' sonucun bu cihazda bekliyor, bağlantı gelince yeniden denenecek.');
  if (red) parca.push(red + ' eski sonuç öğretmenin sistemince kabul edilmedi.');
  n.textContent = parca.join(' · '); n.className = 'queue-note' + (ok && !kalan ? ' ok' : ''); n.hidden = !parca.length;
 }
 function odevGonder(dogru, yanlis, bos, net){
  if (!ODEV.ogrenci) return;
- if (ODEV.onceki) { // ikinci ve sonraki denemeler: alıştırma, gönderilmez
+ if (ODEV.onceki && !ODEV.gizli) { // ikinci ve sonraki denemeler: alıştırma, gönderilmez (gizli modda puanlanmak için gider, sunucu kaydetmez)
   ODEV.son = null;
   $('send').hidden = false; $('send').className = 'send'; $('send-ico').className = 'bub'; $('send-ico').textContent = 'i';
   $('send-retry').hidden = true;
@@ -1029,10 +1055,10 @@ function odevGonder(dogru, yanlis, bos, net){
   return;
  }
  ODEV.onceki = true; cozulduYaz(ODEV.ogrenci.numara, ODEV.ogrenci.ad); $('tekrar-not').hidden = false;
- const n = Q.length, cevap = Q.map((q, i) => { const m = marks[i], c = m && m.c >= 0 ? m.c : -1; return (i + 1) + (c < 0 ? '-' : L[c] + (c === q.a ? '✓' : '✗')); });
+ const n = Q.length, cevap = Q.map((q, i) => { const m = marks[i], c = m && m.c >= 0 ? m.c : -1; return (i + 1) + (c < 0 ? '-' : L[c] + (q.a < 0 ? '' : c === q.a ? '✓' : '✗')); });
  ODEV.son = {kod: ODEV.kod, test_slug: QUIZ.slug, numara: ODEV.ogrenci.numara, ad_soyad: ODEV.ogrenci.ad, sinif_sube: ODEV.ogrenci.sinif, dogru, yanlis, bos,
   puan: Math.round(1000 * Math.max(0, lgs ? net : dogru) / n) / 10, cevaplar: cevap.join(' '),
-  istemci_sure_ms: Math.min(864e5, Math.max(0, Math.round(Date.now() - (ODEV.basla || Date.now())))), gonderim_id: yeniId()};
+  istemci_sure_ms: Math.min(864e5, Math.max(0, Math.round(Date.now() - (ODEV.basla || Date.now())))), gonderim_id: yeniId(), damga: ODEV.damga || undefined};
  kuyrukYaz(kuyruk().concat(ODEV.son));
  sonGonder();
 }
@@ -1040,7 +1066,20 @@ async function sonGonder(){
  const p = ODEV.son; if (!p) return;
  gonderimKutusu('bekle');
  const r = await postEt(p);
+ if (r.sonuc === 'ok' && p === ODEV.son && phase === 'done') sonucUygula(r.j);
  if (p === ODEV.son && r.sonuc !== 'ucusta') gonderimKutusu(r.sonuc, r.j);
+}
+function sonucMetni(s){ return s.dogru + ' doğru, ' + s.yanlis + ' yanlış' + (s.bos ? ', ' + s.bos + ' boş' : '') + ' · ' + String(s.puan).replace('.', ',') + ' puan'; }
+// Sunucu puanladıysa (yanıtta doğru sayısı ve anahtar varsa) sonuç ekranı onunla yeniden çizilir.
+function sonucUygula(j){
+ if (!j || typeof j.dogru !== 'number' || !Array.isArray(j.anahtar) || j.anahtar.length !== Q.length) return false;
+ if (!j.kaydedilmedi) store.set('sonuc:' + ODEV.kod, {dogru: j.dogru, yanlis: j.yanlis, bos: j.bos, puan: j.puan, at: Date.now()});
+ if (!ODEV.gizli) return true;
+ Q.forEach((q, i) => { q.a = Number.isInteger(j.anahtar[i]) && j.anahtar[i] >= 0 && j.anahtar[i] <= 3 ? j.anahtar[i] : -1; q.tr = typeof (j.aciklamalar || [])[i] === 'string' ? j.aciklamalar[i] : ''; });
+ if (Q.some(q => q.a < 0)) { Q.forEach(q => { q.a = -1; q.tr = ''; }); return false; }
+ ODEV.sonuc = j; ODEV.bekliyor = false; finish(); ODEV.sonuc = null;
+ Q.forEach(q => { q.a = -1; q.tr = ''; }); // yeniden çözerken anahtar yine görünmesin
+ return true;
 }
 function gonderimKutusu(durum, j){
  const p = ODEV.son, kay = durum === 'ok' && !!(j && j.kaydedilmedi), ok = durum === 'ok' && !kay, bekle = durum === 'bekle', kim = 'No ' + p.numara + (p.sinif_sube ? ' · ' + p.sinif_sube : '') + ' · ' + p.ad_soyad;
@@ -1053,6 +1092,12 @@ function gonderimKutusu(durum, j){
   : durum === 'kalici' ? ['Gönderilemedi', j && j.hata === 'bilinmeyen_kod' ? 'Bu ödev öğretmenin listesinde artık yok. Sonucunu öğretmenine kendin göster.' : 'Öğretmenin sistemi bu sonucu kabul etmedi. Öğretmenine haber ver.']
   : ['Gönderilemedi — tekrar dene', 'Sonucun bu cihazda saklandı. Sayfayı yeniden açtığında da kendiliğinden gönderilmeye çalışılır.'];
  $('send-title').textContent = baslik; $('send-text').textContent = metin;
+ if (ODEV.gizli && ODEV.bekliyor && !bekle){ // sonuç ekranı henüz çizilmedi: neden bekliyor, söyle
+  const [t, m] = durum === 'gecici' ? ['⌛', 'Sonucun bu cihazda bekliyor; gönderilince sonucun burada görünecek.']
+   : durum === 'kalici' ? ['!', 'Sonucun hesaplanamadı: öğretmenin sistemi bu gönderimi kabul etmedi.']
+   : ['✓', 'Cevapların öğretmenine ulaştı; puanını öğretmenin paylaşacak.'];
+  $('finish-title').textContent = t; $('finish-msg').textContent = m;
+ }
 }
 $('send-retry').addEventListener('click', () => { if (!ODEV) return; $('send-retry').disabled = true; sonGonder(); });
 
@@ -1508,18 +1553,19 @@ function dengele(sorular){ // doğru şıkları A-B-C-D arasında eşit dağıt�
   return;
  }
 }
-function ozelQuiz(slug, t){
+function ozelQuiz(slug, t, gizli){ // gizli: sunucu anahtarı (a) ve açıklamayı (tr) göndermedi → a = -1, sonuçta sunucudan gelir
  if (!t || !Array.isArray(t.sorular) || !t.sorular.length || t.sorular.length > 40) return null;
  const ad = String(t.ad || 'Ödev').slice(0, 60);
- const qs = t.sorular.filter(q => q && typeof q.q === 'string' && Array.isArray(q.o) && q.o.length === 4 && q.o.every(x => typeof x === 'string') && Number.isInteger(q.a) && q.a >= 0 && q.a <= 3)
-  .map(q => ({c: '', q: q.q, o: q.o, a: q.a, tr: typeof q.tr === 'string' ? q.tr : ''}));
+ const qs = t.sorular.filter(q => q && typeof q.q === 'string' && Array.isArray(q.o) && q.o.length === 4 && q.o.every(x => typeof x === 'string') && (gizli ? !('a' in q) || Number.isInteger(q.a) : Number.isInteger(q.a) && q.a >= 0 && q.a <= 3))
+  .map(q => ({c: '', q: q.q, o: q.o, a: Number.isInteger(q.a) && q.a >= 0 && q.a <= 3 ? q.a : -1, tr: typeof q.tr === 'string' ? q.tr : ''}));
  if (qs.length !== t.sorular.length) return null;
  const kaynak = t.kaynak && QUIZZES.find(z => z.slug === t.kaynak);
+ const scoring = t.puanlama === 'lgs' || t.puanlama === 'plain' ? t.puanlama : kaynak && kaynak.scoring === 'plain' ? 'plain' : 'lgs'; // Kod.gs testAnahtari_ ile aynı kural
  if (kaynak) { // öğretmenin onayladığı hazır test: başlık, renkler, mesajlar hazır testten; sorular onaylanan hâlden
   qs.forEach((q, i) => { q.c = t.sorular[i].c || kaynak.questions[0].c || ''; });
-  return Object.assign({}, kaynak, {slug, questions: qs, facts: kaynak.facts.map(f => f[1] === 'soru' ? [String(qs.length), 'soru'] : f)});
+  return Object.assign({}, kaynak, {slug, scoring, questions: qs, facts: kaynak.facts.map(f => f[1] === 'soru' ? [String(qs.length), 'soru'] : f)});
  }
- return {slug, title: 'Altı Saniye · ' + ad, name: ad, desc: '', scoring: 'lgs', eyebrow: 'Ödev', heroTop: ad, heroBottom: SN + ' saniye',
+ return {slug, title: 'Altı Saniye · ' + ad, name: ad, desc: '', scoring, eyebrow: 'Ödev', heroTop: ad, heroBottom: SN + ' saniye',
   leadHtml: 'Her soruda <b>' + SN + ' saniye</b> var. Süre dolunca doğru şık yanar, ardından sıradaki soru gelir.',
   facts: [[String(qs.length), 'soru'], ['4', 'şık'], [String(SN), 'saniye']], playHint: 'Dokunarak cevapla, sonunda LGS netini gör.',
   sheetTag: ad.toLocaleUpperCase('tr').slice(0, 18),
